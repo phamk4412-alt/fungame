@@ -95,6 +95,7 @@ function view(p, now) {
     defense: L.defensePower(p),
     shieldUntil: p.shieldUntil,
     raid: { ...win, left: L.raidsLeft(p, win.week), perWeekend: L.RAIDS_PER_WEEKEND },
+    scavengeReadyAt: L.scavengeReadyAt(p),
     log: p.log,
   };
 }
@@ -162,6 +163,13 @@ const routes = {
     if (err) return [400, { error: err }];
     persist(p);
     return [200, { state: view(p, now) }];
+  },
+
+  'POST scavenge': (body, now, p) => {
+    const result = L.scavenge(p, body.spot, now);
+    if (result.error) return [400, { error: result.error }];
+    persist(p);
+    return [200, { result, state: view(p, now) }];
   },
 
   'GET targets': (body, now, p) => [200, { targets: targets(p, now) }],

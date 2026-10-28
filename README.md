@@ -55,6 +55,12 @@ Game xây căn cứ sau ngày tận thế, chơi lâu dài nhiều tuần. Mỗi
 - **Thắng** thì lấy được 25% phần vật tư không được giấu của đối thủ. Người bị cướp được **khiên 12 giờ**. Đi cướp người khác thì mất khiên của mình.
 - Đánh thắng hay thua đều mất một phần chiến binh, thua thì mất một nửa.
 
+**Chế độ 3D góc nhìn thứ 3:** trong bảng căn cứ bấm **🎮 Vào căn cứ 3D** (hoặc mở `/raid3d.html`). Bạn điều khiển một người sống sót đi lại trong căn cứ của mình, thấy các công trình to dần theo cấp và hàng rào cao dần theo cấp Tường rào. Đi tới công trình để nâng cấp. Ra bãi hoang ngoài hàng rào có 6 **đống đổ nát** để nhặt thêm vật tư (40 + 20 × cấp Trụ sở mỗi lần, mỗi đống 30 phút mới nhặt lại được).
+
+- Máy tính: **WASD** hoặc phím mũi tên để đi, giữ **Shift** để chạy, giữ chuột kéo để xoay camera, lăn chuột để phóng to, **E** để tương tác.
+- Điện thoại: cần điều khiển ảo góc trái để đi, vuốt màn hình để xoay camera, bấm nút ở khung góc phải để tương tác.
+- Chọn mục tiêu đi cướp và huấn luyện chiến binh vẫn làm ở bảng 2D.
+
 Muốn đổi tốc độ sinh vật tư, giá xây, giờ mở cướp hay tỉ lệ cướp, sửa các hằng số ở đầu file `raid/logic.js`.
 
 ### Lưu dữ liệu (bắt buộc khi chạy trên Render)
@@ -138,7 +144,7 @@ Gói miễn phí sẽ "ngủ" khi không có ai vào, lần đầu mở có th�
 | `raid/logic.js` | Luật Căn cứ tận thế: sinh vật tư, nâng cấp, lịch cuối tuần, trận cướp |
 | `raid/api.js` | API `/api/raid/`: đăng ký, đăng nhập, nâng cấp, huấn luyện, cướp |
 | `raid/store.js` | Lưu người chơi vào Postgres (hoặc file khi chạy trên máy) |
-| `public/` | Giao diện (HTML, CSS, JS), Căn cứ tận thế ở `raid.html` |
+| `public/` | Giao diện (HTML, CSS, JS), Căn cứ tận thế ở `raid.html`, bản 3D ở `raid3d.html` (Three.js tải từ CDN) |
 | `test.js`, `raid/test.js` | Kiểm thử: `npm test` mô phỏng 2000 ván Poker, 2000 ván Xì dách và luật Căn cứ tận thế |
 
 Muốn đổi số chip ban đầu, mức blind hay thời gian mỗi lượt, sửa các hằng số ở đầu file `game.js`.

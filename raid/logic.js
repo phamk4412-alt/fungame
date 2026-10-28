@@ -162,6 +162,35 @@ function trainTroops(p, count) {
   return null;
 }
 
+// ---------- Nhặt phế liệu ngoài bãi hoang (chế độ 3D) ----------
+
+const SCAVENGE_SPOTS = 6; // điểm i cho loại vật tư RESOURCES[i % 3]
+const SCAVENGE_COOLDOWN_MS = 30 * 60 * 1000;
+
+function scavengeAmount(p) {
+  return 40 + 20 * p.buildings.hq;
+}
+
+function scavenge(p, spot, now) {
+  spot = Math.floor(Number(spot));
+  if (!(spot >= 0 && spot < SCAVENGE_SPOTS)) return { error: 'Điểm nhặt không hợp lệ.' };
+  p.scavenged = p.scavenged || {};
+  const readyAt = (p.scavenged[spot] || 0) + SCAVENGE_COOLDOWN_MS;
+  if (readyAt > now) return { error: 'Chỗ này vừa nhặt xong, chờ một lúc nữa.' };
+  const r = RESOURCES[spot % RESOURCES.length];
+  const cap = capacity(p);
+  const before = p.resources[r];
+  p.resources[r] = Math.max(before, Math.min(cap, before + scavengeAmount(p)));
+  p.scavenged[spot] = now;
+  return { resource: r, amount: Math.floor(p.resources[r] - before) };
+}
+
+function scavengeReadyAt(p) {
+  const out = [];
+  for (let i = 0; i < SCAVENGE_SPOTS; i++) out.push(((p.scavenged || {})[i] || 0) + SCAVENGE_COOLDOWN_MS);
+  return out;
+}
+
 // ---------- Lịch cuối tuần ----------
 
 // Trả về { open, opensAt, closesAt, week } theo giờ Việt Nam
@@ -263,4 +292,7 @@ module.exports = {
   raidsLeft,
   stealable,
   raid,
+  SCAVENGE_SPOTS,
+  scavenge,
+  scavengeReadyAt,
 };

@@ -1,0 +1,173 @@
+:root {
+  --panel: rgba(28, 24, 18, 0.88);
+  --line: #4a402f;
+  --hazard: #e8b730;
+  --toxic: #8fc24a;
+  --text: #ece4d4;
+  --muted: #a89c86;
+  --red: #d24a3a;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #2a2118; }
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.hidden { display: none !important; }
+#view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+.btn {
+  display: inline-block;
+  border: 0;
+  border-radius: 6px;
+  padding: 9px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #3a3226;
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn.primary { background: var(--hazard); color: #231a00; }
+.btn.small { padding: 6px 10px; font-size: 12px; }
+
+.hud-top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  pointer-events: none;
+}
+.hud-top > * { pointer-events: auto; }
+.res-bar { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
+.res { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; font-size: 14px; }
+.res b { font-variant-numeric: tabular-nums; }
+.res small { color: var(--muted); font-size: 11px; }
+.res.full b { color: var(--red); }
+
+.banner, .queue {
+  position: fixed;
+  left: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  max-width: calc(100% - 24px);
+}
+.banner { top: 58px; }
+.banner.open { border-color: var(--red); }
+.queue { top: 94px; }
+.queue.busy { border-color: var(--hazard); }
+
+#labels { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.label {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: rgba(20, 17, 12, 0.75);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.label b { color: var(--hazard); font-family: 'Courier New', monospace; }
+.label.ready { border-color: var(--toxic); color: var(--toxic); }
+
+.prompt {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  width: min(420px, calc(100% - 24px));
+  background: var(--panel);
+  border: 1px solid var(--hazard);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.prompt h3 { margin: 0; font-size: 16px; display: flex; justify-content: space-between; gap: 8px; }
+.prompt h3 span { color: var(--hazard); font-family: 'Courier New', monospace; font-size: 13px; }
+.prompt p { margin: 0; color: var(--muted); font-size: 13px; }
+.cost { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; }
+.cost .short { color: var(--red); }
+
+.help {
+  position: fixed;
+  right: 12px;
+  bottom: 8px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  text-shadow: 0 1px 2px #000;
+  max-width: 50%;
+  text-align: right;
+}
+
+/* Cần điều khiển ảo, chỉ hiện trên màn cảm ứng */
+.stick {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  display: none;
+}
+.knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 50px;
+  height: 50px;
+  margin: -25px 0 0 -25px;
+  border-radius: 50%;
+  background: rgba(232, 183, 48, 0.6);
+}
+body.touch .stick { display: block; }
+body.touch .help { display: none; }
+body.touch .prompt { left: auto; right: 12px; transform: none; width: min(300px, calc(100% - 170px)); bottom: 16px; }
+
+.loading {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #15130f;
+  font-family: 'Courier New', monospace;
+  color: var(--hazard);
+  font-size: 18px;
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  top: 130px;
+  transform: translateX(-50%);
+  background: #3a3226;
+  border: 1px solid var(--hazard);
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  max-width: calc(100% - 24px);
+}
+
+@media (max-width: 600px) {
+  .res { padding: 3px 6px; font-size: 12px; }
+  .res small { display: none; }
+  .banner { top: 50px; font-size: 12px; }
+  .queue { top: 82px; font-size: 12px; }
+}
