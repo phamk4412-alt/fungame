@@ -249,7 +249,12 @@ setInterval(() => {
 // ---------- Sự kiện ----------
 
 $('joinBtn').onclick = join;
-$('nameInput').onkeydown = $('roomInput').onkeydown = (e) => e.key === 'Enter' && join();
+// Không trả về false trong onkeydown, nếu không trình duyệt sẽ chặn gõ phím
+for (const id of ['nameInput', 'roomInput']) {
+  $(id).addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') join();
+  });
+}
 $('startBtn').onclick = () => send({ type: 'start' });
 $('foldBtn').onclick = () => send({ type: 'action', action: { type: 'fold' } });
 $('callBtn').onclick = (e) => send({ type: 'action', action: { type: e.target.dataset.type } });
