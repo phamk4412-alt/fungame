@@ -80,3 +80,15 @@ assert.strictEqual(fort.shieldUntil, 0);
 for (let i = 0; i < 5; i++) L.raid(atk, fort, sat19, win);
 assert.strictEqual(L.raidsLeft(atk, win.week), 0);
 console.log('✓ Cướp: tính thắng thua, cướp 25% phần không giấu, khiên 12 giờ, giới hạn lượt');
+
+// Nhặt phế liệu ở bãi hoang, mỗi điểm hồi sau 30 phút
+const s = L.newPlayer('s', 'S', t0);
+const got = L.scavenge(s, 0, t0);
+assert.deepStrictEqual(got, { resource: 'scrap', amount: 60 });
+assert.ok(L.scavenge(s, 0, t0 + 1000).error);
+assert.strictEqual(L.scavenge(s, 1, t0).resource, 'fuel');
+assert.ok(L.scavenge(s, 6, t0).error);
+assert.ok(!L.scavenge(s, 0, t0 + 30 * 60 * 1000).error);
+s.resources.food = L.capacity(s);
+assert.strictEqual(L.scavenge(s, 2, t0).amount, 0);
+console.log('✓ Nhặt phế liệu: đúng loại, có thời gian hồi, không vượt sức chứa');
