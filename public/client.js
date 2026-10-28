@@ -300,10 +300,17 @@ function xdStatus() {
       : `Đặt cược đi nào! Còn ${secondsLeft()} giây`;
   }
   if (s.stage === 'playing' && s.toAct >= 0) {
+    if (iAmDealer) return `🎩 Bạn làm cái. Chờ ${escapeHtml(s.seats[s.toAct].name)} rút bài xong là tới lượt bạn lật bài...`;
     return s.toAct === s.mySeat ? '👉 Tới lượt bạn!' : `Đang chờ ${escapeHtml(s.seats[s.toAct].name)}...`;
   }
   if (s.stage === 'dealer') {
-    if (iAmDealer) return `👉 Tới lượt bạn làm cái: rút thêm, hoặc lật bài từng nhà (${secondsLeft()}s)`;
+    if (iAmDealer) {
+      const h = s.dealer.hand;
+      if (h && h.kind === 'normal' && h.points < s.dealerMin) {
+        return `👉 Bạn mới có ${h.points} điểm, phải rút đủ ${s.dealerMin} điểm mới được lật bài (${secondsLeft()}s)`;
+      }
+      return `👉 Tới lượt bạn làm cái: bấm vào nhà nào để lật bài nhà đó, rút thêm, hoặc lật hết (${secondsLeft()}s)`;
+    }
     return `Đang chờ nhà cái ${escapeHtml(s.dealer.name)}...`;
   }
   if (s.stage === 'result') {
@@ -355,6 +362,13 @@ function renderXdSeats() {
     }
     if (i === s.mySeat) el.classList.add('me');
     const dealerTurn = p.isDealer && s.stage === 'dealer';
+    // Nhà cái bấm vào ghế để lật bài nhà đó
+    const me = s.seats[s.mySeat];
+    if (me && me.isDealer && s.stage === 'dealer' && p.inHand && !p.settled) {
+      el.classList.add('revealable');
+      el.title = 'Bấm để lật bài nhà này';
+      el.onclick = () => send({ type: 'action', action: { type: 'reveal', seat: i } });
+    }
     if (i === s.toAct || dealerTurn) el.classList.add('turn');
     if (!p.connected) el.classList.add('offline');
     if (p.result && p.result.outcome > 0) el.classList.add('winner');
