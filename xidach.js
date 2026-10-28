@@ -1,4 +1,5 @@
-// Logic một bàn Xì dách (luật Việt Nam), nhà cái là máy, tối đa 6 người chơi
+// Logic một bàn Xì dách (luật Việt Nam), tối đa 6 người.
+// Người chơi thay phiên làm cái mỗi ván; chỉ còn 1 người thì máy làm cái.
 const crypto = require('crypto');
 
 const MAX_SEATS = 6;
@@ -7,13 +8,15 @@ const MIN_BET = 10;
 const MAX_BET = 500;
 const BET_SECONDS = 15;
 const TURN_SECONDS = 20;
-const PLAYER_MIN = 16; // dưới 16 điểm là "non", bắt buộc rút thêm
-const DEALER_STAND = 17; // nhà cái rút tới khi đủ 17 điểm
-const DEALER_DRAW_DELAY = 900;
+const DEALER_SECONDS = 30;
+const PLAYER_MIN = 16; // người chơi dưới 16 điểm là "non", bắt buộc rút thêm
+const DEALER_MIN = 15; // nhà cái phải đủ 15 điểm mới được lật bài
+const BOT_STAND = 17; // máy làm cái rút tới khi đủ 17 điểm
+const BOT_DRAW_DELAY = 900;
 const NEXT_HAND_DELAY = 7000;
 const BUST_WAIT_MS = 3 * 60 * 1000; // hết tiền phải chờ 3 phút mới được mua lại
 
-const PAYOUT = { xiban: 3, xidach: 2, ngulinh: 2, normal: 1 };
+const PAYOUT = { xiban: 3, xidach: 2, ngulinh: 2, normal: 1, bust: 1 };
 const KIND_NAME = { xiban: 'Xì bàn', xidach: 'Xì dách', ngulinh: 'Ngũ linh', bust: 'Quắc' };
 const KIND_RANK = { bust: 0, normal: 1, ngulinh: 2, xidach: 3, xiban: 4 };
 
@@ -52,6 +55,10 @@ function evalHand(cards) {
   return { kind, points: pts, name: KIND_NAME[kind] || `${pts} điểm` };
 }
 
+function isSpecial(h) {
+  return h.kind === 'xiban' || h.kind === 'xidach';
+}
+
 // So bài người chơi với nhà cái: 1 thắng, 0 hòa, -1 thua
 function compare(p, d) {
   if (p.kind === 'bust' && d.kind === 'bust') return 0; // cùng quắc thì hòa
@@ -69,8 +76,12 @@ class XiDachTable {
     this.seats = new Array(MAX_SEATS).fill(null);
     this.stage = 'waiting'; // waiting | betting | playing | dealer | result
     this.deck = [];
+    this.dealerSeat = -1; // -1: máy làm cái
+    this.lastDealer = -1;
+    this.wantDealer = -1; // người xin làm cái (giữ cái tới khi thôi)
     this.dealerCards = [];
-    this.dealerHand = null;
+    this.dealerShown = false; // nhà cái đã lật bài cho cả bàn xem chưa
+    this.order = []; // thứ tự lượt người chơi
     this.toAct = -1;
     this.deadline = 0;
     this.timer = null;
@@ -98,6 +109,7 @@ class XiDachTable {
       cards: [],
       inHand: false,
       done: false,
+      settled: false,
       hand: null,
       result: null,
       connected: true,
@@ -117,11 +129,31 @@ class XiDachTable {
     if (i >= 0) this.seats[i].connected = connected;
   }
 
+  isRunning() {
+    return this.stage === 'playing' || this.stage === 'dealer';
+  }
+
   removePlayer(id) {
     const i = this.seatOf(id);
     if (i < 0) return;
     const p = this.seats[i];
-    if (p.inHand && (this.stage === 'playing' || this.stage === 'dealer')) {
+    if (i === this.dealerSeat && (this.isRunning() || this.stage === 'betting')) {
+      // Nhà cái bỏ đi giữa ván: trả lại tiền cược chưa tính cho mọi người
+      this.addLog(`Nhà cái ${p.name} rời bàn, ván này hủy, trả lại tiền cược.`);
+      for (const q of this.seats) {
+        if (q && q.inHand && !q.settled) {
+          q.chips += q.bet;
+          q.bet = 0;
+          q.inHand = false;
+        }
+      }
+      this.seats[i] = null;
+      this.dealerSeat = -1;
+      if (this.wantDealer === i) this.wantDealer = -1;
+      this.endHand();
+      return;
+    }
+    if (p.inHand && !p.settled && this.isRunning()) {
       // Đang có tiền cược trên bàn: dằn bài rồi rời sau ván
       p.leaveAfterHand = true;
       if (this.toAct === i) this.act(id, { type: 'stand', force: true });
@@ -133,6 +165,7 @@ class XiDachTable {
     }
     this.addLog(`${p.name} đã rời bàn.`);
     this.seats[i] = null;
+    if (this.wantDealer === i) this.wantDealer = -1;
     if (this.stage === 'betting') this.checkBets();
   }
 
@@ -165,6 +198,15 @@ class XiDachTable {
     this.timer = setTimeout(fn, ms);
   }
 
+  dealer() {
+    return this.dealerSeat >= 0 ? this.seats[this.dealerSeat] : null;
+  }
+
+  dealerName() {
+    const d = this.dealer();
+    return d ? d.name : 'Nhà cái (máy)';
+  }
+
   // ---------- Vòng chơi ----------
 
   canStart() {
@@ -177,7 +219,39 @@ class XiDachTable {
     if (this.canStart()) this.startHand();
   }
 
-  // Bắt đầu ván: mọi người có chip được đặt cược
+  // Xin làm cái / thôi làm cái, có hiệu lực từ ván sau
+  claimDealer(i, on) {
+    const p = this.seats[i];
+    if (!on) {
+      if (this.wantDealer !== i) return null;
+      this.wantDealer = -1;
+      this.addLog(`${p.name} thôi giữ cái, từ ván sau thay phiên làm cái.`);
+      return null;
+    }
+    if (this.wantDealer >= 0 && this.wantDealer !== i) return `${this.seats[this.wantDealer].name} đang giữ cái rồi.`;
+    if (p.chips <= 0) return 'Hết chip thì không làm cái được.';
+    this.wantDealer = i;
+    this.addLog(`🎩 ${p.name} xin làm cái${this.stage === 'waiting' ? '' : ' từ ván sau'}.`);
+    return null;
+  }
+
+  // Chọn nhà cái: ai xin làm cái thì người đó giữ cái, không thì lần lượt theo vòng ghế.
+  // Chỉ còn 1 người có chip thì máy làm cái.
+  pickDealer() {
+    const ready = (p) => p && p.chips > 0 && p.connected;
+    if (this.seats.filter(ready).length < 2) return -1;
+    if (this.wantDealer >= 0) {
+      if (ready(this.seats[this.wantDealer])) return this.wantDealer;
+      if (!this.seats[this.wantDealer] || this.seats[this.wantDealer].chips <= 0) this.wantDealer = -1;
+    }
+    for (let k = 1; k <= MAX_SEATS; k++) {
+      const i = (this.lastDealer + k + MAX_SEATS) % MAX_SEATS;
+      if (ready(this.seats[i])) return i;
+    }
+    return -1;
+  }
+
+  // Bắt đầu ván: chọn nhà cái, nhà con đặt cược
   startHand() {
     if (!this.seats.some((p) => p && p.chips > 0 && p.connected)) {
       this.stage = 'waiting';
@@ -187,7 +261,7 @@ class XiDachTable {
     this.handNo++;
     this.stage = 'betting';
     this.dealerCards = [];
-    this.dealerHand = null;
+    this.dealerShown = false;
     this.toAct = -1;
     for (const p of this.seats) {
       if (!p) continue;
@@ -196,21 +270,25 @@ class XiDachTable {
       p.hand = null;
       p.result = null;
       p.done = false;
+      p.settled = false;
       p.inHand = false;
     }
-    this.addLog(`--- Ván #${this.handNo}: đặt cược ---`);
+    this.dealerSeat = this.pickDealer();
+    if (this.dealerSeat >= 0) this.lastDealer = this.dealerSeat;
+    this.addLog(`--- Ván #${this.handNo}: ${this.dealerName()} làm cái ---`);
     this.setTimer(BET_SECONDS * 1000, () => this.deal());
     this.onChange();
     return true;
   }
 
-  placeBet(p, amount) {
+  placeBet(i, amount) {
+    const p = this.seats[i];
     if (this.stage !== 'betting') return 'Chưa tới lúc đặt cược.';
+    if (i === this.dealerSeat) return 'Nhà cái không đặt cược.';
     if (p.inHand) return 'Bạn đã đặt cược rồi.';
     amount = Math.floor(Number(amount));
     if (!Number.isFinite(amount) || amount < MIN_BET) return `Cược tối thiểu ${MIN_BET}.`;
     amount = Math.min(amount, MAX_BET, p.chips);
-    if (amount < MIN_BET && amount < p.chips) return `Cược tối thiểu ${MIN_BET}.`;
     p.chips -= amount;
     p.bet = amount;
     p.lastBet = amount;
@@ -220,10 +298,39 @@ class XiDachTable {
     return null;
   }
 
-  // Mọi người có chip đã cược xong thì chia bài luôn
+  // Mọi nhà con có chip đã cược xong thì chia bài luôn
   checkBets() {
-    const waiting = this.seats.some((p) => p && p.chips > 0 && !p.inHand && p.connected);
+    const waiting = this.seats.some(
+      (p, i) => p && i !== this.dealerSeat && p.chips > 0 && !p.inHand && p.connected
+    );
     if (!waiting && this.seats.some((p) => p && p.inHand)) this.deal();
+  }
+
+  // Tính tiền một nhà con với bài hiện tại của nhà cái
+  settlePlayer(i) {
+    const p = this.seats[i];
+    if (!p || !p.inHand || p.settled) return;
+    const d = evalHand(this.dealerCards);
+    const dealer = this.dealer();
+    const r = compare(p.hand, d);
+    let delta = 0;
+    if (r > 0) {
+      delta = p.bet * PAYOUT[p.hand.kind];
+      if (dealer) delta = Math.min(delta, dealer.chips); // nhà cái chỉ đền được số chip đang có
+    } else if (r < 0) {
+      // Thua xì bàn / xì dách / ngũ linh của nhà cái thì đền theo tỉ lệ, tối đa số chip có
+      delta = -Math.min(p.bet * (PAYOUT[d.kind] || 1), p.bet + p.chips);
+    }
+    p.chips += p.bet + delta;
+    if (dealer) dealer.chips -= delta;
+    p.result = { outcome: r, delta };
+    p.settled = true;
+    p.done = true;
+    const label = p.hand.kind === 'normal' ? `${p.hand.points} điểm` : p.hand.name;
+    if (r > 0) this.addLog(`🏆 ${p.name} thắng ${delta} (${label}).`);
+    else if (r < 0) this.addLog(`${p.name} thua ${-delta} (${label}).`);
+    else this.addLog(`${p.name} hòa (${label}).`);
+    p.bet = 0;
   }
 
   deal() {
@@ -236,24 +343,32 @@ class XiDachTable {
       return;
     }
     this.deck = newDeck();
+    // Thứ tự: bắt đầu từ người ngồi sau nhà cái
+    this.order = [];
+    for (let k = 1; k <= MAX_SEATS; k++) {
+      const i = (this.dealerSeat + k + MAX_SEATS) % MAX_SEATS;
+      if (this.seats[i] && this.seats[i].inHand) this.order.push(i);
+    }
     for (let r = 0; r < 2; r++) {
-      for (const p of players) p.cards.push(this.deck.pop());
+      for (const i of this.order) this.seats[i].cards.push(this.deck.pop());
       this.dealerCards.push(this.deck.pop());
     }
     this.stage = 'playing';
-    for (const p of players) p.hand = evalHand(p.cards);
+    for (const i of this.order) this.seats[i].hand = evalHand(this.seats[i].cards);
 
     const d = evalHand(this.dealerCards);
-    if (d.kind === 'xiban' || d.kind === 'xidach') {
-      // Nhà cái có xì bàn / xì dách: lật bài và tính tiền ngay
+    if (isSpecial(d)) {
+      // Nhà cái có xì bàn / xì dách: lật bài và tính tiền cả bàn ngay
       this.addLog(`Nhà cái có ${d.name}!`);
-      this.settle();
+      this.finish();
       return;
     }
-    for (const p of players) {
-      if (p.hand.kind === 'xiban' || p.hand.kind === 'xidach') {
-        p.done = true;
+    for (const i of this.order) {
+      const p = this.seats[i];
+      if (isSpecial(p.hand)) {
+        // Nhà con có xì bàn / xì dách: lật luôn, ăn ngay
         this.addLog(`🎉 ${p.name} có ${p.hand.name}!`);
+        this.settlePlayer(i);
       }
     }
     this.toAct = -1;
@@ -261,8 +376,9 @@ class XiDachTable {
   }
 
   nextTurn() {
-    const next = this.seats.findIndex((p, i) => p && p.inHand && !p.done && i > this.toAct);
-    if (next < 0) {
+    const pos = this.order.indexOf(this.toAct);
+    const next = this.order.slice(pos + 1).find((i) => !this.seats[i].done);
+    if (next === undefined) {
       this.toAct = -1;
       this.dealerTurn();
       return;
@@ -286,12 +402,104 @@ class XiDachTable {
     }
   }
 
-  // Hành động: bet (amount) / hit (rút) / stand (dằn)
+  unsettled() {
+    return this.order.filter((i) => this.seats[i] && !this.seats[i].settled);
+  }
+
+  // Tới lượt nhà cái
+  dealerTurn() {
+    if (!this.unsettled().length) {
+      this.finish();
+      return;
+    }
+    this.stage = 'dealer';
+    if (this.dealerSeat < 0) {
+      // Máy làm cái: rút tới khi đủ 17 điểm hoặc đủ 5 lá
+      const step = () => {
+        const d = evalHand(this.dealerCards);
+        if (d.kind === 'normal' && d.points < BOT_STAND) {
+          this.dealerCards.push(this.deck.pop());
+          this.onChange();
+          this.setTimer(BOT_DRAW_DELAY, step);
+        } else {
+          this.finish();
+        }
+      };
+      this.dealerShown = true;
+      this.onChange();
+      this.setTimer(BOT_DRAW_DELAY, step);
+      return;
+    }
+    this.startDealerTimer();
+    this.onChange();
+  }
+
+  startDealerTimer() {
+    const d = this.dealer();
+    const secs = d && d.connected ? DEALER_SECONDS : 3;
+    this.setTimer(secs * 1000, () => this.autoDealer());
+  }
+
+  // Nhà cái hết giờ: non thì tự rút, đủ tuổi thì lật hết
+  autoDealer() {
+    if (this.stage !== 'dealer' || this.dealerSeat < 0) return;
+    const h = evalHand(this.dealerCards);
+    if (h.kind === 'normal' && h.points < DEALER_MIN) {
+      this.dealerAct({ type: 'hit' });
+      if (this.stage === 'dealer') this.autoDealer();
+    } else {
+      this.dealerAct({ type: 'revealAll' });
+    }
+  }
+
+  // Nhà cái: hit (rút), reveal (lật một nhà, seat), revealAll (lật hết)
+  dealerAct(action) {
+    const h = evalHand(this.dealerCards);
+    if (action.type === 'hit') {
+      if (h.kind !== 'normal') return 'Không rút thêm được nữa.';
+      this.dealerCards.push(this.deck.pop());
+      this.addLog(`Nhà cái rút thêm lá thứ ${this.dealerCards.length}.`);
+      const nh = evalHand(this.dealerCards);
+      // Quắc hoặc đủ 5 lá thì phải lật hết
+      if (nh.kind !== 'normal') {
+        this.finish();
+        return null;
+      }
+      this.startDealerTimer();
+      this.onChange();
+      return null;
+    }
+    if (action.type === 'reveal' || action.type === 'revealAll') {
+      if (h.kind === 'normal' && h.points < DEALER_MIN) {
+        return `Nhà cái dưới ${DEALER_MIN} điểm là non, phải rút thêm.`;
+      }
+      if (action.type === 'revealAll') {
+        this.finish();
+        return null;
+      }
+      const seat = Number(action.seat);
+      if (!this.unsettled().includes(seat)) return 'Nhà này đã lật rồi.';
+      this.dealerShown = true;
+      this.addLog(`Nhà cái lật bài với ${this.seats[seat].name} (${h.name}).`);
+      this.settlePlayer(seat);
+      if (!this.unsettled().length) this.finish();
+      else {
+        this.startDealerTimer();
+        this.onChange();
+      }
+      return null;
+    }
+    return 'Hành động không hợp lệ.';
+  }
+
+  // Hành động: bet (amount) / hit (rút) / stand (dằn); nhà cái: hit / reveal / revealAll
   act(id, action) {
     const i = this.seatOf(id);
     if (i < 0) return 'Bạn chưa ngồi vào bàn.';
     const p = this.seats[i];
-    if (action.type === 'bet') return this.placeBet(p, action.amount);
+    if (action.type === 'bet') return this.placeBet(i, action.amount);
+    if (action.type === 'claimDealer') return this.claimDealer(i, !!action.on);
+    if (this.stage === 'dealer' && i === this.dealerSeat) return this.dealerAct(action);
     if (this.stage !== 'playing' || this.toAct !== i) return 'Chưa tới lượt bạn.';
 
     if (action.type === 'hit') {
@@ -319,46 +527,25 @@ class XiDachTable {
     return 'Hành động không hợp lệ.';
   }
 
-  // Nhà cái lật bài và rút tới khi đủ 17 điểm hoặc đủ 5 lá
-  dealerTurn() {
-    this.stage = 'dealer';
-    const step = () => {
-      const d = evalHand(this.dealerCards);
-      if (d.kind === 'normal' && d.points < DEALER_STAND) {
-        this.dealerCards.push(this.deck.pop());
-        this.onChange();
-        this.setTimer(DEALER_DRAW_DELAY, step);
-      } else {
-        this.settle();
-      }
-    };
-    this.onChange();
-    this.setTimer(DEALER_DRAW_DELAY, step);
-  }
-
-  settle() {
+  // Lật bài nhà cái và tính tiền mọi nhà còn lại
+  finish() {
     clearTimeout(this.timer);
     this.toAct = -1;
+    this.dealerShown = true;
     const d = evalHand(this.dealerCards);
-    this.dealerHand = d;
     this.addLog(`Nhà cái: ${d.name}${d.kind === 'bust' ? ` (${d.points})` : ''}.`);
+    for (const i of this.order) this.settlePlayer(i);
+    this.endHand();
+  }
+
+  endHand() {
+    clearTimeout(this.timer);
+    this.toAct = -1;
     for (const p of this.seats) {
-      if (!p || !p.inHand) continue;
-      const r = compare(p.hand, d);
-      let delta = 0;
-      if (r > 0) delta = p.bet * PAYOUT[p.hand.kind];
-      else if (r < 0) delta = -p.bet;
-      p.chips += p.bet + delta;
-      p.result = { outcome: r, delta };
-      const label = p.hand.kind === 'normal' ? `${p.hand.points} điểm` : p.hand.name;
-      if (r > 0) this.addLog(`🏆 ${p.name} thắng ${delta} (${label}).`);
-      else if (r < 0) this.addLog(`${p.name} thua ${p.bet} (${label}).`);
-      else this.addLog(`${p.name} hòa (${label}).`);
-      if (p.chips === 0 && !p.rebuyAt) {
+      if (p && p.chips === 0 && p.bet === 0 && !p.rebuyAt && (p.inHand || this.seats.indexOf(p) === this.dealerSeat)) {
         p.rebuyAt = Date.now() + BUST_WAIT_MS;
         this.addLog(`💸 ${p.name} hết tiền, phải chờ 3 phút mới được chơi tiếp.`);
       }
-      p.bet = 0;
     }
     this.stage = 'result';
     for (let i = 0; i < MAX_SEATS; i++) {
@@ -366,6 +553,7 @@ class XiDachTable {
       if (p && p.leaveAfterHand) {
         this.addLog(`${p.name} đã rời bàn.`);
         this.seats[i] = null;
+        if (i === this.dealerSeat) this.dealerSeat = -1;
       }
     }
     this.onChange();
@@ -376,9 +564,11 @@ class XiDachTable {
 
   stateFor(id) {
     const me = this.seatOf(id);
-    const showAll = this.stage === 'result';
-    const dealerOpen = this.stage === 'dealer' || this.stage === 'result';
-    const dealerHand = dealerOpen ? evalHand(this.dealerCards) : null;
+    const iAmDealer = me >= 0 && me === this.dealerSeat;
+    const dealerOpen = this.dealerShown || iAmDealer;
+    const dealerCards = dealerOpen
+      ? this.dealerCards
+      : this.dealerCards.map((c, k) => (k === 0 && this.dealerSeat < 0 ? c : '??'));
     return {
       game: 'xidach',
       code: this.code,
@@ -386,21 +576,24 @@ class XiDachTable {
       handNo: this.handNo,
       toAct: this.toAct,
       deadline: this.deadline,
-      turnSeconds: TURN_SECONDS,
+      turnSeconds: this.stage === 'dealer' ? DEALER_SECONDS : TURN_SECONDS,
       minBet: MIN_BET,
       maxBet: MAX_BET,
       playerMin: PLAYER_MIN,
+      dealerMin: DEALER_MIN,
       mySeat: me,
+      wantDealer: this.wantDealer,
       canStart: this.canStart(),
       dealer: {
-        cards: dealerOpen ? this.dealerCards : this.dealerCards.map((c, k) => (k === 0 ? c : '??')),
-        hand: dealerHand,
+        seat: this.dealerSeat,
+        name: this.dealerName(),
+        cards: dealerCards,
+        hand: dealerOpen && this.dealerCards.length ? evalHand(this.dealerCards) : null,
       },
       log: this.log.slice(-30),
       seats: this.seats.map((p, i) => {
         if (!p) return null;
-        const special = p.hand && (p.hand.kind === 'xiban' || p.hand.kind === 'xidach');
-        const visible = i === me || showAll || special;
+        const visible = i === me || p.settled || this.stage === 'result';
         return {
           name: p.name,
           chips: p.chips,
@@ -408,6 +601,8 @@ class XiDachTable {
           lastBet: p.lastBet,
           inHand: p.inHand,
           done: p.done,
+          settled: p.settled,
+          isDealer: i === this.dealerSeat,
           connected: p.connected,
           rebuyAt: p.rebuyAt || 0,
           cards: visible ? p.cards : p.cards.map(() => '??'),

@@ -5,7 +5,7 @@ Các bàn chơi bài chạy trên trình duyệt. Mỗi người mở link trên
 Hiện có 2 game, chọn khi tạo phòng mới:
 
 - **♠ Poker** (Texas Hold'em): người chơi đấu với nhau.
-- **🃏 Xì dách** (luật Việt Nam): mỗi người đấu với nhà cái là máy. Chơi một mình cũng được.
+- **🃏 Xì dách** (luật Việt Nam): ai muốn thì xin làm cái, không thì thay phiên nhau. Chơi một mình thì máy làm cái.
 
 Vào phòng bằng link mời thì tự vào đúng game của phòng đó.
 
@@ -23,19 +23,21 @@ Vào phòng bằng link mời thì tự vào đúng game của phòng đó.
 
 ## Luật Xì dách
 
-- Tối đa **6 người** cùng đấu với **nhà cái (máy)**. Mỗi người có 1000 chip ảo.
-- Đầu ván có **15 giây đặt cược** (từ 10 đến 500 chip). Ai không cược thì ngồi ngoài ván đó. Cược xong hết thì chia bài luôn.
-- Mỗi người và nhà cái được 2 lá. Lá đầu của nhà cái lật ngửa.
+- Tối đa **6 người**, mỗi người có 1000 chip ảo.
+- **Chọn làm cái:** ai muốn làm cái thì bấm **🎩 Xin làm cái** ở thanh trên cùng. Người đó giữ cái mọi ván (từ ván sau nếu đang chơi dở) cho tới khi bấm **Thôi làm cái**, hết chip hoặc rời bàn. Mỗi lúc chỉ một người giữ cái.
+- **Thay phiên làm cái:** không ai xin làm cái thì mỗi ván một người làm nhà cái, lần lượt theo vòng ghế. Chỉ có một mình trong phòng thì máy làm cái (máy rút tới khi đủ 17 điểm rồi lật hết).
+- Đầu ván có **15 giây** để các nhà con đặt cược (từ 10 đến 500 chip). Nhà cái không cược. Ai không cược thì ngồi ngoài ván đó.
+- Mỗi người và nhà cái được 2 lá. Bài nhà cái úp, chỉ nhà cái xem được.
 - **Tính điểm:** 2 đến 9 theo số, 10/J/Q/K là 10. Lá **A**: khi có 2 lá thì tính 10 hoặc 11, khi có 3 lá thì 1 hoặc 10, từ 4 lá trở lên chỉ tính 1.
-- **Xì bàn** (2 lá A) thắng gấp 3. **Xì dách** (A với 10/J/Q/K) thắng gấp 2. Có xì bàn hay xì dách thì lật bài luôn.
-- Nếu nhà cái có xì bàn hoặc xì dách thì lật ngay và tính tiền cả bàn (ai có bài bằng thì hòa).
-- Đến lượt mình (20 giây), chọn **Rút bài** hoặc **Dằn bài**. Dưới **16 điểm là non**, phải rút tiếp mới được dằn.
-- **Ngũ linh:** rút đủ 5 lá mà không quá 21 điểm, thắng gấp 2. Hai bên cùng ngũ linh thì ai ít điểm hơn thắng.
-- **Quắc:** quá 21 điểm. Bài quắc vẫn được giấu tới lúc lật. Người quắc thì thua, nhưng nếu **nhà cái cũng quắc thì hòa**.
-- Thứ tự mạnh: xì bàn > xì dách > ngũ linh > điểm thường (cao hơn thắng) > quắc.
-- Nhà cái lật bài sau cùng và rút tới khi đủ **17 điểm** hoặc đủ 5 lá.
-- Hết giờ mà chưa chọn thì tự rút nếu còn non, đủ điểm thì tự dằn.
-- Hết chip cũng phải chờ 3 phút rồi mới mua lại được, như bên Poker.
+- **Xì bàn** (2 lá A) ăn gấp 3. **Xì dách** (A với 10/J/Q/K) ăn gấp 2. Nhà con có xì bàn hay xì dách thì lật luôn, ăn ngay.
+- Nhà cái có xì bàn hoặc xì dách thì lật ngay, ăn cả bàn theo tỉ lệ đó (nhà con có bài bằng thì hòa).
+- Lần lượt từng nhà con (20 giây mỗi lượt) chọn **Rút bài** hoặc **Dằn bài**, tối đa 5 lá. Dưới **16 điểm là non**, phải rút tiếp.
+- **Ngũ linh:** đủ 5 lá mà không quá 21 điểm, ăn gấp 2, chỉ thua xì bàn và xì dách. Hai bên cùng ngũ linh thì ai ít điểm hơn thắng.
+- **Quắc:** quá 21 điểm. Bài quắc vẫn giấu tới lúc bị lật. Người quắc thì thua, nhưng nếu **nhà cái cũng quắc thì hòa**.
+- **Lượt nhà cái** (30 giây mỗi bước): nhà cái tự quyết **rút thêm** hay dừng. Đủ **15 điểm** trở lên thì được **lật từng nhà** (tính tiền riêng nhà đó ngay với bài hiện tại), rồi rút tiếp hay lật nhà khác tùy ý, hoặc bấm **Lật hết**. Nhà cái quắc hoặc đủ 5 lá thì phải lật hết.
+- Hết giờ mà chưa chọn: nhà con non thì tự rút, đủ điểm thì tự dằn; nhà cái non thì tự rút, đủ điểm thì tự lật hết.
+- Nhà cái chỉ đền được số chip đang có. Nhà cái rời bàn giữa ván thì ván đó hủy và trả lại tiền cược.
+- Hết chip phải chờ 3 phút rồi mới mua lại được, như bên Poker.
 
 Muốn đổi mức cược, thời gian hay tỉ lệ ăn, sửa các hằng số ở đầu file `xidach.js`.
 
@@ -56,7 +58,7 @@ Muốn đổi cổng thì chạy `PORT=8080 npm start` (Windows PowerShell: `$en
 
 ## Mời bạn bè vào chơi
 
-Trong bàn, bấm **📋 Sao chép link mời** rồi gửi link cho bạn bè (Zalo, Messenger...). Bạn bè mở link, nhập tên là ngồi vào bàn. Poker cần từ 2 người trở lên, Xì dách thì 1 người cũng chơi được. Bấm **▶ Bắt đầu chơi**, từ ván thứ hai trở đi bài được chia tự động.
+Trong bàn, bấm **📋 Sao chép link mời** rồi gửi link cho bạn bè (Zalo, Messenger...). Bạn bè mở link, nhập tên là ngồi vào bàn. Poker cần từ 2 người trở lên, Xì dách thì 1 người cũng chơi được (máy làm cái). Bấm **▶ Bắt đầu chơi**, từ ván thứ hai trở đi bài được chia tự động.
 
 Link chỉ dùng được khi bạn bè truy cập được vào máy đang chạy server. Có 3 cách:
 
@@ -100,7 +102,7 @@ Gói miễn phí sẽ "ngủ" khi không có ai vào, lần đầu mở có th�
 | `server.js` | Server HTTP + WebSocket, quản lý phòng |
 | `game.js` | Luật Poker: chia bài, vòng cược, side pot, chia tiền |
 | `handeval.js` | Chấm điểm tay bài Poker |
-| `xidach.js` | Luật Xì dách: đặt cược, rút/dằn, nhà cái, tính tiền |
+| `xidach.js` | Luật Xì dách: thay phiên làm cái, đặt cược, rút/dằn, lật từng nhà, tính tiền |
 | `public/` | Giao diện (HTML, CSS, JS) |
 | `test.js` | Kiểm thử: `npm test` mô phỏng 2000 ván Poker và 2000 ván Xì dách |
 

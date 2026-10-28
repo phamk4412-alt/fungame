@@ -16,7 +16,7 @@
       <div class="field">Chọn game <span class="hint">(khi tạo phòng mới)</span>
         <div id="gamePick" class="game-pick">
           <button type="button" class="pick active" data-game="poker">♠ Poker<small>Texas Hold'em</small></button>
-          <button type="button" class="pick" data-game="xidach">🃏 Xì dách<small>Nhà cái là máy</small></button>
+          <button type="button" class="pick" data-game="xidach">🃏 Xì dách<small>Thay phiên làm cái</small></button>
         </div>
       </div>
       <label>Tên của bạn
@@ -34,6 +34,7 @@
     <header class="topbar">
       <div><span id="gameName"></span> · Phòng <b id="roomCode"></b></div>
       <button id="copyBtn" class="btn small">📋 Sao chép link mời</button>
+      <button id="xdClaimBtn" class="btn small hidden">🎩 Xin làm cái</button>
       <button id="leaveBtn" class="btn small ghost">Rời bàn</button>
     </header>
 
@@ -72,6 +73,12 @@
       <span id="xdPoints"></span>
       <button id="xdHitBtn" class="btn primary">Rút bài</button>
       <button id="xdStandBtn" class="btn">Dằn bài</button>
+    </div>
+    <div id="xdDealerBox" class="actions hidden">
+      <span id="xdDealerPoints"></span>
+      <button id="xdDealerHit" class="btn primary">Rút bài</button>
+      <span id="xdRevealList" class="reveal-list"></span>
+      <button id="xdRevealAll" class="btn warn">Lật hết</button>
     </div>
     <div id="rebuyBox" class="actions hidden">
       <span id="rebuyMsg">Bạn đã hết chip.</span>

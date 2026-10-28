@@ -286,3 +286,7 @@ input {
   .table { aspect-ratio: 3 / 4; }
   .table-wrap { padding: 50px 46px; }
 }
+.reveal-list { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+@media (max-width: 900px) {
+  .seat .cards.many .card + .card { margin-left: -10px; }
+}

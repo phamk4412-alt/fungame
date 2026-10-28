@@ -69,46 +69,114 @@ assert.strictEqual(compare(e('Kh 9d'), e('Kh 9c')), 0);
 console.log('✓ Tính điểm Xì dách đúng');
 
 // Mô phỏng nhiều ván Xì dách bằng cách gọi thẳng các bước, bỏ qua hẹn giờ
+function fakeTimers(t) {
+  const real = t.setTimer.bind(t);
+  t.setTimer = (ms, fn) => {
+    real(ms, () => {});
+    t.pending = fn;
+  };
+}
+
+function playHand(t, skipOne) {
+  t.startHand();
+  assert.strictEqual(t.stage, 'betting');
+  const players = t.seats.map((p, i) => i).filter((i) => t.seats[i] && i !== t.dealerSeat);
+  const skip = skipOne ? players[Math.floor(Math.random() * players.length)] : -1;
+  for (const i of players) {
+    if (i === skip || t.seats[i].chips === 0) continue;
+    assert.strictEqual(t.act(t.seats[i].id, { type: 'bet', amount: 10 + Math.floor(Math.random() * 300) }), null);
+  }
+  if (t.dealerSeat >= 0) assert.ok(t.act(t.seats[t.dealerSeat].id, { type: 'bet', amount: 50 }), 'Nhà cái không được cược');
+  if (t.stage === 'betting') t.pending(); // hết giờ cược -> chia bài
+  let guard = 0;
+  while (t.stage === 'playing') {
+    assert.ok(guard++ < 100, 'Ván Xì dách không kết thúc');
+    const p = t.seats[t.toAct];
+    assert.ok(p && p.inHand && !p.done);
+    if (p.hand.points < 16) assert.ok(t.act(p.id, { type: 'stand' }), 'Non mà vẫn dằn được');
+    t.act(p.id, { type: Math.random() < 0.5 || p.hand.points < 16 ? 'hit' : 'stand' });
+  }
+  while (t.stage === 'dealer') {
+    assert.ok(guard++ < 200, 'Nhà cái không kết thúc');
+    if (t.dealerSeat < 0) {
+      t.pending();
+      continue;
+    }
+    const id = t.seats[t.dealerSeat].id;
+    const h = evalHand(t.dealerCards);
+    const left = t.seats.map((q, i) => i).filter((i) => t.seats[i] && t.seats[i].inHand && !t.seats[i].settled);
+    if (h.points < 15) {
+      assert.ok(t.act(id, { type: 'reveal', seat: left[0] }), 'Nhà cái non mà vẫn lật được');
+      assert.strictEqual(t.act(id, { type: 'hit' }), null);
+      continue;
+    }
+    const r = Math.random();
+    if (r < 0.4) assert.strictEqual(t.act(id, { type: 'reveal', seat: left[0] }), null);
+    else if (r < 0.7 && h.points < 19) assert.strictEqual(t.act(id, { type: 'hit' }), null);
+    else assert.strictEqual(t.act(id, { type: 'revealAll' }), null);
+  }
+  assert.strictEqual(t.stage, 'result');
+}
+
 const xd = new XiDachTable('XD', () => {});
 ['a', 'b', 'c', 'd', 'e', 'f'].forEach((id) => xd.addPlayer(id, id.toUpperCase()));
-const realSetTimer = xd.setTimer.bind(xd);
-let pending = null;
-xd.setTimer = (ms, fn) => {
-  realSetTimer(ms, () => {});
-  pending = fn;
-};
+fakeTimers(xd);
+const dealers = new Set();
 let rounds = 0;
 for (let n = 0; n < 2000; n++) {
   for (const p of xd.seats) if (p.chips === 0) p.chips = 1000;
-  xd.startHand();
-  assert.strictEqual(xd.stage, 'betting');
-  const before = new Map(xd.seats.map((p) => [p, p.chips]));
-  // Một người không cược để kiểm tra ngồi ngoài
-  for (const p of xd.seats.slice(0, 5)) assert.strictEqual(xd.act(p.id, { type: 'bet', amount: 10 + Math.floor(Math.random() * 300) }), null);
-  pending(); // hết giờ cược -> chia bài
-  let guard = 0;
-  while (xd.stage === 'playing') {
-    assert.ok(guard++ < 100, 'Ván Xì dách không kết thúc');
-    const p = xd.seats[xd.toAct];
-    assert.ok(p && p.inHand && !p.done);
-    if (p.hand.points < 16) assert.ok(xd.act(p.id, { type: 'stand' }), 'Non mà vẫn dằn được');
-    const r = Math.random();
-    xd.act(p.id, { type: r < 0.5 || p.hand.points < 16 ? 'hit' : 'stand' });
-  }
-  while (xd.stage === 'dealer') pending();
-  assert.strictEqual(xd.stage, 'result');
-  const d = evalHand(xd.dealerCards);
-  assert.ok(d.kind !== 'normal' || d.points >= 17 || xd.dealerCards.length === 2);
+  const before = xd.seats.reduce((sum, p) => sum + p.chips, 0);
+  playHand(xd, true);
+  dealers.add(xd.dealerSeat);
+  assert.ok(xd.dealerSeat >= 0, 'Đông người mà máy vẫn làm cái');
   for (const p of xd.seats) {
-    assert.ok(p.cards.length <= 5);
-    if (!p.inHand) {
-      assert.strictEqual(p.chips, before.get(p));
-      continue;
-    }
-    assert.strictEqual(p.chips - before.get(p), p.result.delta);
+    assert.ok(p.cards.length <= 5 && p.chips >= 0);
+    if (p.inHand) assert.ok(p.settled, 'Có nhà chưa được tính tiền');
   }
+  const after = xd.seats.reduce((sum, p) => sum + p.chips, 0);
+  assert.strictEqual(after, before, `Chip bị lệch ở ván Xì dách ${n}: ${before} -> ${after}`);
   rounds++;
 }
+assert.strictEqual(dealers.size, 6, 'Không thay phiên làm cái đủ 6 người');
 xd.stop();
-console.log(`✓ Mô phỏng ${rounds} ván Xì dách, tiền thắng thua luôn khớp`);
+console.log(`✓ Mô phỏng ${rounds} ván Xì dách thay phiên làm cái, tổng chip luôn được bảo toàn`);
+
+// Xin làm cái: người xin giữ cái mỗi ván, thôi thì quay lại thay phiên
+const claim = new XiDachTable('CLAIM', () => {});
+['a', 'b', 'c'].forEach((id) => claim.addPlayer(id, id.toUpperCase()));
+fakeTimers(claim);
+assert.strictEqual(claim.act('c', { type: 'claimDealer', on: true }), null);
+assert.ok(claim.act('b', { type: 'claimDealer', on: true }), 'Hai người cùng giữ cái được');
+for (let n = 0; n < 20; n++) {
+  for (const p of claim.seats) if (p && p.chips === 0) p.chips = 1000;
+  playHand(claim, false);
+  if (claim.seats[2].chips > 0 || claim.dealerSeat === 2) assert.strictEqual(claim.dealerSeat, 2, 'Người xin làm cái không được làm cái');
+}
+assert.strictEqual(claim.act('c', { type: 'claimDealer', on: false }), null);
+claim.seats[2].chips = Math.max(claim.seats[2].chips, 100);
+const seen = new Set();
+for (let n = 0; n < 6; n++) {
+  for (const p of claim.seats) if (p && p.chips === 0) p.chips = 1000;
+  playHand(claim, false);
+  seen.add(claim.dealerSeat);
+}
+assert.strictEqual(seen.size, 3, 'Thôi làm cái mà không thay phiên lại');
+claim.stop();
+console.log('✓ Xin làm cái / thôi làm cái đúng');
+
+// Chơi một mình: máy làm cái, rút tới 17
+const solo = new XiDachTable('SOLO', () => {});
+solo.addPlayer('x', 'X');
+fakeTimers(solo);
+for (let n = 0; n < 500; n++) {
+  if (solo.seats[0].chips === 0) solo.seats[0].chips = 1000;
+  const before = solo.seats[0].chips;
+  playHand(solo, false);
+  assert.strictEqual(solo.dealerSeat, -1);
+  const d = evalHand(solo.dealerCards);
+  assert.ok(d.kind !== 'normal' || d.points >= 17 || solo.dealerCards.length === 2);
+  assert.strictEqual(solo.seats[0].chips - before, solo.seats[0].result.delta);
+}
+solo.stop();
+console.log('✓ Chơi một mình với máy làm cái đúng luật');
 process.exit(0);

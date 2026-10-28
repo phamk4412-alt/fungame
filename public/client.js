@@ -115,7 +115,7 @@ function render(chat) {
     renderXd(chat);
     return;
   }
-  for (const id of ['xdBetBox', 'xdPlayBox']) $(id).classList.add('hidden');
+  for (const id of ['xdBetBox', 'xdPlayBox', 'xdDealerBox', 'xdClaimBtn']) $(id).classList.add('hidden');
   $('pot').textContent = s.pot > 0 ? `Pot: ${fmt(s.pot)}` : '';
 
   // Lá bài thắng được viền vàng
@@ -289,10 +289,12 @@ function xdStatus() {
   const me = s.seats[s.mySeat];
   if (s.stage === 'waiting') {
     return s.handNo === 0
-      ? 'Chơi với nhà cái (máy). Bấm Bắt đầu, hoặc gửi link mời bạn bè vào cùng!'
+      ? 'Ai muốn làm cái thì bấm 🎩 Xin làm cái, không thì thay phiên nhau. Chơi một mình thì máy làm cái.'
       : 'Bấm Bắt đầu để chơi ván mới.';
   }
+  const iAmDealer = me && me.isDealer;
   if (s.stage === 'betting') {
+    if (iAmDealer) return `🎩 Ván này bạn làm cái. Chờ nhà con đặt cược... (${secondsLeft()}s)`;
     return me && me.inHand
       ? `Đã cược, chờ mọi người... (${secondsLeft()}s)`
       : `Đặt cược đi nào! Còn ${secondsLeft()} giây`;
@@ -300,10 +302,17 @@ function xdStatus() {
   if (s.stage === 'playing' && s.toAct >= 0) {
     return s.toAct === s.mySeat ? '👉 Tới lượt bạn!' : `Đang chờ ${escapeHtml(s.seats[s.toAct].name)}...`;
   }
-  if (s.stage === 'dealer') return 'Nhà cái đang lật bài...';
+  if (s.stage === 'dealer') {
+    if (iAmDealer) return `👉 Tới lượt bạn làm cái: rút thêm, hoặc lật bài từng nhà (${secondsLeft()}s)`;
+    return `Đang chờ nhà cái ${escapeHtml(s.dealer.name)}...`;
+  }
   if (s.stage === 'result') {
     const r = me && me.result;
     let text = '';
+    if (iAmDealer) {
+      const net = s.seats.reduce((sum, p) => sum - (p && p.result ? p.result.delta : 0), 0);
+      text = net > 0 ? `🎉 Làm cái lời ${fmt(net)}!` : net < 0 ? `Làm cái lỗ ${fmt(-net)}.` : 'Làm cái hòa vốn.';
+    }
     if (r) text = r.outcome > 0 ? `🎉 Bạn thắng ${fmt(r.delta)}!` : r.outcome < 0 ? `Bạn thua ${fmt(-r.delta)}.` : 'Hòa.';
     return `${text} Ván mới sắp bắt đầu...`;
   }
@@ -313,7 +322,8 @@ function xdStatus() {
 function renderXd(chat) {
   const s = state;
   const d = s.dealer;
-  $('pot').textContent = d.cards.length ? `Nhà cái${d.hand ? ' · ' + handLabel(d.hand) : ''}` : '';
+  $('pot').textContent = `🎩 ${d.seat >= 0 && d.seat === s.mySeat ? 'Bạn làm cái' : d.name}${d.hand ? ' · ' + handLabel(d.hand) : ''}`;
+  if (s.stage === 'waiting' && !d.cards.length) $('pot').textContent = '';
   const board = $('board');
   board.innerHTML = '';
   for (const c of d.cards) board.appendChild(cardEl(c));
@@ -344,7 +354,8 @@ function renderXdSeats() {
       continue;
     }
     if (i === s.mySeat) el.classList.add('me');
-    if (i === s.toAct) el.classList.add('turn');
+    const dealerTurn = p.isDealer && s.stage === 'dealer';
+    if (i === s.toAct || dealerTurn) el.classList.add('turn');
     if (!p.connected) el.classList.add('offline');
     if (p.result && p.result.outcome > 0) el.classList.add('winner');
     if (p.result && p.result.outcome < 0) el.classList.add('folded');
@@ -355,7 +366,8 @@ function renderXdSeats() {
     el.appendChild(cards);
 
     let tag = '';
-    if (p.result) {
+    if (p.isDealer && s.stage !== 'waiting') tag = '🎩 Nhà cái';
+    else if (p.result) {
       const r = p.result;
       tag = `${handLabel(p.hand)} · ${r.outcome > 0 ? '+' + fmt(r.delta) : r.outcome < 0 ? '-' + fmt(-r.delta) : 'Hòa'}`;
     } else if (p.hand) tag = handLabel(p.hand);
@@ -369,7 +381,8 @@ function renderXdSeats() {
       `<div class="name">${escapeHtml(p.name)}${i === s.mySeat ? ' (bạn)' : ''}</div>` +
       `<div class="chips">💰 ${fmt(p.chips)}</div>` +
       (tag ? `<div class="tag">${tag}</div>` : '');
-    if (i === s.toAct) {
+    if (p.isDealer && s.stage !== 'waiting') info.innerHTML += '<div class="dealer-btn">C</div>';
+    if (i === s.toAct || dealerTurn) {
       const left = Math.max(0, s.deadline - Date.now());
       info.innerHTML += `<div class="timer" style="width:${Math.min(100, left / (s.turnSeconds * 10))}%"></div>`;
     }
@@ -390,7 +403,7 @@ function renderXdSeats() {
 function renderXdActions() {
   const s = state;
   const me = s.seats[s.mySeat];
-  const canBet = me && s.stage === 'betting' && !me.inHand && me.chips > 0;
+  const canBet = me && !me.isDealer && s.stage === 'betting' && !me.inHand && me.chips > 0;
   $('xdBetBox').classList.toggle('hidden', !canBet);
   if (canBet && $('xdBetInput').dataset.hand !== String(s.handNo)) {
     $('xdBetInput').dataset.hand = String(s.handNo);
@@ -404,9 +417,43 @@ function renderXdActions() {
     $('xdStandBtn').disabled = non;
     $('xdHitBtn').disabled = me.cards.length >= 5;
   }
+  // Nhà cái: rút thêm, lật từng nhà hoặc lật hết
+  const dealing = me && me.isDealer && s.stage === 'dealer';
+  $('xdDealerBox').classList.toggle('hidden', !dealing);
+  if (dealing && s.dealer.hand) {
+    const h = s.dealer.hand;
+    const non = h.kind === 'normal' && h.points < s.dealerMin;
+    $('xdDealerPoints').textContent = `Bạn có ${h.points} điểm${non ? ` (dưới ${s.dealerMin} phải rút)` : ''}`;
+    $('xdDealerHit').disabled = h.kind !== 'normal';
+    $('xdRevealAll').disabled = non;
+    const list = $('xdRevealList');
+    list.innerHTML = '';
+    s.seats.forEach((p, i) => {
+      if (!p || !p.inHand || p.settled) return;
+      const b = document.createElement('button');
+      b.className = 'btn small';
+      b.textContent = `Lật ${p.name} (${p.cards.length} lá)`;
+      b.disabled = non;
+      b.onclick = () => send({ type: 'action', action: { type: 'reveal', seat: i } });
+      list.appendChild(b);
+    });
+  }
+  // Nút xin làm cái / thôi làm cái
+  const claim = $('xdClaimBtn');
+  claim.classList.toggle('hidden', !me);
+  if (me) {
+    const holder = s.wantDealer >= 0 ? s.seats[s.wantDealer] : null;
+    claim.disabled = !!holder && s.wantDealer !== s.mySeat;
+    claim.dataset.on = s.wantDealer === s.mySeat ? '' : '1';
+    claim.textContent = s.wantDealer === s.mySeat
+      ? 'Thôi làm cái'
+      : holder ? `🎩 ${holder.name} đang giữ cái` : '🎩 Xin làm cái';
+  }
   $('rebuyBox').classList.toggle('hidden', !(me && me.chips === 0 && me.bet === 0));
   renderRebuy();
 }
+
+$('xdClaimBtn').onclick = (e) => send({ type: 'action', action: { type: 'claimDealer', on: !!e.currentTarget.dataset.on } });
 
 for (const b of document.querySelectorAll('.chip')) {
   b.onclick = () => {
@@ -418,13 +465,15 @@ for (const b of document.querySelectorAll('.chip')) {
 $('xdBetBtn').onclick = () => send({ type: 'action', action: { type: 'bet', amount: Number($('xdBetInput').value) } });
 $('xdHitBtn').onclick = () => send({ type: 'action', action: { type: 'hit' } });
 $('xdStandBtn').onclick = () => send({ type: 'action', action: { type: 'stand' } });
+$('xdDealerHit').onclick = () => send({ type: 'action', action: { type: 'hit' } });
+$('xdRevealAll').onclick = () => send({ type: 'action', action: { type: 'revealAll' } });
 
 // Cập nhật thanh đếm giờ mỗi giây
 setInterval(() => {
   if (!state) return;
   if (state.game === 'xidach') {
-    if (state.toAct >= 0) renderXdSeats();
-    if (state.stage === 'betting') $('status').innerHTML = xdStatus();
+    if (state.toAct >= 0 || state.stage === 'dealer') renderXdSeats();
+    if (state.stage === 'betting' || state.stage === 'dealer') $('status').innerHTML = xdStatus();
   } else if (state.toAct >= 0) renderSeats();
   renderRebuy();
 }, 1000);
