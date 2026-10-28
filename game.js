@@ -8,6 +8,7 @@ const SMALL_BLIND = 10;
 const BIG_BLIND = 20;
 const TURN_SECONDS = 30;
 const NEXT_HAND_DELAY = 6000;
+const BUST_WAIT_MS = 3 * 60 * 1000; // hết tiền phải chờ 3 phút mới được mua lại
 
 function newDeck() {
   const deck = [];
@@ -106,7 +107,12 @@ class Table {
     if (i < 0) return;
     const p = this.seats[i];
     if (p.chips > 0 || (this.isHandRunning() && p.inHand)) return;
+    if (p.rebuyAt && Date.now() < p.rebuyAt) {
+      const secs = Math.ceil((p.rebuyAt - Date.now()) / 1000);
+      return `Bạn phải chờ thêm ${secs} giây nữa mới được mua lại chip.`;
+    }
     p.chips = START_CHIPS;
+    p.rebuyAt = 0;
     this.addLog(`${p.name} mua thêm ${START_CHIPS} chip.`);
     this.maybeAutoStart();
   }
@@ -436,6 +442,14 @@ class Table {
       summary.push({ seat: this.seats.indexOf(p), name: p.name, amount, hand: p.hand ? p.hand.name : null, cards: p.hand ? p.hand.cards : null });
     }
 
+    // Ai hết tiền phải ngồi ngoài 3 phút
+    for (const p of this.seats) {
+      if (p && p.inHand && p.chips === 0 && !p.rebuyAt) {
+        p.rebuyAt = Date.now() + BUST_WAIT_MS;
+        this.addLog(`💸 ${p.name} hết tiền, phải chờ 3 phút mới được chơi tiếp.`);
+      }
+    }
+
     this.results = {
       winners: summary,
       showdown: isShowdown,
@@ -513,6 +527,7 @@ class Table {
           allIn: p.allIn,
           inHand: p.inHand,
           connected: p.connected,
+          rebuyAt: p.rebuyAt || 0,
           cards,
           handName: revealed.has(i) ? revealed.get(i).hand : null,
         };

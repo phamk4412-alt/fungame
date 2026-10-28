@@ -108,9 +108,11 @@ wss.on('connection', (ws) => {
         if (err) send(ws, { type: 'error', message: err });
         break;
       }
-      case 'rebuy':
-        table.rebuy(ws.playerId);
+      case 'rebuy': {
+        const err = table.rebuy(ws.playerId);
+        if (err) send(ws, { type: 'error', message: err });
         break;
+      }
       case 'chat': {
         const seat = table.seatOf(ws.playerId);
         const text = String(msg.text || '').slice(0, 200).trim();

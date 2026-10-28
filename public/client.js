@@ -169,6 +169,7 @@ function renderSeats() {
     if (p.allIn) tag = 'ALL-IN';
     else if (p.handName) tag = p.handName;
     else if (p.inHand && p.folded) tag = 'Bỏ bài';
+    else if (p.chips === 0) tag = 'Hết tiền';
     else if (!p.inHand && s.stage !== 'waiting') tag = 'Chờ ván sau';
     info.innerHTML =
       `<div class="name">${escapeHtml(p.name)}${i === s.mySeat ? ' (bạn)' : ''}</div>` +
@@ -199,6 +200,7 @@ function renderActions() {
   const myTurn = me && s.toAct === s.mySeat;
   $('actions').classList.toggle('hidden', !myTurn);
   $('rebuyBox').classList.toggle('hidden', !(me && me.chips === 0 && !(me.inHand && s.stage !== 'showdown' && s.stage !== 'waiting')));
+  renderRebuy();
   if (!myTurn) return;
 
   const toCall = s.currentBet - me.bet;
@@ -241,9 +243,21 @@ function renderLog(chat) {
   if (chatBottom) msgs.scrollTop = msgs.scrollHeight;
 }
 
+// Hết tiền phải chờ 3 phút mới được mua lại
+function renderRebuy() {
+  const me = state && state.seats[state.mySeat];
+  if (!me || me.chips > 0) return;
+  const left = Math.max(0, Math.ceil((me.rebuyAt - Date.now()) / 1000));
+  $('rebuyBtn').disabled = left > 0;
+  $('rebuyMsg').textContent = left > 0
+    ? `Bạn đã hết chip. Chờ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')} nữa mới được chơi tiếp.`
+    : 'Bạn đã hết chip.';
+}
+
 // Cập nhật thanh đếm giờ mỗi giây
 setInterval(() => {
   if (state && state.toAct >= 0) renderSeats();
+  if (state) renderRebuy();
 }, 1000);
 
 // ---------- Sự kiện ----------

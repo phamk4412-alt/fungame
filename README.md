@@ -11,7 +11,7 @@ Bàn poker Texas Hold'em chạy trên trình duyệt. Mỗi người mở link t
 - Tự nhận diện tay bài: mậu thầu, đôi, thú, sám cô, sảnh, thùng, cù lũ, tứ quý, thùng phá sảnh.
 - Mỗi lượt có **30 giây**, hết giờ tự check hoặc bỏ bài.
 - Tải lại trang hay rớt mạng vẫn giữ ghế trong 60 giây.
-- Hết chip thì bấm **Mua lại 1000 chip**.
+- Hết chip phải ngồi chờ **3 phút**, sau đó mới bấm được **Mua lại 1000 chip** để chơi tiếp (đổi thời gian ở hằng số `BUST_WAIT_MS` trong `game.js`).
 - Có khung chat và nhật ký từng ván. Chơi được trên điện thoại.
 
 ## Cách chạy
