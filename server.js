@@ -5,6 +5,9 @@ const path = require('path');
 const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const { Table } = require('./game');
+const { XiDachTable } = require('./xidach');
+
+const GAMES = { poker: Table, xidach: XiDachTable };
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -41,11 +44,13 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocketServer({ server });
 const tables = new Map(); // mã phòng -> { table, clients: Set<ws> }
 
-function getRoom(code) {
+// Phòng mới tạo theo game được chọn; phòng đã có thì giữ game cũ
+function getRoom(code, game) {
   let room = tables.get(code);
   if (!room) {
     room = { clients: new Set(), chat: [] };
-    room.table = new Table(code, () => broadcast(room));
+    const GameTable = GAMES[game] || Table;
+    room.table = new GameTable(code, () => broadcast(room));
     tables.set(code, room);
   }
   return room;
@@ -83,7 +88,7 @@ wss.on('connection', (ws) => {
 
     if (msg.type === 'join') {
       const code = cleanCode(msg.room) || crypto.randomBytes(3).toString('hex').toUpperCase();
-      const room = getRoom(code);
+      const room = getRoom(code, msg.game);
       ws.playerId = String(msg.playerId || crypto.randomUUID()).slice(0, 64);
       const seat = room.table.addPlayer(ws.playerId, cleanName(msg.name));
       ws.room = room;
@@ -101,7 +106,7 @@ wss.on('connection', (ws) => {
 
     switch (msg.type) {
       case 'start':
-        if (table.handNo === 0) table.startHand();
+        table.manualStart();
         break;
       case 'action': {
         const err = table.act(ws.playerId, msg.action || {});
@@ -154,8 +159,7 @@ wss.on('connection', (ws) => {
       // Xóa phòng trống sau 10 phút
       room.cleanupTimer = setTimeout(() => {
         if (room.clients.size === 0) {
-          clearTimeout(room.table.turnTimer);
-          clearTimeout(room.table.nextHandTimer);
+          room.table.stop();
           tables.delete(room.table.code);
         }
       }, 10 * 60000);
@@ -164,5 +168,5 @@ wss.on('connection', (ws) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`♠ Poker server đang chạy tại http://localhost:${PORT}`);
+  console.log(`🎲 Fungame server đang chạy tại http://localhost:${PORT}`);
 });

@@ -1,7 +1,7 @@
 {
   "name": "fungame-poker",
   "version": "1.0.0",
-  "description": "Bàn poker Texas Hold'em online cho tối đa 6 người",
+  "description": "Chơi bài online cùng bạn bè: Poker Texas Hold'em và Xì dách, tối đa 6 người",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -12,6 +12,18 @@ const params = new URLSearchParams(location.search);
 $('roomInput').value = params.get('room') || '';
 $('nameInput').value = localStorage.getItem('poker.name') || '';
 
+// Game chọn khi tạo phòng mới (vào phòng có sẵn thì theo game của phòng)
+let chosenGame = localStorage.getItem('fungame.game') || 'poker';
+function pickGame(game) {
+  chosenGame = game;
+  localStorage.setItem('fungame.game', game);
+  for (const b of document.querySelectorAll('.pick')) b.classList.toggle('active', b.dataset.game === game);
+}
+pickGame(chosenGame);
+for (const b of document.querySelectorAll('.pick')) b.onclick = () => pickGame(b.dataset.game);
+
+const GAME_NAMES = { poker: '♠ Poker', xidach: '🃏 Xì dách' };
+
 let ws = null;
 let state = null;
 let roomCode = null;
@@ -34,7 +46,7 @@ function join() {
 function connect(room) {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   ws = new WebSocket(`${proto}://${location.host}`);
-  ws.onopen = () => ws.send(JSON.stringify({ type: 'join', room, name, playerId }));
+  ws.onopen = () => ws.send(JSON.stringify({ type: 'join', room, name, playerId, game: chosenGame }));
   ws.onmessage = (e) => {
     const msg = JSON.parse(e.data);
     if (msg.type === 'state') {
@@ -97,6 +109,13 @@ function escapeHtml(s) {
 function render(chat) {
   const s = state;
   $('roomCode').textContent = s.code;
+  $('gameName').textContent = GAME_NAMES[s.game] || '';
+  document.title = `${GAME_NAMES[s.game] || 'Fungame'} · phòng ${s.code}`;
+  if (s.game === 'xidach') {
+    renderXd(chat);
+    return;
+  }
+  for (const id of ['xdBetBox', 'xdPlayBox']) $(id).classList.add('hidden');
   $('pot').textContent = s.pot > 0 ? `Pot: ${fmt(s.pot)}` : '';
 
   // Lá bài thắng được viền vàng
@@ -254,10 +273,160 @@ function renderRebuy() {
     : 'Bạn đã hết chip.';
 }
 
+// ---------- Xì dách ----------
+
+function handLabel(h) {
+  if (!h) return '';
+  return h.kind === 'normal' ? `${h.points} điểm` : h.kind === 'bust' ? `Quắc (${h.points})` : h.name;
+}
+
+function secondsLeft() {
+  return Math.max(0, Math.ceil((state.deadline - Date.now()) / 1000));
+}
+
+function xdStatus() {
+  const s = state;
+  const me = s.seats[s.mySeat];
+  if (s.stage === 'waiting') {
+    return s.handNo === 0
+      ? 'Chơi với nhà cái (máy). Bấm Bắt đầu, hoặc gửi link mời bạn bè vào cùng!'
+      : 'Bấm Bắt đầu để chơi ván mới.';
+  }
+  if (s.stage === 'betting') {
+    return me && me.inHand
+      ? `Đã cược, chờ mọi người... (${secondsLeft()}s)`
+      : `Đặt cược đi nào! Còn ${secondsLeft()} giây`;
+  }
+  if (s.stage === 'playing' && s.toAct >= 0) {
+    return s.toAct === s.mySeat ? '👉 Tới lượt bạn!' : `Đang chờ ${escapeHtml(s.seats[s.toAct].name)}...`;
+  }
+  if (s.stage === 'dealer') return 'Nhà cái đang lật bài...';
+  if (s.stage === 'result') {
+    const r = me && me.result;
+    let text = '';
+    if (r) text = r.outcome > 0 ? `🎉 Bạn thắng ${fmt(r.delta)}!` : r.outcome < 0 ? `Bạn thua ${fmt(-r.delta)}.` : 'Hòa.';
+    return `${text} Ván mới sắp bắt đầu...`;
+  }
+  return '';
+}
+
+function renderXd(chat) {
+  const s = state;
+  const d = s.dealer;
+  $('pot').textContent = d.cards.length ? `Nhà cái${d.hand ? ' · ' + handLabel(d.hand) : ''}` : '';
+  const board = $('board');
+  board.innerHTML = '';
+  for (const c of d.cards) board.appendChild(cardEl(c));
+  $('status').innerHTML = xdStatus();
+  $('startBtn').classList.toggle('hidden', !s.canStart);
+  $('actions').classList.add('hidden');
+  renderXdSeats();
+  renderXdActions();
+  renderLog(chat);
+}
+
+function renderXdSeats() {
+  const s = state;
+  const box = $('seats');
+  box.innerHTML = '';
+  const offset = s.mySeat >= 0 ? s.mySeat : 0;
+  for (let i = 0; i < 6; i++) {
+    const pos = (i - offset + 6) % 6;
+    const p = s.seats[i];
+    const el = document.createElement('div');
+    el.className = 'seat';
+    el.style.left = SEAT_POS[pos][0] + '%';
+    el.style.top = SEAT_POS[pos][1] + '%';
+    if (!p) {
+      el.classList.add('empty');
+      el.innerHTML = '<div class="cards"></div><div class="info">Ghế trống</div>';
+      box.appendChild(el);
+      continue;
+    }
+    if (i === s.mySeat) el.classList.add('me');
+    if (i === s.toAct) el.classList.add('turn');
+    if (!p.connected) el.classList.add('offline');
+    if (p.result && p.result.outcome > 0) el.classList.add('winner');
+    if (p.result && p.result.outcome < 0) el.classList.add('folded');
+
+    const cards = document.createElement('div');
+    cards.className = 'cards' + (p.cards.length > 3 ? ' many' : '');
+    for (const c of p.cards) cards.appendChild(cardEl(c, true));
+    el.appendChild(cards);
+
+    let tag = '';
+    if (p.result) {
+      const r = p.result;
+      tag = `${handLabel(p.hand)} · ${r.outcome > 0 ? '+' + fmt(r.delta) : r.outcome < 0 ? '-' + fmt(-r.delta) : 'Hòa'}`;
+    } else if (p.hand) tag = handLabel(p.hand);
+    else if (p.done) tag = 'Đã dằn';
+    else if (p.chips === 0 && !p.inHand) tag = 'Hết tiền';
+    else if (s.stage === 'betting' && !p.inHand) tag = 'Đang chọn cược...';
+    else if ((s.stage === 'playing' || s.stage === 'dealer') && !p.inHand) tag = 'Chờ ván sau';
+    const info = document.createElement('div');
+    info.className = 'info';
+    info.innerHTML =
+      `<div class="name">${escapeHtml(p.name)}${i === s.mySeat ? ' (bạn)' : ''}</div>` +
+      `<div class="chips">💰 ${fmt(p.chips)}</div>` +
+      (tag ? `<div class="tag">${tag}</div>` : '');
+    if (i === s.toAct) {
+      const left = Math.max(0, s.deadline - Date.now());
+      info.innerHTML += `<div class="timer" style="width:${Math.min(100, left / (s.turnSeconds * 10))}%"></div>`;
+    }
+    el.appendChild(info);
+    box.appendChild(el);
+
+    if (p.bet > 0) {
+      const bet = document.createElement('div');
+      bet.className = 'bet';
+      bet.style.left = BET_POS[pos][0] + '%';
+      bet.style.top = BET_POS[pos][1] + '%';
+      bet.textContent = `🪙 ${fmt(p.bet)}`;
+      box.appendChild(bet);
+    }
+  }
+}
+
+function renderXdActions() {
+  const s = state;
+  const me = s.seats[s.mySeat];
+  const canBet = me && s.stage === 'betting' && !me.inHand && me.chips > 0;
+  $('xdBetBox').classList.toggle('hidden', !canBet);
+  if (canBet && $('xdBetInput').dataset.hand !== String(s.handNo)) {
+    $('xdBetInput').dataset.hand = String(s.handNo);
+    $('xdBetInput').value = Math.min(me.lastBet, me.chips, s.maxBet);
+  }
+  const myTurn = me && s.stage === 'playing' && s.toAct === s.mySeat;
+  $('xdPlayBox').classList.toggle('hidden', !myTurn);
+  if (myTurn && me.hand) {
+    const non = me.hand.points < s.playerMin;
+    $('xdPoints').textContent = `Bạn có ${me.hand.points} điểm${non ? ' (non, phải rút)' : ''}`;
+    $('xdStandBtn').disabled = non;
+    $('xdHitBtn').disabled = me.cards.length >= 5;
+  }
+  $('rebuyBox').classList.toggle('hidden', !(me && me.chips === 0 && me.bet === 0));
+  renderRebuy();
+}
+
+for (const b of document.querySelectorAll('.chip')) {
+  b.onclick = () => {
+    const add = Number(b.dataset.add);
+    const input = $('xdBetInput');
+    input.value = add ? Math.min((Number(input.value) || 0) + add, state.maxBet) : 0;
+  };
+}
+$('xdBetBtn').onclick = () => send({ type: 'action', action: { type: 'bet', amount: Number($('xdBetInput').value) } });
+$('xdHitBtn').onclick = () => send({ type: 'action', action: { type: 'hit' } });
+$('xdStandBtn').onclick = () => send({ type: 'action', action: { type: 'stand' } });
+
 // Cập nhật thanh đếm giờ mỗi giây
 setInterval(() => {
-  if (state && state.toAct >= 0) renderSeats();
-  if (state) renderRebuy();
+  if (!state) return;
+  if (state.game === 'xidach') {
+    if (state.toAct >= 0) renderXdSeats();
+    if (state.stage === 'betting') $('status').innerHTML = xdStatus();
+  } else if (state.toAct >= 0) renderSeats();
+  renderRebuy();
 }, 1000);
 
 // ---------- Sự kiện ----------
