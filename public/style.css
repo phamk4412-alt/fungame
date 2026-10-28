@@ -254,3 +254,35 @@ input {
   .seat .cards { min-height: 40px; }
   .raise-box input[type='range'] { width: 110px; }
 }
+
+/* ---------- Chọn game ---------- */
+.field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.game-pick { display: flex; gap: 8px; }
+.pick {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 2px solid #34493d;
+  background: #0d1611;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pick small { font-size: 11px; font-weight: 400; color: var(--muted); }
+.pick.active { border-color: var(--gold); background: #2a2410; }
+
+/* ---------- Xì dách ---------- */
+.seat .cards.many .card + .card { margin-left: -18px; }
+#xdBetInput { width: 90px; }
+.chip { border-radius: 999px; }
+
+/* Điện thoại dọc: bàn cao hơn để ghế không đè lên nhau */
+@media (max-width: 600px) {
+  .table { aspect-ratio: 3 / 4; }
+  .table-wrap { padding: 50px 46px; }
+}

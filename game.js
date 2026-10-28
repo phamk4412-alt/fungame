@@ -23,6 +23,7 @@ function newDeck() {
 
 class Table {
   constructor(code, onChange) {
+    this.game = 'poker';
     this.code = code;
     this.onChange = onChange; // gọi khi trạng thái thay đổi để phát cho mọi người
     this.seats = new Array(MAX_SEATS).fill(null);
@@ -140,6 +141,16 @@ class Table {
 
   canStart() {
     return !this.isHandRunning() && this.eligiblePlayers().length >= 2;
+  }
+
+  // Nút "Bắt đầu" chỉ dùng cho ván đầu tiên, sau đó tự chia
+  manualStart() {
+    if (this.handNo === 0) this.startHand();
+  }
+
+  stop() {
+    clearTimeout(this.turnTimer);
+    clearTimeout(this.nextHandTimer);
   }
 
   maybeAutoStart() {
@@ -497,6 +508,7 @@ class Table {
     if (this.results) for (const r of this.results.revealed) revealed.set(r.seat, r);
 
     return {
+      game: 'poker',
       code: this.code,
       stage: this.stage,
       handNo: this.handNo,
