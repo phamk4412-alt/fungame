@@ -141,6 +141,29 @@ assert.strictEqual(dealers.size, 6, 'Không thay phiên làm cái đủ 6 ngư�
 xd.stop();
 console.log(`✓ Mô phỏng ${rounds} ván Xì dách thay phiên làm cái, tổng chip luôn được bảo toàn`);
 
+// Xin làm cái: người xin giữ cái mỗi ván, thôi thì quay lại thay phiên
+const claim = new XiDachTable('CLAIM', () => {});
+['a', 'b', 'c'].forEach((id) => claim.addPlayer(id, id.toUpperCase()));
+fakeTimers(claim);
+assert.strictEqual(claim.act('c', { type: 'claimDealer', on: true }), null);
+assert.ok(claim.act('b', { type: 'claimDealer', on: true }), 'Hai người cùng giữ cái được');
+for (let n = 0; n < 20; n++) {
+  for (const p of claim.seats) if (p && p.chips === 0) p.chips = 1000;
+  playHand(claim, false);
+  if (claim.seats[2].chips > 0 || claim.dealerSeat === 2) assert.strictEqual(claim.dealerSeat, 2, 'Người xin làm cái không được làm cái');
+}
+assert.strictEqual(claim.act('c', { type: 'claimDealer', on: false }), null);
+claim.seats[2].chips = Math.max(claim.seats[2].chips, 100);
+const seen = new Set();
+for (let n = 0; n < 6; n++) {
+  for (const p of claim.seats) if (p && p.chips === 0) p.chips = 1000;
+  playHand(claim, false);
+  seen.add(claim.dealerSeat);
+}
+assert.strictEqual(seen.size, 3, 'Thôi làm cái mà không thay phiên lại');
+claim.stop();
+console.log('✓ Xin làm cái / thôi làm cái đúng');
+
 // Chơi một mình: máy làm cái, rút tới 17
 const solo = new XiDachTable('SOLO', () => {});
 solo.addPlayer('x', 'X');

@@ -115,7 +115,7 @@ function render(chat) {
     renderXd(chat);
     return;
   }
-  for (const id of ['xdBetBox', 'xdPlayBox', 'xdDealerBox']) $(id).classList.add('hidden');
+  for (const id of ['xdBetBox', 'xdPlayBox', 'xdDealerBox', 'xdClaimBtn']) $(id).classList.add('hidden');
   $('pot').textContent = s.pot > 0 ? `Pot: ${fmt(s.pot)}` : '';
 
   // Lá bài thắng được viền vàng
@@ -289,7 +289,7 @@ function xdStatus() {
   const me = s.seats[s.mySeat];
   if (s.stage === 'waiting') {
     return s.handNo === 0
-      ? 'Mọi người thay phiên làm cái, chơi một mình thì máy làm cái. Bấm Bắt đầu nhé!'
+      ? 'Ai muốn làm cái thì bấm 🎩 Xin làm cái, không thì thay phiên nhau. Chơi một mình thì máy làm cái.'
       : 'Bấm Bắt đầu để chơi ván mới.';
   }
   const iAmDealer = me && me.isDealer;
@@ -438,9 +438,22 @@ function renderXdActions() {
       list.appendChild(b);
     });
   }
+  // Nút xin làm cái / thôi làm cái
+  const claim = $('xdClaimBtn');
+  claim.classList.toggle('hidden', !me);
+  if (me) {
+    const holder = s.wantDealer >= 0 ? s.seats[s.wantDealer] : null;
+    claim.disabled = !!holder && s.wantDealer !== s.mySeat;
+    claim.dataset.on = s.wantDealer === s.mySeat ? '' : '1';
+    claim.textContent = s.wantDealer === s.mySeat
+      ? 'Thôi làm cái'
+      : holder ? `🎩 ${holder.name} đang giữ cái` : '🎩 Xin làm cái';
+  }
   $('rebuyBox').classList.toggle('hidden', !(me && me.chips === 0 && me.bet === 0));
   renderRebuy();
 }
+
+$('xdClaimBtn').onclick = (e) => send({ type: 'action', action: { type: 'claimDealer', on: !!e.currentTarget.dataset.on } });
 
 for (const b of document.querySelectorAll('.chip')) {
   b.onclick = () => {

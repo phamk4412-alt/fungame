@@ -78,6 +78,7 @@ class XiDachTable {
     this.deck = [];
     this.dealerSeat = -1; // -1: máy làm cái
     this.lastDealer = -1;
+    this.wantDealer = -1; // người xin làm cái (giữ cái tới khi thôi)
     this.dealerCards = [];
     this.dealerShown = false; // nhà cái đã lật bài cho cả bàn xem chưa
     this.order = []; // thứ tự lượt người chơi
@@ -148,6 +149,7 @@ class XiDachTable {
       }
       this.seats[i] = null;
       this.dealerSeat = -1;
+      if (this.wantDealer === i) this.wantDealer = -1;
       this.endHand();
       return;
     }
@@ -163,6 +165,7 @@ class XiDachTable {
     }
     this.addLog(`${p.name} đã rời bàn.`);
     this.seats[i] = null;
+    if (this.wantDealer === i) this.wantDealer = -1;
     if (this.stage === 'betting') this.checkBets();
   }
 
@@ -216,10 +219,31 @@ class XiDachTable {
     if (this.canStart()) this.startHand();
   }
 
-  // Chọn nhà cái: lần lượt theo vòng ghế, chỉ còn 1 người có chip thì máy làm cái
+  // Xin làm cái / thôi làm cái, có hiệu lực từ ván sau
+  claimDealer(i, on) {
+    const p = this.seats[i];
+    if (!on) {
+      if (this.wantDealer !== i) return null;
+      this.wantDealer = -1;
+      this.addLog(`${p.name} thôi giữ cái, từ ván sau thay phiên làm cái.`);
+      return null;
+    }
+    if (this.wantDealer >= 0 && this.wantDealer !== i) return `${this.seats[this.wantDealer].name} đang giữ cái rồi.`;
+    if (p.chips <= 0) return 'Hết chip thì không làm cái được.';
+    this.wantDealer = i;
+    this.addLog(`🎩 ${p.name} xin làm cái${this.stage === 'waiting' ? '' : ' từ ván sau'}.`);
+    return null;
+  }
+
+  // Chọn nhà cái: ai xin làm cái thì người đó giữ cái, không thì lần lượt theo vòng ghế.
+  // Chỉ còn 1 người có chip thì máy làm cái.
   pickDealer() {
     const ready = (p) => p && p.chips > 0 && p.connected;
     if (this.seats.filter(ready).length < 2) return -1;
+    if (this.wantDealer >= 0) {
+      if (ready(this.seats[this.wantDealer])) return this.wantDealer;
+      if (!this.seats[this.wantDealer] || this.seats[this.wantDealer].chips <= 0) this.wantDealer = -1;
+    }
     for (let k = 1; k <= MAX_SEATS; k++) {
       const i = (this.lastDealer + k + MAX_SEATS) % MAX_SEATS;
       if (ready(this.seats[i])) return i;
@@ -474,6 +498,7 @@ class XiDachTable {
     if (i < 0) return 'Bạn chưa ngồi vào bàn.';
     const p = this.seats[i];
     if (action.type === 'bet') return this.placeBet(i, action.amount);
+    if (action.type === 'claimDealer') return this.claimDealer(i, !!action.on);
     if (this.stage === 'dealer' && i === this.dealerSeat) return this.dealerAct(action);
     if (this.stage !== 'playing' || this.toAct !== i) return 'Chưa tới lượt bạn.';
 
@@ -557,6 +582,7 @@ class XiDachTable {
       playerMin: PLAYER_MIN,
       dealerMin: DEALER_MIN,
       mySeat: me,
+      wantDealer: this.wantDealer,
       canStart: this.canStart(),
       dealer: {
         seat: this.dealerSeat,

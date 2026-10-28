@@ -5,7 +5,7 @@ Các bàn chơi bài chạy trên trình duyệt. Mỗi người mở link trên
 Hiện có 2 game, chọn khi tạo phòng mới:
 
 - **♠ Poker** (Texas Hold'em): người chơi đấu với nhau.
-- **🃏 Xì dách** (luật Việt Nam): mọi người thay phiên làm cái. Chơi một mình thì máy làm cái.
+- **🃏 Xì dách** (luật Việt Nam): ai muốn thì xin làm cái, không thì thay phiên nhau. Chơi một mình thì máy làm cái.
 
 Vào phòng bằng link mời thì tự vào đúng game của phòng đó.
 
@@ -24,7 +24,8 @@ Vào phòng bằng link mời thì tự vào đúng game của phòng đó.
 ## Luật Xì dách
 
 - Tối đa **6 người**, mỗi người có 1000 chip ảo.
-- **Thay phiên làm cái:** mỗi ván một người làm nhà cái, lần lượt theo vòng ghế. Chỉ có một mình trong phòng thì máy làm cái (máy rút tới khi đủ 17 điểm rồi lật hết).
+- **Chọn làm cái:** ai muốn làm cái thì bấm **🎩 Xin làm cái** ở thanh trên cùng. Người đó giữ cái mọi ván (từ ván sau nếu đang chơi dở) cho tới khi bấm **Thôi làm cái**, hết chip hoặc rời bàn. Mỗi lúc chỉ một người giữ cái.
+- **Thay phiên làm cái:** không ai xin làm cái thì mỗi ván một người làm nhà cái, lần lượt theo vòng ghế. Chỉ có một mình trong phòng thì máy làm cái (máy rút tới khi đủ 17 điểm rồi lật hết).
 - Đầu ván có **15 giây** để các nhà con đặt cược (từ 10 đến 500 chip). Nhà cái không cược. Ai không cược thì ngồi ngoài ván đó.
 - Mỗi người và nhà cái được 2 lá. Bài nhà cái úp, chỉ nhà cái xem được.
 - **Tính điểm:** 2 đến 9 theo số, 10/J/Q/K là 10. Lá **A**: khi có 2 lá thì tính 10 hoặc 11, khi có 3 lá thì 1 hoặc 10, từ 4 lá trở lên chỉ tính 1.
