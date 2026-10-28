@@ -9,6 +9,8 @@ Hiện có 2 game, chọn khi tạo phòng mới:
 
 Vào phòng bằng link mời thì tự vào đúng game của phòng đó.
 
+Ngoài ra có **☢ Căn cứ tận thế** (mở ở `/raid.html` hoặc bấm link ở sảnh): mỗi người có một căn cứ riêng, trong tuần nhặt vật tư và xây dựng, cuối tuần đi cướp nhau.
+
 ## Tính năng Poker
 
 - Tối đa **6 người** một bàn. Nhiều phòng chạy cùng lúc, mỗi phòng có một mã riêng.
@@ -40,6 +42,36 @@ Vào phòng bằng link mời thì tự vào đúng game của phòng đó.
 - Hết chip phải chờ 3 phút rồi mới mua lại được, như bên Poker.
 
 Muốn đổi mức cược, thời gian hay tỉ lệ ăn, sửa các hằng số ở đầu file `xidach.js`.
+
+## Căn cứ tận thế
+
+Game xây căn cứ sau ngày tận thế, chơi lâu dài nhiều tuần. Mỗi người đăng ký bằng tên và mật khẩu, đăng nhập trên máy nào cũng thấy đúng căn cứ của mình.
+
+- **3 loại vật tư:** 🔩 Sắt vụn, 🛢️ Nhiên liệu, 🥫 Lương thực. Bãi phế liệu, Trạm lọc dầu và Vườn thủy canh tự sinh vật tư mỗi giờ, **kể cả khi bạn offline**. Kho đầy thì ngừng sinh, nên nhớ vào tiêu.
+- **8 công trình**, mỗi cái tối đa cấp 10. Nâng cấp tốn vật tư và thời gian thật (lên cấp n mất n² phút), mỗi lúc chỉ xây một cái. Công trình khác chỉ được cao hơn **Trụ sở** 1 cấp.
+- **Nhà kho:** tăng sức chứa và giấu 150 mỗi loại vật tư cho mỗi cấp, phần này không bị cướp.
+- **Tường rào, Tháp súng:** tăng phòng thủ. **Doanh trại:** chứa thêm 10 chiến binh mỗi cấp và tăng sức đánh của mỗi người. Chiến binh tốn 30 lương thực và 10 nhiên liệu, ở nhà thì cũng góp phòng thủ.
+- **Cướp chỉ mở từ 19:00 thứ Bảy tới hết Chủ nhật (giờ Việt Nam).** Mỗi người có 3 lượt cướp mỗi cuối tuần. Trận đánh tự tính: sức tấn công so với sức phòng thủ (mỗi bên dao động ±15%).
+- **Thắng** thì lấy được 25% phần vật tư không được giấu của đối thủ. Người bị cướp được **khiên 12 giờ**. Đi cướp người khác thì mất khiên của mình.
+- Đánh thắng hay thua đều mất một phần chiến binh, thua thì mất một nửa.
+
+Muốn đổi tốc độ sinh vật tư, giá xây, giờ mở cướp hay tỉ lệ cướp, sửa các hằng số ở đầu file `raid/logic.js`.
+
+### Lưu dữ liệu (bắt buộc khi chạy trên Render)
+
+Căn cứ phải còn nguyên qua nhiều tuần, nên game cần một cơ sở dữ liệu Postgres. Server đọc địa chỉ từ biến môi trường `DATABASE_URL` và tự tạo bảng khi chạy lần đầu.
+
+Cách miễn phí đơn giản nhất là [Neon](https://neon.tech):
+
+1. Đăng ký Neon (đăng nhập bằng GitHub được), tạo project mới, chọn vùng **Singapore** cho gần Việt Nam.
+2. Ở trang project, bấm **Connect** và sao chép chuỗi kết nối dạng `postgresql://...neon.tech/neondb?sslmode=require`.
+3. Vào [Render](https://dashboard.render.com), mở service `fungame`, chọn **Environment → Add Environment Variable**: Key là `DATABASE_URL`, Value là chuỗi vừa chép. Bấm **Save**, Render tự khởi động lại.
+
+Supabase hay Postgres của Render cũng dùng được, chỉ cần dán chuỗi kết nối vào `DATABASE_URL`. Lưu ý Postgres miễn phí của Render bị xóa sau 30 ngày.
+
+Không có `DATABASE_URL` thì game lưu vào file `data/raid.json`. Cách này chỉ hợp khi chạy trên máy mình, vì trên Render mỗi lần server khởi động lại là mất hết.
+
+Muốn thử cướp ngoài cuối tuần thì chạy với `RAID_ALWAYS_OPEN=1` (ví dụ `RAID_ALWAYS_OPEN=1 npm start`).
 
 ## Cách chạy
 
@@ -103,7 +135,10 @@ Gói miễn phí sẽ "ngủ" khi không có ai vào, lần đầu mở có th�
 | `game.js` | Luật Poker: chia bài, vòng cược, side pot, chia tiền |
 | `handeval.js` | Chấm điểm tay bài Poker |
 | `xidach.js` | Luật Xì dách: thay phiên làm cái, đặt cược, rút/dằn, lật từng nhà, tính tiền |
-| `public/` | Giao diện (HTML, CSS, JS) |
-| `test.js` | Kiểm thử: `npm test` mô phỏng 2000 ván Poker và 2000 ván Xì dách |
+| `raid/logic.js` | Luật Căn cứ tận thế: sinh vật tư, nâng cấp, lịch cuối tuần, trận cướp |
+| `raid/api.js` | API `/api/raid/`: đăng ký, đăng nhập, nâng cấp, huấn luyện, cướp |
+| `raid/store.js` | Lưu người chơi vào Postgres (hoặc file khi chạy trên máy) |
+| `public/` | Giao diện (HTML, CSS, JS), Căn cứ tận thế ở `raid.html` |
+| `test.js`, `raid/test.js` | Kiểm thử: `npm test` mô phỏng 2000 ván Poker, 2000 ván Xì dách và luật Căn cứ tận thế |
 
 Muốn đổi số chip ban đầu, mức blind hay thời gian mỗi lượt, sửa các hằng số ở đầu file `game.js`.

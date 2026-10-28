@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const { Table } = require('./game');
 const { XiDachTable } = require('./xidach');
+const raidApi = require('./raid/api');
 
 const GAMES = { poker: Table, xidach: XiDachTable };
 
@@ -21,6 +22,7 @@ const MIME = {
 };
 
 const server = http.createServer((req, res) => {
+  if (raidApi.handle(req, res)) return;
   const urlPath = decodeURIComponent(new URL(req.url, 'http://x').pathname);
   let file = path.normalize(path.join(PUBLIC_DIR, urlPath === '/' ? 'index.html' : urlPath));
   if (!file.startsWith(PUBLIC_DIR)) {
@@ -169,4 +171,5 @@ wss.on('connection', (ws) => {
 
 server.listen(PORT, () => {
   console.log(`🎲 Fungame server đang chạy tại http://localhost:${PORT}`);
+  raidApi.init().catch((e) => console.error('Không tải được dữ liệu Căn cứ tận thế:', e.message));
 });
