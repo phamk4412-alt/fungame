@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Poker cùng bạn bè</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♠</text></svg>" />
+</head>
+<body>
+  <!-- Màn hình vào phòng -->
+  <section id="lobby" class="lobby">
+    <div class="lobby-card">
+      <h1>♠ ♥ Poker ♦ ♣</h1>
+      <p class="sub">Texas Hold'em · tối đa 6 người · chơi bằng chip ảo</p>
+      <label>Tên của bạn
+        <input id="nameInput" maxlength="16" placeholder="Ví dụ: Tuấn" />
+      </label>
+      <label>Mã phòng <span class="hint">(để trống để tạo phòng mới)</span>
+        <input id="roomInput" maxlength="8" placeholder="Ví dụ: AB12CD" />
+      </label>
+      <button id="joinBtn" class="btn primary">Vào bàn</button>
+    </div>
+  </section>
+
+  <!-- Bàn chơi -->
+  <section id="game" class="game hidden">
+    <header class="topbar">
+      <div>Phòng <b id="roomCode"></b></div>
+      <button id="copyBtn" class="btn small">📋 Sao chép link mời</button>
+      <button id="leaveBtn" class="btn small ghost">Rời bàn</button>
+    </header>
+
+    <div class="table-wrap">
+      <div class="table">
+        <div class="felt">
+          <div id="pot" class="pot"></div>
+          <div id="board" class="board"></div>
+          <div id="status" class="status"></div>
+          <button id="startBtn" class="btn primary hidden">▶ Bắt đầu chơi</button>
+        </div>
+        <div id="seats"></div>
+      </div>
+    </div>
+
+    <div id="actions" class="actions hidden">
+      <button id="foldBtn" class="btn danger">Bỏ bài</button>
+      <button id="callBtn" class="btn">Check</button>
+      <div class="raise-box">
+        <input id="raiseRange" type="range" />
+        <input id="raiseInput" type="number" />
+        <button id="raiseBtn" class="btn primary">Tố</button>
+      </div>
+      <button id="allinBtn" class="btn warn">All-in</button>
+    </div>
+    <div id="rebuyBox" class="actions hidden">
+      <span>Bạn đã hết chip.</span>
+      <button id="rebuyBtn" class="btn primary">Mua lại 1000 chip</button>
+    </div>
+
+    <aside class="side">
+      <div class="tabs">
+        <button class="tab active" data-tab="log">Diễn biến</button>
+        <button class="tab" data-tab="chat">Chat</button>
+      </div>
+      <div id="log" class="panel"></div>
+      <div id="chat" class="panel hidden">
+        <div id="chatMsgs" class="chat-msgs"></div>
+        <form id="chatForm"><input id="chatInput" maxlength="200" placeholder="Nhắn gì đó..." /></form>
+      </div>
+    </aside>
+  </section>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="client.js"></script>
+</body>
+</html>
