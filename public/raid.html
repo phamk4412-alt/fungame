@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Căn cứ tận thế · Fungame</title>
+  <link rel="stylesheet" href="raid.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☢</text></svg>" />
+</head>
+<body>
+  <!-- Đăng nhập -->
+  <section id="auth" class="auth">
+    <div class="auth-card">
+      <h1>☢ Căn cứ tận thế</h1>
+      <p class="sub">Trong tuần nhặt vật tư, xây căn cứ. Từ 19:00 thứ Bảy tới hết Chủ nhật, đi cướp nhau.</p>
+      <div class="tabs">
+        <button class="tab active" data-mode="login">Đăng nhập</button>
+        <button class="tab" data-mode="register">Tạo căn cứ mới</button>
+      </div>
+      <form id="authForm">
+        <label>Tên người sống sót
+          <input id="nameInput" maxlength="16" autocomplete="username" placeholder="Ví dụ: Tuấn" />
+        </label>
+        <label>Mật khẩu
+          <input id="passInput" type="password" autocomplete="current-password" placeholder="Ít nhất 4 ký tự" />
+        </label>
+        <button id="authBtn" class="btn primary" type="submit">Vào căn cứ</button>
+      </form>
+      <a class="back" href="/">← Về chơi bài</a>
+    </div>
+  </section>
+
+  <!-- Căn cứ -->
+  <section id="base" class="base hidden">
+    <header class="topbar">
+      <div class="who">☢ Căn cứ của <b id="meName"></b></div>
+      <div id="resBar" class="res-bar"></div>
+      <button id="logoutBtn" class="btn small ghost">Đăng xuất</button>
+    </header>
+
+    <div id="banner" class="banner"></div>
+
+    <main class="grid">
+      <section class="panel buildings-panel">
+        <h2>🏗️ Công trình</h2>
+        <div id="buildQueue" class="queue"></div>
+        <div id="buildings" class="buildings"></div>
+      </section>
+
+      <section class="panel">
+        <h2>⚔️ Quân đội</h2>
+        <div class="stats">
+          <div><span>Chiến binh</span><b id="troops"></b></div>
+          <div><span>Sức tấn công</span><b id="attack"></b></div>
+          <div><span>Sức phòng thủ</span><b id="defense"></b></div>
+        </div>
+        <div class="train">
+          <input id="trainInput" type="number" min="1" value="5" />
+          <button id="trainBtn" class="btn">Huấn luyện</button>
+          <button id="trainMaxBtn" class="btn small ghost">Tối đa</button>
+        </div>
+        <p id="trainHint" class="hint"></p>
+
+        <h2>🎯 Các căn cứ khác</h2>
+        <div id="targets" class="targets"></div>
+
+        <h2>📻 Nhật ký</h2>
+        <div id="log" class="log"></div>
+      </section>
+    </main>
+  </section>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="raid.js"></script>
+</body>
+</html>
