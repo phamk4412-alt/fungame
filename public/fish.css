@@ -73,6 +73,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .needle { position: absolute; top: -3px; bottom: -3px; width: 5px; margin-left: -2px; border-radius: 3px; background: #fff; box-shadow: 0 0 8px #fff; left: 0; }
 .progress { position: relative; flex: 1; height: 12px; border-radius: 6px; background: #1a2430; }
 .progress-fill { height: 100%; width: 0; border-radius: 6px; background: linear-gradient(90deg, #1a5fb0, #5ab8ff); }
+.fish-dir { text-align: center; font-size: 14px; font-weight: 700; padding: 4px 8px; border-radius: 8px; color: var(--muted); }
+.fish-dir.bad { color: #fff; background: rgba(255,90,74,0.55); }
+.fish-dir.good { color: #00261b; background: rgba(57,208,160,0.85); }
+.steer { width: 64px; height: 64px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5); background: var(--glass); backdrop-filter: blur(8px); font-size: 24px; margin-bottom: 16px; touch-action: none; }
+.steer.want { border-color: #ffe066; box-shadow: 0 0 22px rgba(255,224,102,0.8); animation: pulse 0.3s infinite alternate; }
+.steer.on { background: rgba(57,208,160,0.6); }
 .fish-icon { position: absolute; top: 50%; transform: translate(-50%, -55%) scaleX(-1); font-size: 20px; left: 0; filter: drop-shadow(0 2px 3px #000); }
 
 .catch { position: fixed; inset: auto 0 0 0; display: flex; justify-content: center; padding: 0 12px max(16px, env(safe-area-inset-bottom)); pointer-events: none; }
