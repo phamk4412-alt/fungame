@@ -1171,7 +1171,7 @@ async function renderBoard(el, tab = 'biggest') {
       const list = d[t];
       const rows = list
         .map((r, i) => {
-          const val = t === 'biggest' ? `${esc(C.fish[r.biggest.s].name)} · <b>${kg(r.biggest.w)}</b>` : `<b>${fmt(r.earned)} xu</b> · ${r.caught} con`;
+          const val = t === 'biggest' ? `${esc(C.fish[r.biggest.s].name)} · <b>${kg(r.biggest.w)}</b>` : `<b>${r.caught} con</b>`;
           return `<tr class="${r.me ? 'me' : ''}"><td>${['🥇', '🥈', '🥉'][i] || i + 1}</td><td>${esc(r.name)}${r.legend ? ` <span title="Cá huyền thoại">✨${r.legend}</span>` : ''}</td><td style="text-align:right">${val}</td></tr>`;
         })
         .join('');
@@ -1179,7 +1179,7 @@ async function renderBoard(el, tab = 'biggest') {
         .sort((a, b) => C.fish[b[0]].rarity - C.fish[a[0]].rarity)
         .map(([s, r]) => `<tr><td>${rarityDot(C.fish[s].rarity)}</td><td>${esc(C.fish[s].name)}</td><td style="text-align:right"><b>${kg(r.w)}</b> · ${esc(r.name)}</td></tr>`)
         .join('');
-      el.innerHTML = `<div class="tabs"><button class="tab ${t === 'biggest' ? 'active' : ''}" data-t="biggest">🐋 Cá to nhất</button><button class="tab ${t === 'rich' ? 'active' : ''}" data-t="rich">💰 Giàu nhất</button><button class="tab ${t === 'records' ? 'active' : ''}" data-t="records">📜 Kỷ lục loài</button></div>
+      el.innerHTML = `<div class="tabs"><button class="tab ${t === 'biggest' ? 'active' : ''}" data-t="biggest">🐋 Cá to nhất</button><button class="tab ${t === 'most' ? 'active' : ''}" data-t="most">🎣 Câu nhiều nhất</button><button class="tab ${t === 'records' ? 'active' : ''}" data-t="records">📜 Kỷ lục loài</button></div>
         <table class="board">${t === 'records' ? recs || '<tr><td>Chưa có ai câu được gì.</td></tr>' : rows || '<tr><td>Chưa có ai trên bảng. Hãy là người đầu tiên!</td></tr>'}</table>`;
       el.querySelectorAll('[data-t]').forEach((b) => b.addEventListener('click', () => draw(b.dataset.t)));
     };
