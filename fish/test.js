@@ -74,6 +74,9 @@ assert.strictEqual(L.buy(p, 'cooler'), null);
 assert.strictEqual(L.coolerSize(p), 25);
 p.money = 0;
 assert.ok(L.buy(p, 'rod', 'long'));
+assert.strictEqual(L.buy(p, 'rod', 'long', true), null); // tài khoản vô hạn tiền
+assert.strictEqual(p.rod, 'long');
+assert.strictEqual(p.money, 0);
 p.fish = Array.from({ length: 25 }, () => ({ s: 'ca_bang', w: 1, v: 10, at: t0 }));
 assert.ok(L.startCast(p, 'bang', 'giun', t0).error); // thùng đầy
 console.log('✓ Mua cần, mồi, hồ, thùng đá');

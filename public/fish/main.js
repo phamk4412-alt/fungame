@@ -878,7 +878,7 @@ function updateRemotes(dt) {
 
 function renderHud() {
   if (!me || !C) return;
-  $('money').textContent = fmt(me.money);
+  $('money').textContent = me.rich ? '∞' : fmt(me.money);
   const lake = C.lakes.find((l) => l.id === (world.lakeId || me.lake));
   $('lakeName').textContent = `📍 ${lake.name}`;
   $('coolerCount').textContent = me.fish.length;
@@ -1093,19 +1093,19 @@ function renderShop(el) {
     .map((r) => {
       const owned = me.rods.includes(r.id);
       const using = me.rod === r.id;
-      const btn = using ? '<button class="btn small" disabled>Đang dùng</button>' : owned ? `<button class="btn small" data-buy="rod" data-id="${r.id}">Dùng</button>` : `<button class="btn small primary" data-buy="rod" data-id="${r.id}" ${me.money < r.price ? 'disabled' : ''}>${fmt(r.price)} xu</button>`;
+      const btn = using ? '<button class="btn small" disabled>Đang dùng</button>' : owned ? `<button class="btn small" data-buy="rod" data-id="${r.id}">Dùng</button>` : `<button class="btn small primary" data-buy="rod" data-id="${r.id}" ${!me.rich && me.money < r.price ? 'disabled' : ''}>${fmt(r.price)} xu</button>`;
       return `<div class="row ${using ? 'current' : ''}"><div class="grow"><div class="title">🎣 ${esc(r.name)}</div><div class="desc">${esc(r.desc)}<br>Sức chịu ×${r.strength} · Tốc độ kéo ×${r.reel}${r.luck ? ` · May mắn +${Math.round(r.luck * 100)}%` : ''}</div></div>${btn}</div>`;
     })
     .join('');
   const baits = C.baits
     .filter((b) => b.pack)
-    .map((b) => `<div class="row"><div class="grow"><div class="title">🪱 ${esc(b.name)} <span class="muted">(còn ${me.baits[b.id] || 0})</span></div><div class="desc">${esc(b.desc)}</div></div><button class="btn small primary" data-buy="bait" data-id="${b.id}" ${me.money < b.price ? 'disabled' : ''}>${b.pack} cái · ${fmt(b.price)} xu</button></div>`)
+    .map((b) => `<div class="row"><div class="grow"><div class="title">🪱 ${esc(b.name)} <span class="muted">(còn ${me.baits[b.id] || 0})</span></div><div class="desc">${esc(b.desc)}</div></div><button class="btn small primary" data-buy="bait" data-id="${b.id}" ${!me.rich && me.money < b.price ? 'disabled' : ''}>${b.pack} cái · ${fmt(b.price)} xu</button></div>`)
     .join('');
   const next = C.coolers[me.cooler + 1];
   const cooler = next
-    ? `<div class="row"><div class="grow"><div class="title">🧊 ${esc(next.name)}</div><div class="desc">Chứa ${next.size} con (hiện tại ${me.coolerSize})</div></div><button class="btn small primary" data-buy="cooler" ${me.money < next.price ? 'disabled' : ''}>${fmt(next.price)} xu</button></div>`
+    ? `<div class="row"><div class="grow"><div class="title">🧊 ${esc(next.name)}</div><div class="desc">Chứa ${next.size} con (hiện tại ${me.coolerSize})</div></div><button class="btn small primary" data-buy="cooler" ${!me.rich && me.money < next.price ? 'disabled' : ''}>${fmt(next.price)} xu</button></div>`
     : '<p class="muted">Thùng đá đã to nhất.</p>';
-  el.innerHTML = `<p class="muted">Bạn có <b style="color:var(--gold)">${fmt(me.money)} xu</b>.</p>
+  el.innerHTML = `<p class="muted">Bạn có <b style="color:var(--gold)">${me.rich ? '∞' : fmt(me.money)} xu</b>.</p>
     <div class="sec">Cần câu</div>${rods}
     <div class="sec">Mồi câu</div>${baits}
     <div class="sec">Thùng đá</div>${cooler}`;
@@ -1135,7 +1135,7 @@ function renderMap(el) {
       const open = me.lakes.includes(l.id);
       const here = world.lakeId === l.id;
       const fish = Object.values(C.fish).filter((f) => f.lake === l.id);
-      const btn = here ? '<button class="btn small" disabled>Đang ở đây</button>' : open ? `<button class="btn small primary" data-buy="lake" data-id="${l.id}">Đi tới</button>` : `<button class="btn small gold" data-buy="lake" data-id="${l.id}" ${me.money < l.price ? 'disabled' : ''}>Mở khóa ${fmt(l.price)} xu</button>`;
+      const btn = here ? '<button class="btn small" disabled>Đang ở đây</button>' : open ? `<button class="btn small primary" data-buy="lake" data-id="${l.id}">Đi tới</button>` : `<button class="btn small gold" data-buy="lake" data-id="${l.id}" ${!me.rich && me.money < l.price ? 'disabled' : ''}>Mở khóa ${fmt(l.price)} xu</button>`;
       return `<div class="row ${here ? 'current' : ''}"><div class="grow"><div class="title">${open ? '📍' : '🔒'} ${esc(l.name)}</div><div class="desc">${esc(l.desc)}<br>${fish.length} loài cá · ${fish.filter((f) => me.best[Object.keys(C.fish).find((k) => C.fish[k] === f)]).length} đã câu được</div></div>${btn}</div>`;
     })
     .join('');

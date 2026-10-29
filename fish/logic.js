@@ -257,18 +257,20 @@ function sell(p, index) {
   return { sold: list.length, total };
 }
 
-function pay(p, price) {
+function pay(p, price, free) {
+  if (free) return null;
   if (p.money < price) return `Bạn cần ${price.toLocaleString('vi-VN')} xu.`;
   p.money -= price;
   return null;
 }
 
-function buy(p, kind, id) {
+// free: tài khoản vô hạn tiền, mua không bị trừ
+function buy(p, kind, id, free = false) {
   if (kind === 'rod') {
     const r = RODS[id];
     if (!r) return 'Không có cần này.';
     if (!p.rods.includes(id)) {
-      const err = pay(p, r.price);
+      const err = pay(p, r.price, free);
       if (err) return err;
       p.rods.push(id);
     }
@@ -278,7 +280,7 @@ function buy(p, kind, id) {
   if (kind === 'bait') {
     const b = BAITS[id];
     if (!b || !b.pack) return 'Không bán mồi này.';
-    const err = pay(p, b.price);
+    const err = pay(p, b.price, free);
     if (err) return err;
     p.baits[id] = (p.baits[id] || 0) + b.pack;
     return null;
@@ -286,7 +288,7 @@ function buy(p, kind, id) {
   if (kind === 'cooler') {
     const next = COOLERS[p.cooler + 1];
     if (!next) return 'Thùng đá đã to nhất rồi.';
-    const err = pay(p, next.price);
+    const err = pay(p, next.price, free);
     if (err) return err;
     p.cooler += 1;
     return null;
@@ -295,7 +297,7 @@ function buy(p, kind, id) {
     const l = LAKES[id];
     if (!l) return 'Không có hồ này.';
     if (!p.lakes.includes(id)) {
-      const err = pay(p, l.price);
+      const err = pay(p, l.price, free);
       if (err) return err;
       p.lakes.push(id);
     }
