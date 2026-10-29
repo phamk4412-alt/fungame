@@ -1,10 +1,11 @@
-// Lưu người chơi Căn cứ tận thế lâu dài.
-// Có DATABASE_URL thì dùng Postgres, không có thì ghi file data/raid.json (chỉ hợp khi chạy trên máy mình).
+// Lưu người chơi lâu dài (Căn cứ tận thế, Câu cá 3D), mỗi game một bảng riêng trong cùng database.
+// Có DATABASE_URL thì dùng Postgres, không có thì ghi file trong data/ (chỉ hợp khi chạy trên máy mình).
 const fs = require('fs');
 const path = require('path');
 
 class PgStore {
-  constructor(url) {
+  constructor(url, table) {
+    this.table = table;
     const { Pool } = require('pg');
     const local = /localhost|127\.0\.0\.1/.test(url);
     this.pool = new Pool({ connectionString: url, ssl: local ? false : { rejectUnauthorized: false }, max: 3 });
@@ -12,14 +13,14 @@ class PgStore {
   }
 
   async load() {
-    await this.pool.query('CREATE TABLE IF NOT EXISTS raid_players (id TEXT PRIMARY KEY, data JSONB NOT NULL)');
-    const { rows } = await this.pool.query('SELECT data FROM raid_players');
+    await this.pool.query(`CREATE TABLE IF NOT EXISTS ${this.table} (id TEXT PRIMARY KEY, data JSONB NOT NULL)`);
+    const { rows } = await this.pool.query(`SELECT data FROM ${this.table}`);
     return rows.map((r) => r.data);
   }
 
   async save(p) {
     await this.pool.query(
-      'INSERT INTO raid_players (id, data) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data',
+      `INSERT INTO ${this.table} (id, data) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data`,
       [p.id, JSON.stringify(p)],
     );
   }
@@ -53,9 +54,9 @@ class FileStore {
   }
 }
 
-function createStore() {
-  if (process.env.DATABASE_URL) return new PgStore(process.env.DATABASE_URL);
-  return new FileStore(process.env.RAID_DATA_FILE || path.join(__dirname, '..', 'data', 'raid.json'));
+function createStore(table = 'raid_players', file = process.env.RAID_DATA_FILE || path.join(__dirname, '..', 'data', 'raid.json')) {
+  if (process.env.DATABASE_URL) return new PgStore(process.env.DATABASE_URL, table);
+  return new FileStore(file);
 }
 
 module.exports = { createStore };

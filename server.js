@@ -7,6 +7,7 @@ const { WebSocketServer } = require('ws');
 const { Table } = require('./game');
 const { XiDachTable } = require('./xidach');
 const raidApi = require('./raid/api');
+const fishApi = require('./fish/api');
 
 const GAMES = { poker: Table, xidach: XiDachTable };
 
@@ -19,10 +20,13 @@ const MIME = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.ico': 'image/x-icon',
+  '.jpg': 'image/jpeg',
+  '.json': 'application/json; charset=utf-8',
 };
 
 const server = http.createServer((req, res) => {
   if (raidApi.handle(req, res)) return;
+  if (fishApi.handle(req, res)) return;
   const urlPath = decodeURIComponent(new URL(req.url, 'http://x').pathname);
   let file = path.normalize(path.join(PUBLIC_DIR, urlPath === '/' ? 'index.html' : urlPath));
   if (!file.startsWith(PUBLIC_DIR)) {
@@ -172,4 +176,5 @@ wss.on('connection', (ws) => {
 server.listen(PORT, () => {
   console.log(`🎲 Fungame server đang chạy tại http://localhost:${PORT}`);
   raidApi.init().catch((e) => console.error('Không tải được dữ liệu Căn cứ tận thế:', e.message));
+  fishApi.init().catch((e) => console.error('Không tải được dữ liệu Câu cá 3D:', e.message));
 });

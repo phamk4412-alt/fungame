@@ -79,6 +79,21 @@ Không có `DATABASE_URL` thì game lưu vào file `data/raid.json`. Cách này 
 
 Muốn thử cướp ngoài cuối tuần thì chạy với `RAID_ALWAYS_OPEN=1` (ví dụ `RAID_ALWAYS_OPEN=1 npm start`).
 
+## Câu Cá 3D
+
+Game câu cá 3D chạy ngay trên trình duyệt, mở ở `/fish.html` (trang chủ có nút **🎣 Câu Cá 3D**). Đăng ký bằng tên và mật khẩu, tiến trình lưu lâu dài như Căn cứ tận thế.
+
+- **4 hồ:** Hồ Sen Làng Quê (có sẵn), Hồ Rừng Thông (sáng sớm sương mù), Vịnh Đá Vôi (cột đá vôi, thuyền buồm), Hồ Băng Cực Quang (tuyết rơi, đêm có cực quang). Mở khóa bằng xu.
+- **28 loài cá**, 4 độ hiếm: Thường, Hiếm, Sử thi, Huyền thoại. Mỗi loài chỉ ra ở một hồ và vào một số giờ nhất định (bình minh, ban ngày, hoàng hôn, ban đêm). **Một ngày trong game dài 24 phút**, mọi người thấy cùng một giờ.
+- **Cách câu:** giữ nút (hoặc phím Space) để lấy đà, thả ra để quăng, kéo màn hình để chọn hướng. Chờ phao chìm hẳn rồi bấm giật cần, bấm sớm là cá chạy. Khi kéo: giữ nút để cuộn dây, thả ra khi kim vào vùng đỏ kẻo đứt dây, nhưng thả lâu quá thì dây chùng và cá sổng.
+- **Cửa hàng:** 4 loại cần (càng xịn càng chịu được cá khỏe, kéo nhanh và may mắn hơn), 4 loại mồi (mồi xịn ra cá hiếm nhiều hơn), thùng đá to hơn. Bán cá lấy xu.
+- **Chơi cùng bạn bè:** ai đứng cùng hồ sẽ thấy nhau trên các cầu câu bên cạnh, thấy phao và cần cong khi bạn đang kéo cá. Cả server thấy tin "vừa câu được cá hiếm". Có bảng xếp hạng cá to nhất, giàu nhất và kỷ lục từng loài.
+- **Hình ảnh:** mặt nước phản chiếu có gợn sóng theo phao, bầu trời vật lý đổi màu theo giờ, sao, trăng, đèn lồng, đom đóm, bóng đổ, cỏ cây lay theo gió, ánh sáng loá (bloom). Trong ⚙️ Cài đặt chọn chất lượng Thấp, Vừa hoặc Cao; điện thoại mặc định là Vừa.
+
+Câu Cá 3D dùng chung database với Căn cứ tận thế: cùng biến `DATABASE_URL` (Neon), server tự tạo thêm bảng `fish_players`, không cần cài gì thêm. Không có `DATABASE_URL` thì lưu vào file `data/fish.json`.
+
+Muốn đổi loài cá, giá cần, mồi hay độ dài một ngày trong game, sửa `fish/logic.js`.
+
 ## Cách chạy
 
 Cần cài [Node.js](https://nodejs.org) bản 18 trở lên.
@@ -143,8 +158,11 @@ Gói miễn phí sẽ "ngủ" khi không có ai vào, lần đầu mở có th�
 | `xidach.js` | Luật Xì dách: thay phiên làm cái, đặt cược, rút/dằn, lật từng nhà, tính tiền |
 | `raid/logic.js` | Luật Căn cứ tận thế: sinh vật tư, nâng cấp, lịch cuối tuần, trận cướp |
 | `raid/api.js` | API `/api/raid/`: đăng ký, đăng nhập, nâng cấp, huấn luyện, cướp |
-| `raid/store.js` | Lưu người chơi vào Postgres (hoặc file khi chạy trên máy) |
+| `raid/store.js` | Lưu người chơi vào Postgres (hoặc file khi chạy trên máy), dùng chung cho Câu cá 3D |
+| `fish/logic.js` | Luật Câu cá 3D: hồ, loài cá, giờ trong ngày, cần, mồi, thùng đá |
+| `fish/api.js` | API `/api/fish/`: đăng ký, quăng câu, kéo cá, bán, mua, bạn bè cùng hồ, xếp hạng |
+| `public/fish.html`, `public/fish/` | Giao diện Câu cá 3D: cảnh hồ (`world.js`), cá, người, cần, dây (`models.js`), hiệu ứng, âm thanh, vòng chơi (`main.js`) |
 | `public/` | Giao diện (HTML, CSS, JS), Căn cứ tận thế ở `raid.html`, bản 3D ở `raid3d.html` (Three.js tải từ CDN) |
-| `test.js`, `raid/test.js` | Kiểm thử: `npm test` mô phỏng 2000 ván Poker, 2000 ván Xì dách và luật Căn cứ tận thế |
+| `test.js`, `raid/test.js`, `fish/test.js` | Kiểm thử: `npm test` mô phỏng 2000 ván Poker, 2000 ván Xì dách, luật Căn cứ tận thế và Câu cá 3D |
 
 Muốn đổi số chip ban đầu, mức blind hay thời gian mỗi lượt, sửa các hằng số ở đầu file `game.js`.

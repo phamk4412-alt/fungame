@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1424" />
+  <title>Câu Cá 3D · Fungame</title>
+  <link rel="stylesheet" href="fish.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎣</text></svg>" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="view"></canvas>
+  <div id="labels"></div>
+  <div id="vignette" class="vignette"></div>
+
+  <!-- Thanh trên cùng -->
+  <header id="hud" class="hud hidden">
+    <div class="hud-left">
+      <div class="chip money">💰 <b id="money">0</b></div>
+      <div class="chip"><span id="clock">--:--</span></div>
+      <div class="chip lake-chip" id="lakeName"></div>
+      <div class="chip online hidden" id="online"></div>
+    </div>
+    <nav class="hud-right">
+      <button class="icon-btn" data-panel="cooler" title="Thùng cá">🧺<span id="coolerCount" class="badge">0</span></button>
+      <button class="icon-btn" data-panel="shop" title="Cửa hàng">🛒</button>
+      <button class="icon-btn" data-panel="map" title="Các hồ">🗺️</button>
+      <button class="icon-btn" data-panel="book" title="Sổ tay cá">📖</button>
+      <button class="icon-btn" data-panel="board" title="Xếp hạng">🏆</button>
+      <button class="icon-btn" data-panel="settings" title="Cài đặt">⚙️</button>
+    </nav>
+  </header>
+
+  <div id="feed" class="feed"></div>
+  <div id="banner" class="banner hidden"></div>
+  <div id="hint" class="hint hidden"></div>
+
+  <!-- Thanh kéo cá -->
+  <div id="fight" class="fight hidden">
+    <div class="fight-row">
+      <span class="fight-label">Độ căng dây</span>
+      <div class="tension">
+        <div class="zone ok"></div>
+        <div class="zone warn"></div>
+        <div class="zone bad"></div>
+        <div id="needle" class="needle"></div>
+      </div>
+    </div>
+    <div class="fight-row">
+      <span class="fight-label">Kéo vào bờ</span>
+      <div class="progress"><div id="progress" class="progress-fill"></div><span id="fishIcon" class="fish-icon">🐟</span></div>
+    </div>
+  </div>
+
+  <!-- Nút hành động -->
+  <div id="controls" class="controls hidden">
+    <button id="baitBtn" class="bait-btn"></button>
+    <div id="baitMenu" class="bait-menu hidden"></div>
+    <div class="power hidden" id="power"><div id="powerFill"></div></div>
+    <button id="action" class="action"><span id="actionText">Giữ để quăng</span></button>
+  </div>
+
+  <!-- Thẻ khoe cá -->
+  <div id="catch" class="catch hidden">
+    <div class="catch-card">
+      <div id="catchRarity" class="rarity"></div>
+      <h2 id="catchName"></h2>
+      <div class="catch-stats">
+        <div><small>Cân nặng</small><b id="catchWeight"></b></div>
+        <div><small>Chiều dài</small><b id="catchLen"></b></div>
+        <div><small>Giá bán</small><b id="catchValue"></b></div>
+      </div>
+      <div id="catchRecord" class="record hidden"></div>
+      <button id="keepBtn" class="btn primary">Cất vào thùng</button>
+    </div>
+  </div>
+
+  <!-- Bảng chức năng -->
+  <div id="sheet" class="sheet hidden">
+    <div class="sheet-card">
+      <header><h3 id="sheetTitle"></h3><button id="sheetClose" class="icon-btn small">✕</button></header>
+      <div id="sheetBody" class="sheet-body"></div>
+    </div>
+  </div>
+
+  <!-- Đăng nhập -->
+  <div id="login" class="login hidden">
+    <div class="login-card">
+      <div class="logo">🎣</div>
+      <h1>Câu Cá 3D</h1>
+      <p class="sub">Bốn hồ, hai mươi tám loài cá, ngày đêm thay đổi. Câu cùng bạn bè, săn cá huyền thoại.</p>
+      <div class="tabs"><button class="tab active" data-mode="login">Đăng nhập</button><button class="tab" data-mode="register">Tạo tài khoản</button></div>
+      <input id="nameInput" maxlength="16" placeholder="Tên người câu" autocomplete="username" />
+      <input id="passInput" type="password" maxlength="40" placeholder="Mật khẩu" autocomplete="current-password" />
+      <button id="loginBtn" class="btn primary">Vào hồ</button>
+      <p id="loginErr" class="err"></p>
+      <a class="back" href="/">← Về trang Fungame</a>
+    </div>
+  </div>
+
+  <div id="loading" class="loading"><div class="spinner"></div><p id="loadingText">Đang chuẩn bị hồ câu...</p></div>
+  <div id="toast" class="toast hidden"></div>
+
+  <script type="module" src="fish/main.js"></script>
+</body>
+</html>
