@@ -1,6 +1,6 @@
 // Mô hình 3D: cá, người câu, cần câu, dây câu, phao
 import * as THREE from 'three';
-import { rng } from './noise.js';
+import { rng, noise2 } from './noise.js';
 import { time } from './world.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -136,11 +136,96 @@ function fishTexture(look, seed) {
   return tex;
 }
 
+// vảy cá nổi khối: dùng làm bump map và độ nhám
+function scaleTexture(look) {
+  const W = 512;
+  const H = 256;
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d');
+  g.fillStyle = '#808080';
+  g.fillRect(0, 0, W, H);
+  const step = look.pattern === 'plain' || look.eel ? 7 : 10;
+  for (let y = 0; y < H + step; y += step * 0.8) {
+    for (let x = (Math.round(y / (step * 0.8)) % 2) * step * 0.5; x < W * 0.84; x += step) {
+      const grd = g.createRadialGradient(x - step * 0.2, y, 0, x, y, step * 0.75);
+      grd.addColorStop(0, '#d0d0d0');
+      grd.addColorStop(0.75, '#9a9a9a');
+      grd.addColorStop(1, '#505050');
+      g.fillStyle = grd;
+      g.beginPath();
+      g.arc(x, y, step * 0.75, -Math.PI / 2, Math.PI / 2);
+      g.fill();
+    }
+  }
+  // đầu cá trơn, không vảy
+  const head = g.createLinearGradient(W * 0.8, 0, W * 0.86, 0);
+  head.addColorStop(0, 'rgba(128,128,128,0)');
+  head.addColorStop(1, 'rgba(128,128,128,1)');
+  g.fillStyle = head;
+  g.fillRect(W * 0.8, 0, W * 0.2, H);
+  const t = new THREE.CanvasTexture(c);
+  t.anisotropy = 4;
+  return t;
+}
+
+// vây: có tia vây, mép mỏng trong suốt
+function finTexture(color, glow) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d');
+  const base = new THREE.Color(color);
+  const grd = g.createLinearGradient(0, 0, 128, 0);
+  grd.addColorStop(0, `rgba(${base.r * 255},${base.g * 255},${base.b * 255},0.95)`);
+  grd.addColorStop(1, `rgba(${base.r * 255},${base.g * 255},${base.b * 255},0.45)`);
+  g.fillStyle = grd;
+  g.fillRect(0, 0, 128, 128);
+  g.strokeStyle = glow ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.35)';
+  g.lineWidth = 1.4;
+  for (let i = -6; i <= 6; i++) {
+    g.beginPath();
+    g.moveTo(0, 64);
+    g.quadraticCurveTo(64, 64 + i * 6, 128, 64 + i * 11);
+    g.stroke();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+function eyeTexture(glow) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const grd = g.createRadialGradient(32, 32, 4, 32, 32, 32);
+  grd.addColorStop(0, '#000');
+  grd.addColorStop(0.42, '#000');
+  grd.addColorStop(0.46, glow ? '#fff2a0' : '#d8b04a');
+  grd.addColorStop(0.8, glow ? '#ffb000' : '#8a6a20');
+  grd.addColorStop(1, '#2a2010');
+  g.fillStyle = grd;
+  g.fillRect(0, 0, 64, 64);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+// UV của vây theo khung bao, để tia vây chạy từ gốc ra mép
 function finShape(points) {
   const s = new THREE.Shape();
   s.moveTo(points[0][0], points[0][1]);
   for (let i = 1; i < points.length; i += 2) s.quadraticCurveTo(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1]);
-  return new THREE.ShapeGeometry(s, 8);
+  const g = new THREE.ShapeGeometry(s, 10);
+  g.computeBoundingBox();
+  const b = g.boundingBox;
+  const p = g.attributes.position;
+  const uv = g.attributes.uv;
+  const x0 = points[0][0];
+  const span = Math.max(Math.abs(b.max.x - x0), Math.abs(b.min.x - x0), 1e-3);
+  const hy = Math.max(Math.abs(b.max.y), Math.abs(b.min.y), 1e-3);
+  for (let i = 0; i < p.count; i++) uv.setXY(i, Math.abs(p.getX(i) - x0) / span, 0.5 + (p.getY(i) / hy) * 0.5);
+  return g;
 }
 
 // Cá dài 1 đơn vị theo trục X, đầu quay về +X
@@ -154,23 +239,29 @@ export function makeFish(look, seed = 1) {
     if (look.ray) s = Math.max(0, 1 - Math.abs(u - 0.55) / 0.45);
     const e = Math.min(1, u * 6, (1 - u) * 5);
     s = s * (1 - eel) + e * 0.8 * eel;
+    // nắp mang nhô nhẹ, mõm thon lại
+    if (!look.ray) s *= 1 + 0.035 * Math.exp(-Math.pow((u - 0.78) / 0.025, 2)) - 0.08 * Math.max(0, u - 0.93) / 0.07;
     return Math.max(s, 0.1 * (1 - Math.min(1, u / 0.15))) * h * 0.5;
   };
-  const NU = 48;
-  const NV = 28;
+  const NU = 72;
+  const NV = 40;
   const pos = [];
   const uv = [];
   const idx = [];
   for (let i = 0; i <= NU; i++) {
     const u = i / NU;
     const hu = H(u);
+    // sống lưng cong hơn bụng, mõm hơi chúc xuống
+    const camber = look.ray ? 0 : hu * 0.12 - Math.max(0, u - 0.85) * h * 0.25;
     for (let j = 0; j <= NV; j++) {
       const a = (j / NV) * Math.PI * 2;
       const cy = Math.sin(a);
       const cz = Math.cos(a);
-      const belly = cy < 0 ? (look.ray ? 0.5 : 1.08) : 1;
-      const wu = look.ray ? hu * wr : hu * wr * (1 - 0.25 * Math.abs(cy));
-      pos.push(u - 0.5, cy * hu * belly, cz * wu);
+      const belly = cy < 0 ? (look.ray ? 0.5 : 0.95) : look.ray ? 1 : 1.06;
+      const wu = look.ray ? hu * wr : hu * wr * (1 - 0.22 * Math.abs(cy));
+      // miệng: rãnh nhỏ ở đầu mõm
+      const mouth = !look.ray && u > 0.965 && Math.abs(cy + 0.1) < 0.18 ? 0.75 : 1;
+      pos.push(u - 0.5, cy * hu * belly * mouth + camber, cz * wu * mouth);
       uv.push(u, (cy + 1) / 2);
     }
   }
@@ -189,12 +280,19 @@ export function makeFish(look, seed = 1) {
 
   const swim = { uSpeed: { value: 8 }, uAmp: { value: 0.06 }, uPhase: { value: 0 } };
   const map = fishTexture(look, seed);
+  const bump = scaleTexture(look);
   const bodyMat = new THREE.MeshPhysicalMaterial({
     map,
-    roughness: 0.32,
-    metalness: 0.2,
-    clearcoat: 0.9,
-    clearcoatRoughness: 0.15,
+    bumpMap: bump,
+    bumpScale: 1.2,
+    roughness: 0.3,
+    roughnessMap: bump,
+    metalness: look.pattern === 'plain' || look.pattern === 'mackerel' ? 0.45 : 0.25,
+    clearcoat: 1,
+    clearcoatRoughness: 0.12,
+    iridescence: 0.55,
+    iridescenceIOR: 1.35,
+    iridescenceThicknessRange: [180, 520],
     emissive: look.glow ? new THREE.Color(look.glow) : new THREE.Color(0),
     emissiveMap: look.glow ? map : null,
     emissiveIntensity: look.glow ? 0.9 : 0,
@@ -215,12 +313,15 @@ export function makeFish(look, seed = 1) {
   body.castShadow = true;
   group.add(body);
 
-  const finMat = new THREE.MeshStandardMaterial({
-    color: look.fin,
+  const finMap = finTexture(look.fin, look.glow);
+  const finMat = new THREE.MeshPhysicalMaterial({
+    map: finMap,
     side: THREE.DoubleSide,
     transparent: true,
-    opacity: 0.88,
-    roughness: 0.45,
+    depthWrite: false,
+    roughness: 0.35,
+    transmission: 0.2,
+    clearcoat: 0.6,
     emissive: look.glow ? new THREE.Color(look.glow) : new THREE.Color(0),
     emissiveIntensity: look.glow ? 0.8 : 0,
   });
@@ -233,50 +334,70 @@ export function makeFish(look, seed = 1) {
     ? new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.012, 0.9, 5).rotateZ(Math.PI / 2).translate(-0.45, 0, 0), finMat)
     : new THREE.Mesh(
       look.fork
-        ? finShape([[0.02, 0], [-0.08, th * 0.25], [-0.24, th], [-0.15, th * 0.1], [-0.1, 0], [-0.15, -th * 0.1], [-0.24, -th], [-0.08, -th * 0.25], [0.02, 0]])
-        : finShape([[0.02, 0], [-0.06, th * 0.4], [-0.18, th * 0.85], [-0.24, 0], [-0.18, -th * 0.85], [-0.06, -th * 0.4], [0.02, 0]]),
+        ? finShape([[0.02, 0], [-0.08, th * 0.25], [-0.25, th], [-0.15, th * 0.1], [-0.11, 0], [-0.15, -th * 0.1], [-0.25, -th], [-0.08, -th * 0.25], [0.02, 0]])
+        : finShape([[0.02, 0], [-0.06, th * 0.45], [-0.19, th * 0.85], [-0.22, 0.02], [-0.21, -0.02], [-0.19, -th * 0.85], [-0.06, -th * 0.45], [0.02, 0], [0.02, 0]]),
       finMat,
     );
   tailPivot.add(tail);
   group.add(tailPivot);
 
+  const fins = [];
   if (!look.ray) {
     // vây lưng
     const dh = h * (look.eel ? 0.25 : 0.42);
     const dorsal = new THREE.Mesh(
       look.eel
         ? finShape([[-0.4, 0], [-0.1, dh * 1.2], [0.25, 0]])
-        : finShape([[-0.16, 0], [-0.12, dh * 0.9], [0.06, dh], [0.14, dh * 0.4], [0.16, 0]]),
+        : finShape([[0.16, 0], [0.14, dh * 1.05], [0.02, dh * 0.9], [-0.12, dh * 0.5], [-0.16, 0]]),
       finMat,
     );
-    dorsal.position.set(look.eel ? 0 : -0.02, H(0.5) * 0.92, 0);
+    dorsal.position.set(look.eel ? 0 : -0.02, H(0.5) * 1.0 + H(0.5) * 0.12, 0);
     group.add(dorsal);
+    // vây mỡ của cá hồi
+    if (look.pattern === 'trout') {
+      const adipose = new THREE.Mesh(finShape([[0.03, 0], [0.0, 0.035], [-0.03, 0]]), finMat);
+      adipose.position.set(-0.3, H(0.2) * 1.08, 0);
+      group.add(adipose);
+    }
     // vây hậu môn
-    const anal = new THREE.Mesh(finShape([[-0.12, 0], [-0.1, -dh * 0.5], [0.02, -dh * 0.35], [0.02, 0], [0.0, 0]]), finMat);
-    anal.position.set(-0.2, -H(0.3) * 0.95, 0);
+    const anal = new THREE.Mesh(finShape([[0.04, 0], [0.0, -dh * 0.55], [-0.1, -dh * 0.4], [-0.12, -0.01], [-0.12, 0]]), finMat);
+    anal.position.set(-0.2, -H(0.3) * 0.92, 0);
     group.add(anal);
-    // vây ngực
     for (const s of [-1, 1]) {
-      const pec = new THREE.Mesh(finShape([[0, 0], [-0.04, -0.04], [-0.12, -0.03], [-0.06, 0.01], [0, 0]]), finMat);
-      pec.position.set(0.24, -H(0.74) * 0.35, s * H(0.74) * wr * 0.9);
-      pec.rotation.set(s * 0.6, s * 0.5, 0);
-      group.add(pec);
+      // vây ngực, phe phẩy
+      const pec = new THREE.Mesh(finShape([[0, 0], [-0.03, -0.05], [-0.13, -0.04], [-0.07, 0.015], [0, 0]]), finMat);
+      const pivot = new THREE.Group();
+      pivot.position.set(0.22, -H(0.72) * 0.35, s * H(0.72) * wr * 0.92);
+      pivot.rotation.set(s * 0.6, s * 0.5, 0);
+      pivot.add(pec);
+      group.add(pivot);
+      fins.push({ pivot, s, base: s * 0.5 });
+      // vây bụng
+      const pel = new THREE.Mesh(finShape([[0, 0], [-0.03, -0.035], [-0.09, -0.03], [-0.05, 0.01], [0, 0]]), finMat);
+      pel.position.set(0.02, -H(0.52) * 0.85, s * H(0.52) * wr * 0.5);
+      pel.rotation.set(s * 0.9, s * 0.25, 0);
+      group.add(pel);
     }
   }
 
-  // mắt
-  const eyeR = Math.max(0.022, h * 0.075);
-  const eyeMat = new THREE.MeshPhysicalMaterial({ color: look.glow ? '#fff6c0' : '#e8d8a0', roughness: 0.1, clearcoat: 1 });
-  const pupilMat = new THREE.MeshStandardMaterial({ color: '#050505', roughness: 0.05 });
-  const eyeU = look.ray ? 0.82 : 0.86;
+  // mắt: tròng có viền vàng, giác mạc bóng
+  const eyeR = Math.max(0.024, h * 0.08);
+  const eyeTex = eyeTexture(look.glow);
+  const irisMat = new THREE.MeshStandardMaterial({ map: eyeTex, roughness: 0.2, emissive: look.glow ? '#ffcc40' : '#000', emissiveIntensity: look.glow ? 0.4 : 0 });
+  const corneaMat = new THREE.MeshPhysicalMaterial({ color: '#ffffff', roughness: 0.02, transmission: 1, thickness: 0.01, clearcoat: 1, transparent: true, opacity: 0.25 });
+  const eyeU = look.ray ? 0.82 : 0.87;
   for (const s of [-1, 1]) {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(eyeR, 16, 10), eyeMat);
-    const ey = look.ray ? H(eyeU) * 0.6 : H(eyeU) * 0.3;
-    const ez = look.ray ? s * 0.06 : s * H(eyeU) * wr * 0.82;
+    const eye = new THREE.Group();
+    const ey = look.ray ? H(eyeU) * 0.6 : H(eyeU) * 0.28 + H(eyeU) * 0.12;
+    const ez = look.ray ? s * 0.06 : s * H(eyeU) * wr * 0.8;
     eye.position.set(eyeU - 0.5, ey, ez);
-    const pupil = new THREE.Mesh(new THREE.SphereGeometry(eyeR * 0.62, 12, 8), pupilMat);
-    pupil.position.set(eyeR * 0.15, 0, s * eyeR * 0.5);
-    eye.add(pupil);
+    const iris = new THREE.Mesh(new THREE.CircleGeometry(eyeR, 24), irisMat);
+    iris.rotation.y = s > 0 ? 0 : Math.PI;
+    iris.position.z = s * 0.002;
+    const cornea = new THREE.Mesh(new THREE.SphereGeometry(eyeR * 1.02, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), corneaMat);
+    cornea.rotation.x = s * Math.PI / 2;
+    cornea.scale.y = 0.45;
+    eye.add(iris, cornea);
     group.add(eye);
   }
 
@@ -289,7 +410,7 @@ export function makeFish(look, seed = 1) {
         new THREE.Vector3(0.52, -h * 0.12, s * h * 0.12),
         new THREE.Vector3(0.48, -h * 0.25, s * h * 0.25),
       ]);
-      group.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 8, 0.004, 4), barbMat));
+      group.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 10, 0.004, 5), barbMat));
     }
   }
 
@@ -304,14 +425,13 @@ export function makeFish(look, seed = 1) {
       const ph = time.value * swim.uSpeed.value + swim.uPhase.value + 0.49 * 7;
       tailPivot.position.z = Math.sin(ph) * swim.uAmp.value * 1.24;
       tailPivot.rotation.y = -Math.cos(ph) * swim.uAmp.value * 5;
+      for (const f of fins) f.pivot.rotation.y = f.base + Math.sin(time.value * 6 + f.s) * 0.25;
     },
     dispose() {
       group.traverse((o) => {
         if (o.geometry) o.geometry.dispose();
       });
-      bodyMat.dispose();
-      finMat.dispose();
-      map.dispose();
+      for (const m of [bodyMat, finMat, irisMat, corneaMat, map, bump, finMap, eyeTex]) m.dispose();
     },
   };
 }
@@ -519,19 +639,73 @@ export function makeBobber() {
 
 // ---------- Người câu ----------
 
-function limb(mat, r) {
-  const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, 1, 4, 10), mat);
+// vải: caro cho áo, bò cho quần, vải dù cho áo gile
+const texCache = new Map();
+function clothTexture(kind, color) {
+  const key = kind + color;
+  if (texCache.has(key)) return texCache.get(key);
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d');
+  const base = new THREE.Color(color);
+  g.fillStyle = `#${base.getHexString()}`;
+  g.fillRect(0, 0, 128, 128);
+  const r = rng(kind.length * 31 + c.width);
+  if (kind === 'plaid') {
+    const dark = base.clone().multiplyScalar(0.55);
+    const light = base.clone().lerp(new THREE.Color('#ffffff'), 0.35);
+    g.globalAlpha = 0.55;
+    g.fillStyle = `#${dark.getHexString()}`;
+    for (let i = 0; i < 128; i += 32) {
+      g.fillRect(i, 0, 12, 128);
+      g.fillRect(0, i, 128, 12);
+    }
+    g.globalAlpha = 0.5;
+    g.fillStyle = `#${light.getHexString()}`;
+    for (let i = 20; i < 128; i += 32) {
+      g.fillRect(i, 0, 2, 128);
+      g.fillRect(0, i, 128, 2);
+    }
+  }
+  // sợi vải li ti
+  g.globalAlpha = kind === 'denim' ? 0.25 : 0.12;
+  for (let i = 0; i < 2200; i++) {
+    g.fillStyle = r() < 0.5 ? '#000' : '#fff';
+    const x = r() * 128;
+    const y = r() * 128;
+    if (kind === 'denim') g.fillRect(x, y, 3, 1);
+    else g.fillRect(x, y, 1, 1);
+  }
+  g.globalAlpha = 1;
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(kind === 'plaid' ? 3 : 2, kind === 'plaid' ? 3 : 4);
+  texCache.set(key, t);
+  return t;
+}
+
+// khúc tay chân thuôn, cao 1 đơn vị dọc trục Y, có khớp tròn ở đầu
+function segment(mat, r0, r1) {
+  const g = new THREE.CylinderGeometry(r1, r0, 1, 14, 1, true);
+  const m = new THREE.Mesh(g, mat);
   m.castShadow = true;
   return m;
 }
 
-// đặt khúc tay/chân nối từ a tới b
-function place(m, a, b, r) {
+function joint(mat, r) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 10), mat);
+  m.castShadow = true;
+  return m;
+}
+
+// đặt khúc nối từ a tới b
+function place(m, a, b) {
   m.position.copy(a).add(b).multiplyScalar(0.5);
   tmp.copy(b).sub(a);
   const len = tmp.length();
   m.quaternion.setFromUnitVectors(UP, tmp.normalize());
-  m.scale.set(1, len / (1 + 2 * r) + 0.0001, 1);
+  m.scale.set(1, len + 0.0001, 1);
 }
 
 // IK hai khúc: tìm khuỷu tay
@@ -544,97 +718,202 @@ function solveArm(S, T, a, b, hint) {
   return S.clone().addScaledVector(dir, x).addScaledVector(side, hgt);
 }
 
+// thân người dựng bằng mặt tiện: hông, eo, ngực, vai
+function torsoGeo(scale = 1, phiStart = 0, phiLength = Math.PI * 2) {
+  const prof = [
+    [0.0, 0.0], [0.148, 0.0], [0.155, 0.06], [0.145, 0.16], [0.15, 0.26], [0.168, 0.38], [0.178, 0.46], [0.17, 0.53], [0.13, 0.585], [0.06, 0.61], [0.0, 0.615],
+  ].map(([r, y]) => new THREE.Vector2(r * scale, y));
+  const g = new THREE.LatheGeometry(prof, 28, phiStart, phiLength);
+  g.scale(1.08, 1, 0.68);
+  return g;
+}
+
 export const OUTFITS = [
-  { shirt: '#2f6fb0', pants: '#3a3f4a', vest: '#7a7048' },
-  { shirt: '#c0392b', pants: '#2c3440', vest: '#5a6040' },
-  { shirt: '#3c8c4a', pants: '#4a3a2a', vest: '#8a7a50' },
-  { shirt: '#e0a020', pants: '#2a3a4a', vest: '#4a5040' },
-  { shirt: '#8e44ad', pants: '#30343c', vest: '#6a6a48' },
-  { shirt: '#f0f0ea', pants: '#3a4a5a', vest: '#7a6a40' },
+  { shirt: '#2f6fb0', pants: '#33415a', vest: '#6f6a48', skin: '#d8a982', hair: '#1c1612' },
+  { shirt: '#b0332a', pants: '#2c3440', vest: '#56603e', skin: '#c99872', hair: '#2a1f18' },
+  { shirt: '#3c7c4a', pants: '#4a3e30', vest: '#80744c', skin: '#e2b994', hair: '#15110e' },
+  { shirt: '#d89a1e', pants: '#2a3a4a', vest: '#4a5040', skin: '#b98a62', hair: '#3a2a1c' },
+  { shirt: '#6e4a9e', pants: '#30343c', vest: '#66664a', skin: '#e8c4a0', hair: '#4a3020' },
+  { shirt: '#e8e6dc', pants: '#3a4a5a', vest: '#7a6a40', skin: '#c48e66', hair: '#0f0d0c' },
 ];
 
 export class Angler {
   constructor({ hat = 'cap', outfit = 0, rod = 'tre' } = {}) {
     const o = OUTFITS[outfit % OUTFITS.length];
     this.group = new THREE.Group();
-    const skin = new THREE.MeshStandardMaterial({ color: '#e0b48a', roughness: 0.7 });
-    const shirt = new THREE.MeshStandardMaterial({ color: o.shirt, roughness: 0.85 });
-    const pants = new THREE.MeshStandardMaterial({ color: o.pants, roughness: 0.9 });
-    const vest = new THREE.MeshStandardMaterial({ color: o.vest, roughness: 0.9 });
-    const boot = new THREE.MeshStandardMaterial({ color: '#2a2420', roughness: 0.7 });
+    const skin = new THREE.MeshPhysicalMaterial({ color: o.skin, roughness: 0.55, sheen: 0.4, sheenColor: new THREE.Color('#ff9a7a'), sheenRoughness: 0.6 });
+    const shirt = new THREE.MeshStandardMaterial({ map: clothTexture('plaid', o.shirt), roughness: 0.9 });
+    const pants = new THREE.MeshStandardMaterial({ map: clothTexture('denim', o.pants), roughness: 0.95 });
+    const vest = new THREE.MeshStandardMaterial({ map: clothTexture('canvas', o.vest), roughness: 0.92, side: THREE.DoubleSide });
+    const leather = new THREE.MeshStandardMaterial({ color: '#3a2a1e', roughness: 0.55 });
+    const sole = new THREE.MeshStandardMaterial({ color: '#141210', roughness: 0.8 });
+    const hairMat = new THREE.MeshStandardMaterial({ color: o.hair, roughness: 0.75 });
     this.body = new THREE.Group();
     this.group.add(this.body);
+    const add = (m) => {
+      m.castShadow = true;
+      this.body.add(m);
+      return m;
+    };
+
+    // chân: đùi, gối, bắp chân, giày
+    this.legs = [-1, 1].map((s) => {
+      const hip = new THREE.Vector3(s * 0.095, 0.93, 0);
+      const knee = new THREE.Vector3(s * 0.1, 0.51, -0.035);
+      const ankle = new THREE.Vector3(s * 0.1, 0.11, 0.0);
+      const thigh = add(segment(pants, 0.088, 0.066));
+      place(thigh, hip, knee);
+      add(joint(pants, 0.066)).position.copy(knee);
+      const calf = add(segment(pants, 0.064, 0.05));
+      place(calf, knee, ankle);
+      const boot = new THREE.Group();
+      const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.06, 0.13, 12), leather);
+      upper.position.y = 0.09;
+      const foot = new THREE.Mesh(new THREE.SphereGeometry(0.06, 14, 10), leather);
+      foot.scale.set(0.95, 0.6, 2.1);
+      foot.position.set(0, 0.045, -0.055);
+      const so = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.025, 0.28), sole);
+      so.position.set(0, 0.012, -0.05);
+      boot.add(upper, foot, so);
+      boot.position.set(s * 0.1, 0, 0);
+      boot.rotation.y = s * -0.12;
+      boot.traverse((m) => (m.castShadow = true));
+      this.body.add(boot);
+      return { thigh, calf };
+    });
+
+    // hông, thân, áo gile hở trước, thắt lưng
+    const pelvis = add(new THREE.Mesh(new THREE.SphereGeometry(0.16, 20, 12), pants));
+    pelvis.scale.set(1.08, 0.7, 0.72);
+    pelvis.position.y = 0.92;
+    const torso = add(new THREE.Mesh(torsoGeo(1), shirt));
+    torso.position.y = 0.9;
+    const vestM = add(new THREE.Mesh(torsoGeo(1.06, Math.PI * 1.1, Math.PI * 1.8), vest));
+    vestM.position.y = 0.94;
+    vestM.scale.y = 0.82;
     for (const s of [-1, 1]) {
-      const leg = limb(pants, 0.075);
-      leg.position.set(s * 0.1, 0.47, 0);
-      leg.scale.y = 0.66;
-      const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.09, 0.27), boot);
-      shoe.position.set(s * 0.1, 0.05, -0.04);
-      shoe.castShadow = true;
-      this.body.add(leg, shoe);
+      // túi áo gile
+      const pocket = add(new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.09, 0.03), vest));
+      pocket.position.set(s * 0.085, 1.1, -0.115);
+      pocket.rotation.y = s * 0.35;
+      const flap = add(new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.025, 0.035), vest));
+      flap.position.set(s * 0.085, 1.155, -0.118);
+      flap.rotation.y = s * 0.35;
     }
-    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.36, 6, 14), shirt);
-    torso.position.y = 1.17;
-    torso.scale.set(1.12, 1, 0.72);
-    torso.castShadow = true;
-    const vestM = new THREE.Mesh(new THREE.CapsuleGeometry(0.168, 0.26, 6, 14), vest);
-    vestM.position.y = 1.12;
-    vestM.scale.set(1.14, 1, 0.78);
-    vestM.castShadow = true;
-    const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.05, 16), new THREE.MeshStandardMaterial({ color: '#2a2018' }));
-    belt.position.y = 0.88;
-    belt.scale.set(1.1, 1, 0.75);
-    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.055, 0.1, 8), skin);
-    neck.position.y = 1.5;
+    const belt = add(new THREE.Mesh(new THREE.TorusGeometry(0.152, 0.02, 6, 28), leather));
+    belt.rotation.x = Math.PI / 2;
+    belt.scale.set(1.08, 0.7, 1);
+    belt.position.y = 0.96;
+    const buckle = add(new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.035, 0.012), new THREE.MeshStandardMaterial({ color: '#c8b070', metalness: 0.9, roughness: 0.3 })));
+    buckle.position.set(0, 0.96, -0.108);
+    const collar = add(new THREE.Mesh(new THREE.TorusGeometry(0.068, 0.02, 8, 20), shirt));
+    collar.rotation.x = Math.PI / 2 - 0.2;
+    collar.position.set(0, 1.5, 0.005);
+
+    // cổ, đầu, mặt
+    const neck = add(new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.058, 0.12, 12), skin));
+    neck.position.y = 1.54;
     this.head = new THREE.Group();
-    this.head.position.y = 1.62;
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.115, 20, 14), skin);
-    head.scale.set(0.95, 1.05, 1);
-    head.castShadow = true;
-    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.118, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.55), new THREE.MeshStandardMaterial({ color: '#1e1a16' }));
-    hair.position.set(0, 0.01, 0.01);
-    this.head.add(head, hair);
-    if (hat === 'nonla') {
-      const m = new THREE.MeshStandardMaterial({ color: '#dcc68e', roughness: 0.85, side: THREE.DoubleSide });
-      const cone = new THREE.Mesh(new THREE.ConeGeometry(0.33, 0.24, 32, 1, true), m);
-      cone.position.y = 0.12;
-      cone.castShadow = true;
-      for (let k = 1; k < 5; k++) {
-        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.33 * (k / 5), 0.003, 4, 32), new THREE.MeshStandardMaterial({ color: '#b89a5a' }));
-        ring.rotation.x = Math.PI / 2;
-        ring.position.y = 0.12 + 0.12 - 0.24 * (k / 5);
-        this.head.add(ring);
-      }
-      this.head.add(cone);
-    } else if (hat === 'beanie') {
-      const m = new THREE.MeshStandardMaterial({ color: '#c0392b', roughness: 0.95 });
-      const b = new THREE.Mesh(new THREE.SphereGeometry(0.125, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), m);
-      b.position.y = 0.02;
-      const pom = new THREE.Mesh(new THREE.SphereGeometry(0.04, 10, 8), new THREE.MeshStandardMaterial({ color: '#f4f4f4' }));
-      pom.position.y = 0.14;
-      this.head.add(b, pom);
-    } else {
-      const m = new THREE.MeshStandardMaterial({ color: o.shirt, roughness: 0.8 });
-      const crown = new THREE.Mesh(new THREE.SphereGeometry(0.122, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), m);
-      crown.position.y = 0.025;
-      const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.012, 16, 1, false, 0, Math.PI), m);
-      brim.position.set(0, 0.03, -0.1);
-      brim.rotation.y = Math.PI / 2;
-      brim.scale.z = 1.3;
-      this.head.add(crown, brim);
+    this.head.position.y = 1.66;
+    this.body.add(this.head);
+    const hp = (m) => {
+      m.castShadow = true;
+      this.head.add(m);
+      return m;
+    };
+    const skull = hp(new THREE.Mesh(new THREE.SphereGeometry(0.105, 24, 18), skin));
+    skull.scale.set(0.92, 1.06, 1.02);
+    const jaw = hp(new THREE.Mesh(new THREE.SphereGeometry(0.08, 18, 12), skin));
+    jaw.scale.set(1, 0.85, 1.05);
+    jaw.position.set(0, -0.05, -0.018);
+    const nose = hp(new THREE.Mesh(new THREE.ConeGeometry(0.017, 0.045, 8), skin));
+    nose.rotation.x = -Math.PI / 2 + 0.3;
+    nose.position.set(0, -0.012, -0.105);
+    for (const s of [-1, 1]) {
+      const ear = hp(new THREE.Mesh(new THREE.SphereGeometry(0.024, 10, 8), skin));
+      ear.scale.set(0.45, 1, 0.8);
+      ear.position.set(s * 0.096, -0.005, 0.005);
+      const white = hp(new THREE.Mesh(new THREE.SphereGeometry(0.014, 10, 8), new THREE.MeshStandardMaterial({ color: '#f2efe8', roughness: 0.2 })));
+      white.position.set(s * 0.036, 0.016, -0.088);
+      const iris = hp(new THREE.Mesh(new THREE.SphereGeometry(0.0075, 8, 6), new THREE.MeshStandardMaterial({ color: '#2a1a10', roughness: 0.1 })));
+      iris.position.set(s * 0.036, 0.016, -0.1);
+      const brow = hp(new THREE.Mesh(new THREE.BoxGeometry(0.036, 0.008, 0.012), hairMat));
+      brow.position.set(s * 0.036, 0.036, -0.094);
+      brow.rotation.z = s * -0.12;
     }
-    this.body.add(torso, vestM, belt, neck, this.head);
+    const mouth = hp(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.005, 0.006), new THREE.MeshStandardMaterial({ color: '#8a4a3a' })));
+    mouth.position.set(0, -0.058, -0.094);
+    // tóc: chỏm có nhấp nhô, phủ gáy
+    const hairGeo = new THREE.SphereGeometry(0.11, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.62);
+    const hpos = hairGeo.attributes.position;
+    for (let i = 0; i < hpos.count; i++) {
+      tmp.fromBufferAttribute(hpos, i);
+      const k = 1 + noise2(tmp.x * 90, tmp.z * 90, 3) * 0.06;
+      hpos.setXYZ(i, tmp.x * k, tmp.y * k, tmp.z * k);
+    }
+    hairGeo.computeVertexNormals();
+    const hair = hp(new THREE.Mesh(hairGeo, hairMat));
+    hair.scale.set(0.95, 1.05, 1.05);
+    hair.position.set(0, 0.01, 0.012);
+    hair.rotation.x = -0.35;
+
+    if (hat === 'nonla') {
+      const m = new THREE.MeshStandardMaterial({ map: nonLaTexture(), roughness: 0.85, side: THREE.DoubleSide });
+      const cone = hp(new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.25, 40, 1, true), m));
+      cone.position.y = 0.15;
+      const rim = hp(new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.006, 5, 40), new THREE.MeshStandardMaterial({ color: '#a8884a' })));
+      rim.rotation.x = Math.PI / 2;
+      rim.position.y = 0.025;
+      // quai nón
+      const strap = hp(new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.004, 4, 24, Math.PI), new THREE.MeshStandardMaterial({ color: '#c0302a' })));
+      strap.position.set(0, -0.02, 0);
+      strap.rotation.set(Math.PI, Math.PI / 2, 0);
+    } else if (hat === 'beanie') {
+      const knit = new THREE.MeshStandardMaterial({ map: clothTexture('denim', '#b0302a'), roughness: 1 });
+      const b = hp(new THREE.Mesh(new THREE.SphereGeometry(0.118, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), knit));
+      b.position.y = 0.022;
+      const cuff = hp(new THREE.Mesh(new THREE.TorusGeometry(0.108, 0.018, 8, 24), knit));
+      cuff.rotation.x = Math.PI / 2;
+      cuff.position.y = 0.02;
+      const pom = hp(new THREE.Mesh(new THREE.IcosahedronGeometry(0.036, 2), new THREE.MeshStandardMaterial({ color: '#f4f4f4', roughness: 1 })));
+      pom.position.y = 0.14;
+    } else {
+      const m = new THREE.MeshStandardMaterial({ map: clothTexture('canvas', '#4a5a3a'), roughness: 0.85 });
+      const crown = hp(new THREE.Mesh(new THREE.SphereGeometry(0.114, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), m));
+      crown.position.y = 0.03;
+      crown.scale.set(1, 0.9, 1.05);
+      const brim = hp(new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.095, 0.01, 20, 1, false, 0, Math.PI), m));
+      brim.position.set(0, 0.035, -0.09);
+      brim.rotation.set(0.12, Math.PI / 2, 0);
+      brim.scale.z = 1.3;
+    }
+
+    // tay: vai, bắp tay áo, khuỷu, cẳng tay xắn áo, bàn tay nắm cần
     this.arms = [-1, 1].map((s) => {
-      const up = limb(shirt, 0.05);
-      const fore = limb(shirt, 0.045);
-      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.048, 10, 8), skin);
-      this.body.add(up, fore, hand);
-      return { s, up, fore, hand, shoulder: new THREE.Vector3(s * 0.23, 1.42, 0) };
+      const shoulderJ = add(joint(shirt, 0.068));
+      const up = add(segment(shirt, 0.062, 0.05));
+      const elbow = add(joint(shirt, 0.05));
+      const cuff = add(segment(shirt, 0.05, 0.05));
+      const fore = add(segment(skin, 0.042, 0.032));
+      const hand = new THREE.Group();
+      const palm = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.085, 0.04), skin);
+      palm.geometry.translate(0, -0.03, 0);
+      const fingers = new THREE.Mesh(new THREE.CapsuleGeometry(0.022, 0.05, 4, 8), skin);
+      fingers.rotation.z = Math.PI / 2;
+      fingers.position.set(0, -0.075, -0.02);
+      const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.013, 0.035, 4, 6), skin);
+      thumb.position.set(s * -0.035, -0.04, -0.025);
+      thumb.rotation.x = 0.8;
+      hand.add(palm, fingers, thumb);
+      hand.traverse((m) => (m.castShadow = true));
+      this.body.add(hand);
+      return { s, shoulderJ, up, elbow, cuff, fore, hand, shoulder: new THREE.Vector3(s * 0.19, 1.42, 0) };
     });
     this.rod = new Rod(rod);
     this.rodKind = rod;
     this.pitch = 0.55;
     this.aimYaw = 0;
+    this.lean = 0;
     this.reeling = false;
     this.breath = Math.random() * 6;
     this._base = new THREE.Vector3();
@@ -654,14 +933,18 @@ export class Angler {
     const p = this.pitch;
     const y = this.aimYaw;
     const dir = new THREE.Vector3(Math.sin(y) * Math.cos(p), Math.sin(p), -Math.cos(y) * Math.cos(p));
-    const base = new THREE.Vector3(0.14, 1.0 + Math.max(0, Math.sin(p - 0.6)) * 0.25, -0.2);
+    const base = new THREE.Vector3(0.12 + this.lean * 0.08, 1.0 + Math.max(0, Math.sin(p - 0.6)) * 0.25, -0.2);
     return { base, dir };
   }
 
   update(dt, pull, bend) {
     this.breath += dt;
     this.body.position.y = Math.sin(this.breath * 1.6) * 0.006;
+    // nghiêng người theo hướng ghì cần
+    this.body.rotation.z = THREE.MathUtils.lerp(this.body.rotation.z, -this.lean * 0.09, Math.min(1, dt * 6));
+    this.body.rotation.x = THREE.MathUtils.lerp(this.body.rotation.x, bend > 0.3 ? 0.08 : 0, Math.min(1, dt * 4));
     this.head.rotation.x = 0.12 + (pull ? 0.12 : 0);
+    this.head.rotation.y = this.aimYaw * -0.5;
     const { base, dir } = this.localRod();
     // tay phải cầm sau ống cuộn, tay trái cầm phía trước
     const right = base.clone().addScaledVector(dir, 0.1);
@@ -674,14 +957,44 @@ export class Angler {
     for (const arm of this.arms) {
       const S = arm.shoulder.clone();
       const T = arm.s > 0 ? right : left;
-      const E = solveArm(S, T, 0.3, 0.29, new THREE.Vector3(arm.s * 0.8, -0.6, 0.2));
-      place(arm.up, S, E, 0.05);
-      place(arm.fore, E, T, 0.045);
+      const E = solveArm(S, T, 0.29, 0.27, new THREE.Vector3(arm.s * 0.8, -0.6, 0.25));
+      arm.shoulderJ.position.copy(S);
+      place(arm.up, S, E);
+      arm.elbow.position.copy(E);
+      const mid = E.clone().lerp(T, 0.22);
+      place(arm.cuff, E, mid);
+      place(arm.fore, mid, T);
+      // bàn tay quay theo cẳng tay, nắm quanh cán cần
       arm.hand.position.copy(T);
+      arm.hand.quaternion.setFromUnitVectors(UP, tmp.copy(E).sub(T).normalize());
     }
     this.group.updateMatrixWorld(true);
     this._base.copy(base).applyMatrix4(this.group.matrixWorld);
     this._dir.copy(dir).transformDirection(this.group.matrixWorld);
     this.rod.update(this._base, this._dir, pull, bend, this.reeling, dt);
   }
+}
+
+let nonLaTex = null;
+function nonLaTexture() {
+  if (nonLaTex) return nonLaTex;
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 64;
+  const g = c.getContext('2d');
+  g.fillStyle = '#dcc68e';
+  g.fillRect(0, 0, 256, 64);
+  const r = rng(5);
+  // lá nón xếp dọc, vòng nan ngang
+  for (let x = 0; x < 256; x += 6) {
+    g.fillStyle = `rgba(120,90,40,${0.12 + r() * 0.12})`;
+    g.fillRect(x, 0, 1, 64);
+  }
+  for (let y = 4; y < 64; y += 10) {
+    g.fillStyle = 'rgba(140,105,50,0.45)';
+    g.fillRect(0, y, 256, 1.5);
+  }
+  nonLaTex = new THREE.CanvasTexture(c);
+  nonLaTex.colorSpace = THREE.SRGBColorSpace;
+  return nonLaTex;
 }
