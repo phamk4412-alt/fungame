@@ -13,6 +13,9 @@ let ready = null;
 
 const PRESENCE_TTL = 8000;
 const SPOTS = 6; // số chỗ đứng quanh mỗi hồ
+// Tài khoản vô hạn tiền: FISH_RICH=ten1,ten2 (không phân biệt hoa thường)
+const RICH = new Set(String(process.env.FISH_RICH || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean));
+const isRich = (p) => RICH.has(p.auth.login);
 
 function init() {
   if (!ready) {
@@ -69,6 +72,7 @@ function view(p, now) {
     id: p.id,
     name: p.name,
     money: p.money,
+    rich: isRich(p),
     earned: p.earned,
     rod: p.rod,
     rods: p.rods,
@@ -178,7 +182,7 @@ const routes = {
   },
 
   'POST buy': (body, now, p) => {
-    const err = L.buy(p, String(body.kind || ''), String(body.id || ''));
+    const err = L.buy(p, String(body.kind || ''), String(body.id || ''), isRich(p));
     if (err) return [400, { error: err }];
     persist(p);
     return [200, { state: view(p, now) }];
@@ -211,7 +215,8 @@ const routes = {
   },
 
   'GET board': (body, now, p) => {
-    const list = [...players.values()];
+    // tài khoản vô hạn tiền không lên bảng để công bằng với người khác
+    const list = [...players.values()].filter((q) => !isRich(q));
     const row = (q) => ({ name: q.name, me: q.id === p.id, biggest: q.biggest, earned: q.earned, caught: q.caught, legend: q.legend });
     const biggest = list.filter((q) => q.biggest).sort((a, b) => b.biggest.w - a.biggest.w).slice(0, 15).map(row);
     const rich = list.filter((q) => q.earned > 0).sort((a, b) => b.earned - a.earned).slice(0, 15).map(row);
