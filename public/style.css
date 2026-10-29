@@ -69,6 +69,7 @@ body {
   font-weight: 600;
 }
 .raid-link small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
+.fish-link { border-color: #2a9a7a; color: #5fe0b8; }
 label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
 input {
   background: #0d1611;
