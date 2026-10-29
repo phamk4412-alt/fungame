@@ -13,9 +13,8 @@ let ready = null;
 
 const PRESENCE_TTL = 8000;
 const SPOTS = 6; // số chỗ đứng quanh mỗi hồ
-// Tài khoản vô hạn tiền: FISH_RICH=ten1,ten2 (không phân biệt hoa thường)
-const RICH = new Set(String(process.env.FISH_RICH || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean));
-const isRich = (p) => RICH.has(p.auth.login);
+// Mọi người đều vô hạn tiền: mua gì cũng không bị trừ
+const UNLIMITED_MONEY = true;
 
 function init() {
   if (!ready) {
@@ -72,7 +71,7 @@ function view(p, now) {
     id: p.id,
     name: p.name,
     money: p.money,
-    rich: isRich(p),
+    rich: UNLIMITED_MONEY,
     earned: p.earned,
     rod: p.rod,
     rods: p.rods,
@@ -182,7 +181,7 @@ const routes = {
   },
 
   'POST buy': (body, now, p) => {
-    const err = L.buy(p, String(body.kind || ''), String(body.id || ''), isRich(p));
+    const err = L.buy(p, String(body.kind || ''), String(body.id || ''), UNLIMITED_MONEY);
     if (err) return [400, { error: err }];
     persist(p);
     return [200, { state: view(p, now) }];
@@ -215,11 +214,11 @@ const routes = {
   },
 
   'GET board': (body, now, p) => {
-    // tài khoản vô hạn tiền không lên bảng để công bằng với người khác
-    const list = [...players.values()].filter((q) => !isRich(q));
+    const list = [...players.values()];
     const row = (q) => ({ name: q.name, me: q.id === p.id, biggest: q.biggest, earned: q.earned, caught: q.caught, legend: q.legend });
     const biggest = list.filter((q) => q.biggest).sort((a, b) => b.biggest.w - a.biggest.w).slice(0, 15).map(row);
-    const rich = list.filter((q) => q.earned > 0).sort((a, b) => b.earned - a.earned).slice(0, 15).map(row);
+    // tiền vô hạn nên xếp theo số cá câu được
+    const most = list.filter((q) => q.caught > 0).sort((a, b) => b.caught - a.caught || b.legend - a.legend).slice(0, 15).map(row);
     // kỷ lục từng loài trên toàn server
     const records = {};
     for (const q of list) {
@@ -227,7 +226,7 @@ const routes = {
         if (!records[s] || w > records[s].w) records[s] = { w, name: q.name };
       }
     }
-    return [200, { biggest, rich, records, online: [...presence.values()].filter((pr) => now - pr.at < PRESENCE_TTL).length }];
+    return [200, { biggest, most, records, online: [...presence.values()].filter((pr) => now - pr.at < PRESENCE_TTL).length }];
   },
 };
 
