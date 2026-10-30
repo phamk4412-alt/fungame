@@ -136,6 +136,20 @@ table.board tr.me td { color: var(--accent); font-weight: 700; }
 .prog-fill { position: absolute; left: 0; right: 0; bottom: 0; height: 25%; background: linear-gradient(0deg, #1a8a5a, #5affb0); transition: background 0.2s; }
 .prog-fill.low { background: linear-gradient(0deg, #a02a1a, #ff7a5a); }
 
+/* Bảng hạng góc trên trái */
+.rank { position: fixed; left: 12px; top: calc(max(10px, env(safe-area-inset-top)) + 46px); width: min(270px, 62vw); pointer-events: none; font-family: 'Arial Narrow', 'Roboto Condensed', system-ui, sans-serif; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.45)); }
+.rk-head { display: inline-flex; align-items: flex-end; gap: 4px; padding: 2px 12px 2px 10px; background: rgba(12,16,22,0.82); border-radius: 8px 8px 0 0; }
+.rk-head b { font-size: 30px; line-height: 1; font-weight: 900; letter-spacing: -1px; color: #fff; }
+.rk-head b small { font-size: 17px; color: #d8dee6; }
+.rk-head span { font-size: 11px; font-weight: 800; color: #d8dee6; margin-bottom: 4px; }
+.rk-row { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; height: 30px; margin-top: 3px; background: rgba(28,34,44,0.88); border-radius: 0 4px 4px 0; overflow: hidden; font-weight: 800; font-size: 15px; color: #fff; }
+.rk-pos { height: 100%; display: grid; place-items: center; background: #f4f4f4; color: #1a1e24; }
+.rk-name { padding: 0 10px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rk-score { padding: 0 10px; font-variant-numeric: tabular-nums; }
+.rk-row.first .rk-pos { background: #f6b21a; }
+.rk-row.me { background: linear-gradient(90deg, #ff7a1a, #ff8f2a); }
+.rk-row.me .rk-pos { background: #fff; }
+
 @media (max-width: 640px) {
   .icon-btn { width: 38px; height: 38px; font-size: 18px; }
   .chip { font-size: 12px; padding: 5px 10px; }
@@ -144,4 +158,7 @@ table.board tr.me td { color: var(--accent); font-weight: 700; }
   .action { width: 88px; height: 88px; font-size: 13px; }
   .feed { bottom: 128px; font-size: 12px; }
   .fight { height: min(46vh, 320px); top: 46%; }
+  .rank { width: min(220px, 58vw); }
+  .rk-row { height: 26px; font-size: 13px; }
+  .rk-head b { font-size: 24px; }
 }

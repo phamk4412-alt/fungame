@@ -53,6 +53,7 @@ const res = L.land(p, c2.id, true, t0 + c2.biteIn + 3000);
 assert.ok(res.fish && res.record && res.biggest);
 assert.strictEqual(p.fish.length, 1);
 assert.ok(L.land(p, c2.id, true, t0 + 99999).error); // không kéo hai lần
+assert.strictEqual(L.scoreOf(p), res.fish.v); // điểm hạng cộng giá trị cá
 const { cast: c3 } = L.startCast(p, 'sen', 'giun', t0);
 assert.ok(L.land(p, c3.id, false, t0).lost);
 const money = p.money;

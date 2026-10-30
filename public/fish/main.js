@@ -15,6 +15,8 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 const fmt = (n) => Math.round(n).toLocaleString('vi-VN');
 const kg = (w) => `${w.toLocaleString('vi-VN', { maximumFractionDigits: 2 })} kg`;
 const mobile = matchMedia('(pointer: coarse)').matches;
+// góc nhìn: 'fp' thứ nhất (thấy hai tay cầm cần), 'tp' thứ ba (thấy cả người)
+let view = localStorage.getItem('fish.view') || 'fp';
 
 let token = localStorage.getItem('fish.token');
 let C = null; // danh mục: hồ, cá, cần, mồi
@@ -111,7 +113,7 @@ function resize() {
   const h = innerHeight;
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
-  camera.fov = w < h ? 68 : 55;
+  camera.fov = (w < h ? 68 : 55) + (view === 'fp' ? 8 : 0);
   camera.updateProjectionMatrix();
   if (composer) {
     composer.setSize(w, h);
@@ -139,7 +141,17 @@ function spawnPlayer() {
   player.angler.group.position.copy(sp.stand);
   player.angler.group.rotation.y = sp.yaw;
   scene.add(player.angler.group, player.angler.rod.group);
+  player.angler.setFirstPerson(view === 'fp');
   player.line.inited = false;
+}
+
+function setView(v) {
+  view = v;
+  localStorage.setItem('fish.view', v);
+  player.angler?.setFirstPerson(v === 'fp');
+  cam.inited = false;
+  resize();
+  $('viewBtn').textContent = v === 'fp' ? '🎥' : '👁️';
 }
 
 // ---------- Trạng thái câu ----------
@@ -335,6 +347,7 @@ async function winFight() {
   try {
     const d = await api('POST', 'land', { castId: G.cast.id, ok: true });
     G.cast = null;
+    rankTimer = 0; // cập nhật hạng ngay sau khi câu được
     beginShow(d, from);
   } catch (e) {
     toast(e.message);
@@ -412,7 +425,7 @@ function updateGame(dt) {
 
   switch (G.mode) {
     case 'idle':
-      targetYaw = clamp(cam.yaw, -0.75, 0.75) * 0.5;
+      targetYaw = clamp(cam.yaw, -0.75, 0.75) * (view === 'fp' ? 0.85 : 0.5);
       hint(G.t > 0.3 ? (mobile ? 'Giữ nút để lấy đà, thả ra để quăng · kéo màn hình để nhìn quanh' : 'Giữ nút hoặc phím Space để lấy đà, thả ra để quăng · kéo chuột để nhìn quanh') : '');
       break;
     case 'charge': {
@@ -513,7 +526,7 @@ function updateGame(dt) {
       // cá vọt khỏi mặt nước bay vào tay
       const hold = camera.localToWorld(new THREE.Vector3(0, 0.12, -1.7));
       const arc = s.from.clone().lerp(hold, smoothstep(0, 1, k));
-      arc.y += Math.sin(k * Math.PI) * 2.2;
+      arc.y += Math.sin(k * Math.PI) * (view === 'fp' ? 0.9 : 2.2);
       const viewW = 2 * 1.7 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect;
       const scale = k < 1 ? s.len : lerp(s.len, Math.min(1.15, viewW * 0.78), smoothstep(0, 0.4, s.t - 0.9));
       s.model.group.position.copy(arc);
@@ -716,6 +729,7 @@ canvas.addEventListener('wheel', (e) => (cam.dist = clamp(cam.dist + e.deltaY * 
 
 function updateCamera(dt) {
   if (!player.angler) return;
+  if (view === 'fp') return updateCameraFP(dt);
   const sp = world.spots[world.mySpot];
   const f = sp.face;
   const right = new THREE.Vector3(-f.z, 0, f.x);
@@ -749,6 +763,56 @@ function updateCamera(dt) {
   camera.position.x += (Math.random() - 0.5) * camShake;
   camera.position.y += (Math.random() - 0.5) * camShake;
   camera.lookAt(cam.look);
+}
+
+// Góc nhìn thứ nhất: mắt ở đầu người câu, nhìn theo hướng kéo màn hình, lúc có cá thì nhìn theo phao
+function updateCameraFP(dt) {
+  const a = player.angler;
+  const sp = world.spots[world.mySpot];
+  const f = sp.face;
+  const eye = a.group.localToWorld(new THREE.Vector3(0, 1.66, 0.04));
+  const yaw = cam.yaw;
+  const fwd = new THREE.Vector3(f.x * Math.cos(yaw) - f.z * Math.sin(yaw), 0, f.x * Math.sin(yaw) + f.z * Math.cos(yaw));
+  const down = 0.1 + cam.pitch * 0.55;
+  let look = eye.clone().addScaledVector(fwd, 20);
+  look.y = eye.y - Math.tan(down) * 20;
+  if (G.mode === 'fight' || G.mode === 'bite' || G.mode === 'wait' || G.mode === 'landing') {
+    const k = G.mode === 'fight' ? 0.6 : 0.35;
+    const tgt = G.bob.clone();
+    tgt.y += 0.6;
+    look.lerp(tgt, k);
+  }
+  if (!cam.inited) {
+    cam.pos.copy(eye);
+    cam.look.copy(look);
+    cam.inited = true;
+  }
+  const k = Math.min(1, dt * 4);
+  cam.pos.copy(eye);
+  if (G.mode !== 'show' || G.show.t < 0.9) cam.look.lerp(look, k);
+  camera.position.copy(cam.pos);
+  // thở nhẹ, lúc kéo cá thì rung theo sức cá
+  camera.position.y += Math.sin(time.value * 1.6) * 0.006;
+  camShake *= Math.pow(0.02, dt);
+  camera.position.x += (Math.random() - 0.5) * camShake * 0.5;
+  camera.position.y += (Math.random() - 0.5) * camShake * 0.5;
+  camera.lookAt(cam.look);
+}
+
+// ---------- Bảng hạng góc trên trái ----------
+
+let rankTimer = 0;
+async function pollRank() {
+  try {
+    const d = await api('GET', 'rank');
+    $('rankNum').innerHTML = `${d.rank}<small>/${d.total}</small>`;
+    $('rankRows').innerHTML = d.rows
+      .map((r) => `<div class="rk-row ${r.me ? 'me' : ''} ${r.rank === 1 ? 'first' : ''}"><span class="rk-pos">${r.rank}</span><span class="rk-name">${esc(r.name)}</span><span class="rk-score">${fmt(r.score)}</span></div>`)
+      .join('');
+    $('rank').classList.remove('hidden');
+  } catch {
+    // lỗi mạng thì giữ bảng cũ
+  }
 }
 
 // ---------- Bạn bè cùng hồ ----------
@@ -911,6 +975,23 @@ function renderClock() {
   return h;
 }
 
+// Thời tiết chung cho mọi người: chia theo khung 5 phút thật, khoảng 4 phần 10 số khung có mưa
+const RAIN_MS = 5 * 60 * 1000;
+let rainOverride = null;
+function rainNow() {
+  if (rainOverride !== null) return rainOverride;
+  const t = serverNow();
+  const k = Math.floor(t / RAIN_MS);
+  const hash = (k2) => {
+    const x = Math.sin(k2 * 12.9898 + 4.1) * 43758.5453;
+    return x - Math.floor(x);
+  };
+  if (hash(k) > 0.4) return 0;
+  const u = (t % RAIN_MS) / RAIN_MS;
+  const strength = 0.55 + hash(k + 999) * 0.45;
+  return strength * smoothstep(0, 0.1, u) * (1 - smoothstep(0.9, 1, u));
+}
+
 function phaseOf(h) {
   if (h >= 5 && h < 7) return 'dawn';
   if (h >= 7 && h < 17) return 'day';
@@ -990,6 +1071,8 @@ addEventListener('keyup', (e) => {
   release();
 });
 $('keepBtn').addEventListener('click', collect);
+$('viewBtn').addEventListener('click', () => setView(view === 'fp' ? 'tp' : 'fp'));
+$('viewBtn').textContent = view === 'fp' ? '🎥' : '👁️';
 
 // ---------- Bảng chức năng ----------
 
@@ -1155,17 +1238,25 @@ function renderSettings(el) {
   el.innerHTML = `<div class="sec">Chất lượng hình ảnh</div>
     <div class="seg">${Object.entries(QUALITY).map(([k, q]) => `<button class="btn ${k === quality ? 'primary' : ''}" data-q="${k}">${q.name}</button>`).join('')}</div>
     <p class="muted">Máy yếu hoặc điện thoại nóng thì chọn Thấp. Cao có phản chiếu nét, bóng đổ, cỏ lay và ánh sáng loá.</p>
+    <div class="sec">Góc nhìn</div>
+    <div class="seg"><button class="btn ${view === 'fp' ? 'primary' : ''}" data-view="fp">🎥 Thứ nhất (cầm cần)</button><button class="btn ${view === 'tp' ? 'primary' : ''}" data-view="tp">👁️ Thứ ba (thấy cả người)</button></div>
     <div class="sec">Âm thanh</div>
     <button class="btn" id="muteBtn">${sound.muted ? '🔇 Đang tắt tiếng' : '🔊 Đang bật tiếng'}</button>
     <div class="sec">Tài khoản</div>
     <p>Đang chơi với tên <b>${esc(me.name)}</b> · đã câu ${me.caught} con.</p>
     <button class="btn" id="logoutBtn">Đăng xuất</button>
     <div class="sec">Cách chơi</div>
-    <p class="muted">Giữ nút để lấy đà rồi thả để quăng. Kéo màn hình sang trái phải để chọn hướng. Chờ phao chìm hẳn thì bấm giật cần. Khi kéo cá: giữ Space, giữ chuột hoặc giữ nút để nâng thanh trắng, thả ra thì thanh rơi xuống. Giữ cho que cá màu xám luôn nằm trong thanh trắng thì thanh tiến trình bên cạnh đầy dần, que ra ngoài thì tiến trình tụt, tụt hết là cá sổng. Cá càng to, càng hiếm thì que chạy càng nhanh và thanh trắng càng ngắn. Mỗi hồ, mỗi giờ trong ngày có loài cá riêng, xem Sổ tay cá. Một ngày trong game dài 24 phút.</p>`;
+    <p class="muted">Giữ nút để lấy đà rồi thả để quăng. Kéo màn hình sang trái phải để chọn hướng. Chờ phao chìm hẳn thì bấm giật cần. Khi kéo cá: giữ Space, giữ chuột hoặc giữ nút để nâng thanh trắng, thả ra thì thanh rơi xuống. Giữ cho que cá màu xám luôn nằm trong thanh trắng thì thanh tiến trình bên cạnh đầy dần, que ra ngoài thì tiến trình tụt, tụt hết là cá sổng. Cá càng to, càng hiếm thì que chạy càng nhanh và thanh trắng càng ngắn. Mỗi hồ, mỗi giờ trong ngày có loài cá riêng, xem Sổ tay cá. Một ngày trong game dài 24 phút, thỉnh thoảng trời đổ mưa. Nút 🎥 trên cùng đổi góc nhìn thứ nhất/thứ ba. Bảng hạng góc trái tính điểm bằng tổng giá trị cá đã câu.</p>`;
   el.querySelectorAll('[data-q]').forEach((b) =>
     b.addEventListener('click', () => {
       localStorage.setItem('fish.quality', b.dataset.q);
       location.reload();
+    }),
+  );
+  el.querySelectorAll('[data-view]').forEach((b) =>
+    b.addEventListener('click', () => {
+      setView(b.dataset.view);
+      renderSettings(el);
     }),
   );
   $('muteBtn').addEventListener('click', () => {
@@ -1205,6 +1296,7 @@ function buildLake(lakeId) {
   cam.yaw = 0;
   sound.lake = lakeId;
   renderHud();
+  world.setRain(rainNow());
   world.setHour(renderClock());
 }
 
@@ -1249,12 +1341,20 @@ function frame(now) {
   // đồng hồ và danh sách bạn bè theo thời gian thật, không theo số khung hình
   if (now - hourTimer > 500) {
     hourTimer = now;
+    const rain = rainNow();
+    world.setRain(rain);
+    sound.setRain(world.rain);
     world.setHour(renderClock());
+    if (world.rain > 0.05) $('clock').textContent += ' · 🌧️ Mưa';
     sound.night = world.night;
   }
   if (now - presenceTimer > 2000) {
     presenceTimer = now;
     pollPresence();
+  }
+  if (me && now - rankTimer > 15000) {
+    rankTimer = now;
+    pollRank();
   }
   updateGame(dt);
   updateRemotes(dt);
@@ -1322,6 +1422,6 @@ async function boot() {
 }
 
 // để thử nghiệm từ console trình duyệt
-window.fishDebug = { G, world, camera, remotes, skew: (ms) => (clockSkew += ms), lake: (id) => buildLake(id) };
+window.fishDebug = { G, world, camera, remotes, skew: (ms) => (clockSkew += ms), lake: (id) => buildLake(id), rain: (r) => (rainOverride = r), view: (v) => setView(v) };
 
 boot();

@@ -475,23 +475,38 @@ export class Rod {
       this.segs.push(m);
       this.group.add(m);
     }
-    // ống cuộn dây
+    // máy câu: lồng cuộn có dây, hai má kim loại, chân gắn cần, tay quay hai núm
     this.reel = new THREE.Group();
     const metal = new THREE.MeshStandardMaterial({ color: '#c8ccd2', metalness: 0.9, roughness: 0.25 });
-    const spool = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.05, 20), metal);
+    const dark = new THREE.MeshStandardMaterial({ color: '#2a2e34', metalness: 0.6, roughness: 0.35 });
+    const lineMat = new THREE.MeshStandardMaterial({ color: '#dfe8e0', roughness: 0.5 });
+    const spool = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.046, 24), lineMat);
     spool.rotation.z = Math.PI / 2;
-    const stem = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.06, 0.02), metal);
-    stem.position.y = 0.04;
+    const plates = [-1, 1].map((k) => {
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.046, 0.046, 0.01, 28), k < 0 ? dark : metal);
+      p.rotation.z = Math.PI / 2;
+      p.position.x = k * 0.029;
+      return p;
+    });
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.03, 0.012, 20), metal);
+    cap.rotation.z = Math.PI / 2;
+    cap.position.x = 0.039;
+    const stem = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.05, 0.03), dark);
+    stem.position.y = 0.045;
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.006, 0.07), metal);
+    foot.position.y = 0.07;
     this.crank = new THREE.Group();
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.07, 0.012), metal);
-    arm.position.y = 0.035;
-    const knob = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.03, 8), new THREE.MeshStandardMaterial({ color: '#222' }));
-    knob.position.set(0.018, 0.07, 0);
-    knob.rotation.z = Math.PI / 2;
-    this.crank.add(arm, knob);
-    this.crank.position.x = 0.035;
-    spool.position.y = -0.0;
-    this.reel.add(spool, stem, this.crank);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.11, 0.014), metal);
+    const knobMat = new THREE.MeshStandardMaterial({ color: '#141414', roughness: 0.6 });
+    for (const k of [-1, 1]) {
+      const knob = new THREE.Mesh(new THREE.CapsuleGeometry(0.009, 0.016, 4, 10), knobMat);
+      knob.rotation.z = Math.PI / 2;
+      knob.position.set(0.016, k * 0.05, 0);
+      this.crank.add(knob);
+    }
+    this.crank.add(arm);
+    this.crank.position.x = 0.05;
+    this.reel.add(spool, ...plates, cap, stem, foot, this.crank);
     this.group.add(this.reel);
     this.tip = new THREE.Vector3();
     this.points = Array.from({ length: this.N + 1 }, () => new THREE.Vector3());
@@ -687,7 +702,7 @@ function clothTexture(kind, color) {
 
 // khúc tay chân thuôn, cao 1 đơn vị dọc trục Y, có khớp tròn ở đầu
 function segment(mat, r0, r1) {
-  const g = new THREE.CylinderGeometry(r1, r0, 1, 14, 1, true);
+  const g = new THREE.CylinderGeometry(r1, r0, 1, 14, 1, false);
   const m = new THREE.Mesh(g, mat);
   m.castShadow = true;
   return m;
@@ -706,6 +721,63 @@ function place(m, a, b) {
   const len = tmp.length();
   m.quaternion.setFromUnitVectors(UP, tmp.normalize());
   m.scale.set(1, len + 0.0001, 1);
+}
+
+// Bàn tay nắm quanh cán cần. Trục +Y hướng về khuỷu tay, cán cần chạy dọc trục X.
+// Bốn ngón gồm ba đốt cuộn tròn quanh cán, ngón cái ôm chéo, có móng tay.
+function makeHand(skin, s) {
+  const hand = new THREE.Group();
+  const nailMat = new THREE.MeshStandardMaterial({ color: '#e8c0b0', roughness: 0.25 });
+  const palm = new THREE.Mesh(new THREE.SphereGeometry(0.05, 18, 14), skin);
+  palm.scale.set(0.95, 0.85, 0.5);
+  palm.position.set(0, -0.035, 0.012);
+  hand.add(palm);
+  const wrist = new THREE.Mesh(new THREE.SphereGeometry(0.034, 14, 10), skin);
+  wrist.scale.set(1.1, 1, 0.75);
+  hand.add(wrist);
+  // tâm cán cần nằm trước lòng bàn tay
+  const cy = -0.07;
+  const cz = -0.024;
+  const R = 0.027;
+  const at = (x, deg, r = R) => new THREE.Vector3(x, cy + Math.cos((deg * Math.PI) / 180) * r, cz + Math.sin((deg * Math.PI) / 180) * r);
+  const lens = [0.92, 1, 0.97, 0.82];
+  [-0.026, -0.009, 0.009, 0.025].forEach((x, i) => {
+    const L = lens[i];
+    const pts = [at(x * 1.05, 30, R * 1.25), at(x, -60 * L, R * 1.15), at(x, -150 * L, R * 1.1), at(x * 0.95, -215 * L, R * 1.02)];
+    for (let k = 0; k < 3; k++) {
+      const rr = 0.0105 - k * 0.0012;
+      const seg = segment(skin, rr, rr * 0.92);
+      place(seg, pts[k], pts[k + 1]);
+      hand.add(seg);
+      const kn = joint(skin, rr * 1.02);
+      kn.position.copy(pts[k]);
+      hand.add(kn);
+    }
+    const tipJ = joint(skin, 0.0085);
+    tipJ.position.copy(pts[3]);
+    const nail = new THREE.Mesh(new THREE.SphereGeometry(0.0075, 8, 6), nailMat);
+    nail.scale.set(1, 0.4, 1.2);
+    nail.position.copy(pts[3]).add(new THREE.Vector3(0, 0.002, 0.004));
+    hand.add(tipJ, nail);
+  });
+  // ngón cái: từ gò cái vòng qua cán, đè lên ngón trỏ
+  const t0 = new THREE.Vector3(s * -0.04, -0.03, -0.004);
+  const t1 = new THREE.Vector3(s * -0.045, -0.062, -0.042);
+  const t2 = new THREE.Vector3(s * -0.018, -0.08, -0.058);
+  const mound = joint(skin, 0.02);
+  mound.scale.set(1, 1.3, 1);
+  mound.position.copy(t0);
+  const a = segment(skin, 0.0135, 0.012);
+  place(a, t0, t1);
+  const b = segment(skin, 0.012, 0.0105);
+  place(b, t1, t2);
+  const kn = joint(skin, 0.012);
+  kn.position.copy(t1);
+  const tip = joint(skin, 0.0105);
+  tip.position.copy(t2);
+  hand.add(mound, a, b, kn, tip);
+  hand.traverse((m) => (m.castShadow = true));
+  return hand;
 }
 
 // IK hai khúc: tìm khuỷu tay
@@ -895,25 +967,20 @@ export class Angler {
       const elbow = add(joint(shirt, 0.05));
       const cuff = add(segment(shirt, 0.05, 0.05));
       const fore = add(segment(skin, 0.042, 0.032));
-      const hand = new THREE.Group();
-      const palm = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.085, 0.04), skin);
-      palm.geometry.translate(0, -0.03, 0);
-      const fingers = new THREE.Mesh(new THREE.CapsuleGeometry(0.022, 0.05, 4, 8), skin);
-      fingers.rotation.z = Math.PI / 2;
-      fingers.position.set(0, -0.075, -0.02);
-      const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.013, 0.035, 4, 6), skin);
-      thumb.position.set(s * -0.035, -0.04, -0.025);
-      thumb.rotation.x = 0.8;
-      hand.add(palm, fingers, thumb);
-      hand.traverse((m) => (m.castShadow = true));
+      const hand = makeHand(skin, s);
       this.body.add(hand);
-      return { s, shoulderJ, up, elbow, cuff, fore, hand, shoulder: new THREE.Vector3(s * 0.19, 1.42, 0) };
+      // khuỷu tay trần, chỉ hiện ở góc nhìn thứ nhất cho cẳng tay khỏi bị cụt
+      const bare = add(joint(skin, 0.044));
+      bare.scale.set(1, 1.15, 1);
+      bare.visible = false;
+      return { s, shoulderJ, up, elbow, cuff, fore, hand, bare, shoulder: new THREE.Vector3(s * 0.19, 1.42, 0) };
     });
     this.rod = new Rod(rod);
     this.rodKind = rod;
     this.pitch = 0.55;
     this.aimYaw = 0;
     this.lean = 0;
+    this.fp = false; // góc nhìn thứ nhất: chỉ hiện cẳng tay, bàn tay và cần
     this.reeling = false;
     this.breath = Math.random() * 6;
     this._base = new THREE.Vector3();
@@ -928,12 +995,23 @@ export class Angler {
     scene.add(this.rod.group);
   }
 
+  setFirstPerson(on) {
+    this.fp = on;
+    const keep = new Set();
+    for (const arm of this.arms) for (const m of [arm.fore, arm.hand, arm.bare]) keep.add(m);
+    for (const c of this.body.children) c.visible = !on || keep.has(c);
+    for (const arm of this.arms) arm.bare.visible = on;
+  }
+
   // toạ độ cục bộ của gốc cần và hướng cần
   localRod() {
     const p = this.pitch;
     const y = this.aimYaw;
     const dir = new THREE.Vector3(Math.sin(y) * Math.cos(p), Math.sin(p), -Math.cos(y) * Math.cos(p));
-    const base = new THREE.Vector3(0.12 + this.lean * 0.08, 1.0 + Math.max(0, Math.sin(p - 0.6)) * 0.25, -0.2);
+    // góc nhìn thứ nhất: cần đưa ra trước ngực cho thấy hai tay và ống cuộn ở đáy màn hình
+    const base = this.fp
+      ? new THREE.Vector3(0.15 + this.lean * 0.05 + Math.sin(y) * 0.1, 1.2 + Math.max(0, Math.sin(p - 0.6)) * 0.12, -0.55)
+      : new THREE.Vector3(0.12 + this.lean * 0.08, 1.0 + Math.max(0, Math.sin(p - 0.6)) * 0.25, -0.2);
     return { base, dir };
   }
 
@@ -953,20 +1031,32 @@ export class Angler {
       right.y += Math.sin(this.breath * 14) * 0.035;
       right.z += Math.cos(this.breath * 14) * 0.035;
     }
-    const left = base.clone().addScaledVector(dir, 0.42);
+    const left = base.clone().addScaledVector(dir, this.fp ? 0.3 : 0.42);
     for (const arm of this.arms) {
       const S = arm.shoulder.clone();
+      if (this.fp) S.z -= 0.12; // người rướn ra trước
+
       const T = arm.s > 0 ? right : left;
       const E = solveArm(S, T, 0.29, 0.27, new THREE.Vector3(arm.s * 0.8, -0.6, 0.25));
       arm.shoulderJ.position.copy(S);
       place(arm.up, S, E);
       arm.elbow.position.copy(E);
+      arm.bare.position.copy(E);
       const mid = E.clone().lerp(T, 0.22);
       place(arm.cuff, E, mid);
       place(arm.fore, mid, T);
-      // bàn tay quay theo cẳng tay, nắm quanh cán cần
-      arm.hand.position.copy(T);
-      arm.hand.quaternion.setFromUnitVectors(UP, tmp.copy(E).sub(T).normalize());
+      // bàn tay quay theo cẳng tay, các ngón cuộn quanh cán cần
+      const hy = tmp.copy(E).sub(T).normalize();
+      const hx = tmp2.copy(dir).addScaledVector(hy, -dir.dot(hy));
+      if (hx.lengthSq() < 1e-4) hx.set(1, 0, 0);
+      hx.normalize();
+      const hz = new THREE.Vector3().crossVectors(hx, hy);
+      arm.hand.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(hx, hy, hz));
+      // cổ tay lùi ra sau để tâm nắm tay nằm đúng trên cán cần
+      const W = T.clone().addScaledVector(hy, 0.07).addScaledVector(hz, 0.024);
+      arm.hand.position.copy(W);
+      // góc nhìn thứ nhất không có khuỷu và tay áo nên cẳng tay kéo dài từ khuỷu
+      place(arm.fore, this.fp ? E : mid, W);
     }
     this.group.updateMatrixWorld(true);
     this._base.copy(base).applyMatrix4(this.group.matrixWorld);

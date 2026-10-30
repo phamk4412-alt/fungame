@@ -151,6 +151,7 @@ function newPlayer(id, name, now) {
     lake: 'sen',
     best: {},
     caught: 0,
+    score: 0,
     legend: 0,
     biggest: null,
     cast: null,
@@ -233,12 +234,18 @@ function land(p, castId, ok, now) {
   const fish = { s: c.fish, w: c.weight, v: fishValue(c.fish, c.weight), at: now };
   p.fish.push(fish);
   p.caught += 1;
+  p.score = scoreOf(p) + fish.v;
   if (f.rarity === 3) p.legend += 1;
   const record = !(p.best[c.fish] >= c.weight);
   if (record) p.best[c.fish] = c.weight;
   const biggest = !p.biggest || c.weight > p.biggest.w;
   if (biggest) p.biggest = { s: c.fish, w: c.weight };
   return { fish, record, biggest };
+}
+
+// Điểm xếp hạng: tổng giá trị cá đã câu (người chơi cũ chưa có thì lấy số tiền đã bán)
+function scoreOf(p) {
+  return p.score ?? p.earned ?? 0;
 }
 
 function sell(p, index) {
@@ -308,6 +315,7 @@ function buy(p, kind, id, free = false) {
 }
 
 module.exports = {
+  scoreOf,
   GAME_DAY_MS,
   PHASES,
   RARITY,

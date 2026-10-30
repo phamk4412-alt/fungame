@@ -95,6 +95,15 @@ export class Sound {
     reel.connect(hp).connect(amOut).connect(this.reelGain).connect(this.master);
     reel.start();
     am.start();
+    // tiếng mưa rơi lộp độp trên mặt hồ
+    const rain = this.noise(true);
+    const rbp = c.createBiquadFilter();
+    rbp.type = 'highpass';
+    rbp.frequency.value = 1800;
+    this.rainGain = c.createGain();
+    this.rainGain.gain.value = 0;
+    rain.connect(rbp).connect(this.rainGain).connect(this.master);
+    rain.start(0, 1.3);
     // dây căng kêu cót két
     this.tensionOsc = c.createOscillator();
     this.tensionOsc.type = 'sawtooth';
@@ -107,6 +116,11 @@ export class Sound {
     this.tensionGain.gain.value = 0;
     this.tensionOsc.connect(tf).connect(this.tensionGain).connect(this.master);
     this.tensionOsc.start();
+  }
+
+  setRain(r) {
+    if (!this.rainGain) return;
+    this.rainGain.gain.setTargetAtTime(r * 0.07, this.ctx.currentTime, 1.5);
   }
 
   setFight(reeling, tension) {

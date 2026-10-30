@@ -213,6 +213,17 @@ const routes = {
     return [200, { now, spot, others, feed: feed.filter((f) => f.seq > since), feedSeq }];
   },
 
+  // Bảng hạng nhỏ trên màn hình: hạng của mình, người đứng đầu và hai người sát bên
+  'GET rank': (body, now, p) => {
+    const list = [...players.values()].sort((a, b) => L.scoreOf(b) - L.scoreOf(a) || b.caught - a.caught);
+    const i = list.indexOf(p);
+    const row = (q, k) => ({ rank: k + 1, name: q.name, score: Math.round(L.scoreOf(q)), me: q === p });
+    const rows = [];
+    if (i > 1) rows.push(row(list[0], 0));
+    for (let k = Math.max(0, i - 1); k <= Math.min(list.length - 1, i + 1); k++) rows.push(row(list[k], k));
+    return [200, { rank: i + 1, total: list.length, rows }];
+  },
+
   'GET board': (body, now, p) => {
     const list = [...players.values()];
     const row = (q) => ({ name: q.name, me: q.id === p.id, biggest: q.biggest, earned: q.earned, caught: q.caught, legend: q.legend });
