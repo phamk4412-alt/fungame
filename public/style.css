@@ -58,7 +58,7 @@ body {
 .lobby-card h1 { margin: 0; text-align: center; color: var(--gold); }
 .sub { margin: 0; text-align: center; color: var(--muted); font-size: 14px; }
 .hint { color: var(--muted); font-size: 12px; }
-.raid-link {
+.game-link {
   display: block;
   text-align: center;
   padding: 10px;
@@ -68,7 +68,7 @@ body {
   text-decoration: none;
   font-weight: 600;
 }
-.raid-link small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
+.game-link small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
 .fish-link { border-color: #2a9a7a; color: #5fe0b8; }
 label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
 input {
