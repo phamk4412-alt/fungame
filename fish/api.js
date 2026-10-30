@@ -2,7 +2,7 @@
 const crypto = require('crypto');
 const path = require('path');
 const L = require('./logic');
-const { createStore } = require('../raid/store');
+const { createStore } = require('../store');
 
 const store = createStore('fish_players', process.env.FISH_DATA_FILE || path.join(__dirname, '..', 'data', 'fish.json'));
 const players = new Map(); // id -> người chơi

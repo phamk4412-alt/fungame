@@ -1,4 +1,4 @@
-// Lưu người chơi lâu dài (Căn cứ tận thế, Câu cá 3D), mỗi game một bảng riêng trong cùng database.
+// Lưu người chơi lâu dài (Câu cá 3D), mỗi game một bảng riêng trong cùng database.
 // Có DATABASE_URL thì dùng Postgres, không có thì ghi file trong data/ (chỉ hợp khi chạy trên máy mình).
 const fs = require('fs');
 const path = require('path');
@@ -54,7 +54,7 @@ class FileStore {
   }
 }
 
-function createStore(table = 'raid_players', file = process.env.RAID_DATA_FILE || path.join(__dirname, '..', 'data', 'raid.json')) {
+function createStore(table, file) {
   if (process.env.DATABASE_URL) return new PgStore(process.env.DATABASE_URL, table);
   return new FileStore(file);
 }

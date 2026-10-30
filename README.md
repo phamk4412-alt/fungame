@@ -9,7 +9,7 @@ Hiện có 2 game, chọn khi tạo phòng mới:
 
 Vào phòng bằng link mời thì tự vào đúng game của phòng đó.
 
-Ngoài ra có **☢ Căn cứ tận thế** (mở ở `/raid.html` hoặc bấm link ở sảnh): mỗi người có một căn cứ riêng, trong tuần nhặt vật tư và xây dựng, cuối tuần đi cướp nhau.
+Ngoài ra có **🎣 Câu Cá 3D** (mở ở `/fish.html` hoặc bấm link ở sảnh).
 
 ## Tính năng Poker
 
@@ -43,45 +43,9 @@ Ngoài ra có **☢ Căn cứ tận thế** (mở ở `/raid.html` hoặc bấm 
 
 Muốn đổi mức cược, thời gian hay tỉ lệ ăn, sửa các hằng số ở đầu file `xidach.js`.
 
-## Căn cứ tận thế
-
-Game xây căn cứ sau ngày tận thế, chơi lâu dài nhiều tuần. Mỗi người đăng ký bằng tên và mật khẩu, đăng nhập trên máy nào cũng thấy đúng căn cứ của mình.
-
-- **3 loại vật tư:** 🔩 Sắt vụn, 🛢️ Nhiên liệu, 🥫 Lương thực. Bãi phế liệu, Trạm lọc dầu và Vườn thủy canh tự sinh vật tư mỗi giờ, **kể cả khi bạn offline**. Kho đầy thì ngừng sinh, nên nhớ vào tiêu.
-- **8 công trình**, mỗi cái tối đa cấp 10. Nâng cấp tốn vật tư và thời gian thật (lên cấp n mất n² phút), mỗi lúc chỉ xây một cái. Công trình khác chỉ được cao hơn **Trụ sở** 1 cấp.
-- **Nhà kho:** tăng sức chứa và giấu 150 mỗi loại vật tư cho mỗi cấp, phần này không bị cướp.
-- **Tường rào, Tháp súng:** tăng phòng thủ. **Doanh trại:** chứa thêm 10 chiến binh mỗi cấp và tăng sức đánh của mỗi người. Chiến binh tốn 30 lương thực và 10 nhiên liệu, ở nhà thì cũng góp phòng thủ.
-- **Cướp chỉ mở từ 19:00 thứ Bảy tới hết Chủ nhật (giờ Việt Nam).** Mỗi người có 3 lượt cướp mỗi cuối tuần. Trận đánh tự tính: sức tấn công so với sức phòng thủ (mỗi bên dao động ±15%).
-- **Thắng** thì lấy được 25% phần vật tư không được giấu của đối thủ. Người bị cướp được **khiên 12 giờ**. Đi cướp người khác thì mất khiên của mình.
-- Đánh thắng hay thua đều mất một phần chiến binh, thua thì mất một nửa.
-
-**Chế độ 3D góc nhìn thứ 3:** trong bảng căn cứ bấm **🎮 Vào căn cứ 3D** (hoặc mở `/raid3d.html`). Bạn điều khiển một người sống sót đi lại trong căn cứ của mình, thấy các công trình to dần theo cấp và hàng rào cao dần theo cấp Tường rào. Đi tới công trình để nâng cấp. Ra bãi hoang ngoài hàng rào có 6 **đống đổ nát** để nhặt thêm vật tư (40 + 20 × cấp Trụ sở mỗi lần, mỗi đống 30 phút mới nhặt lại được).
-
-- Máy tính: **WASD** hoặc phím mũi tên để đi, giữ **Shift** để chạy, giữ chuột kéo để xoay camera, lăn chuột để phóng to, **E** để tương tác.
-- Điện thoại: cần điều khiển ảo góc trái để đi, vuốt màn hình để xoay camera, bấm nút ở khung góc phải để tương tác.
-- Chọn mục tiêu đi cướp và huấn luyện chiến binh vẫn làm ở bảng 2D.
-
-Muốn đổi tốc độ sinh vật tư, giá xây, giờ mở cướp hay tỉ lệ cướp, sửa các hằng số ở đầu file `raid/logic.js`.
-
-### Lưu dữ liệu (bắt buộc khi chạy trên Render)
-
-Căn cứ phải còn nguyên qua nhiều tuần, nên game cần một cơ sở dữ liệu Postgres. Server đọc địa chỉ từ biến môi trường `DATABASE_URL` và tự tạo bảng khi chạy lần đầu.
-
-Cách miễn phí đơn giản nhất là [Neon](https://neon.tech):
-
-1. Đăng ký Neon (đăng nhập bằng GitHub được), tạo project mới, chọn vùng **Singapore** cho gần Việt Nam.
-2. Ở trang project, bấm **Connect** và sao chép chuỗi kết nối dạng `postgresql://...neon.tech/neondb?sslmode=require`.
-3. Vào [Render](https://dashboard.render.com), mở service `fungame`, chọn **Environment → Add Environment Variable**: Key là `DATABASE_URL`, Value là chuỗi vừa chép. Bấm **Save**, Render tự khởi động lại.
-
-Supabase hay Postgres của Render cũng dùng được, chỉ cần dán chuỗi kết nối vào `DATABASE_URL`. Lưu ý Postgres miễn phí của Render bị xóa sau 30 ngày.
-
-Không có `DATABASE_URL` thì game lưu vào file `data/raid.json`. Cách này chỉ hợp khi chạy trên máy mình, vì trên Render mỗi lần server khởi động lại là mất hết.
-
-Muốn thử cướp ngoài cuối tuần thì chạy với `RAID_ALWAYS_OPEN=1` (ví dụ `RAID_ALWAYS_OPEN=1 npm start`).
-
 ## Câu Cá 3D
 
-Game câu cá 3D chạy ngay trên trình duyệt, mở ở `/fish.html` (trang chủ có nút **🎣 Câu Cá 3D**). Đăng ký bằng tên và mật khẩu, tiến trình lưu lâu dài như Căn cứ tận thế.
+Game câu cá 3D chạy ngay trên trình duyệt, mở ở `/fish.html` (trang chủ có nút **🎣 Câu Cá 3D**). Đăng ký bằng tên và mật khẩu, tiến trình lưu lâu dài trên server.
 
 - **4 hồ:** Hồ Sen Làng Quê (có sẵn), Hồ Rừng Thông (sáng sớm sương mù), Vịnh Đá Vôi (cột đá vôi, thuyền buồm), Hồ Băng Cực Quang (tuyết rơi, đêm có cực quang). Mở khóa bằng xu.
 - **28 loài cá**, 4 độ hiếm: Thường, Hiếm, Sử thi, Huyền thoại. Mỗi loài chỉ ra ở một hồ và vào một số giờ nhất định (bình minh, ban ngày, hoàng hôn, ban đêm). **Một ngày trong game dài 24 phút**, mọi người thấy cùng một giờ.
@@ -91,9 +55,21 @@ Game câu cá 3D chạy ngay trên trình duyệt, mở ở `/fish.html` (trang 
 - **Chơi cùng bạn bè:** ai đứng cùng hồ sẽ thấy nhau trên các cầu câu bên cạnh, thấy phao và cần cong khi bạn đang kéo cá. Cả server thấy tin "vừa câu được cá hiếm". Có bảng xếp hạng cá to nhất, câu nhiều nhất và kỷ lục từng loài.
 - **Hình ảnh:** mặt nước phản chiếu có gợn sóng theo phao, bầu trời vật lý đổi màu theo giờ, sao, trăng, đèn lồng, đom đóm, bóng đổ, cỏ cây lay theo gió, ánh sáng loá (bloom). Trong ⚙️ Cài đặt chọn chất lượng Thấp, Vừa hoặc Cao; điện thoại mặc định là Vừa.
 
-Câu Cá 3D dùng chung database với Căn cứ tận thế: cùng biến `DATABASE_URL` (Neon), server tự tạo thêm bảng `fish_players`, không cần cài gì thêm. Không có `DATABASE_URL` thì lưu vào file `data/fish.json`.
-
 Muốn đổi loài cá, giá cần, mồi hay độ dài một ngày trong game, sửa `fish/logic.js`.
+
+### Lưu dữ liệu (bắt buộc khi chạy trên Render)
+
+Tiến trình câu cá phải còn nguyên qua nhiều ngày, nên game cần một cơ sở dữ liệu Postgres. Server đọc địa chỉ từ biến môi trường `DATABASE_URL` và tự tạo bảng `fish_players` khi chạy lần đầu.
+
+Cách miễn phí đơn giản nhất là [Neon](https://neon.tech):
+
+1. Đăng ký Neon (đăng nhập bằng GitHub được), tạo project mới, chọn vùng **Singapore** cho gần Việt Nam.
+2. Ở trang project, bấm **Connect** và sao chép chuỗi kết nối dạng `postgresql://...neon.tech/neondb?sslmode=require`.
+3. Vào [Render](https://dashboard.render.com), mở service `fungame`, chọn **Environment → Add Environment Variable**: Key là `DATABASE_URL`, Value là chuỗi vừa chép. Bấm **Save**, Render tự khởi động lại.
+
+Supabase hay Postgres của Render cũng dùng được, chỉ cần dán chuỗi kết nối vào `DATABASE_URL`. Lưu ý Postgres miễn phí của Render bị xóa sau 30 ngày.
+
+Không có `DATABASE_URL` thì game lưu vào file `data/fish.json`. Cách này chỉ hợp khi chạy trên máy mình, vì trên Render mỗi lần server khởi động lại là mất hết.
 
 ## Cách chạy
 
@@ -157,13 +133,11 @@ Gói miễn phí sẽ "ngủ" khi không có ai vào, lần đầu mở có th�
 | `game.js` | Luật Poker: chia bài, vòng cược, side pot, chia tiền |
 | `handeval.js` | Chấm điểm tay bài Poker |
 | `xidach.js` | Luật Xì dách: thay phiên làm cái, đặt cược, rút/dằn, lật từng nhà, tính tiền |
-| `raid/logic.js` | Luật Căn cứ tận thế: sinh vật tư, nâng cấp, lịch cuối tuần, trận cướp |
-| `raid/api.js` | API `/api/raid/`: đăng ký, đăng nhập, nâng cấp, huấn luyện, cướp |
-| `raid/store.js` | Lưu người chơi vào Postgres (hoặc file khi chạy trên máy), dùng chung cho Câu cá 3D |
+| `store.js` | Lưu người chơi Câu cá 3D vào Postgres (hoặc file khi chạy trên máy) |
 | `fish/logic.js` | Luật Câu cá 3D: hồ, loài cá, giờ trong ngày, cần, mồi, thùng đá |
 | `fish/api.js` | API `/api/fish/`: đăng ký, quăng câu, kéo cá, bán, mua, bạn bè cùng hồ, xếp hạng |
 | `public/fish.html`, `public/fish/` | Giao diện Câu cá 3D: cảnh hồ (`world.js`), cá, người, cần, dây (`models.js`), hiệu ứng, âm thanh, vòng chơi (`main.js`) |
-| `public/` | Giao diện (HTML, CSS, JS), Căn cứ tận thế ở `raid.html`, bản 3D ở `raid3d.html` (Three.js tải từ CDN) |
-| `test.js`, `raid/test.js`, `fish/test.js` | Kiểm thử: `npm test` mô phỏng 2000 ván Poker, 2000 ván Xì dách, luật Căn cứ tận thế và Câu cá 3D |
+| `public/` | Giao diện (HTML, CSS, JS), Câu Cá 3D ở `fish.html` (Three.js tải từ CDN) |
+| `test.js`, `fish/test.js` | Kiểm thử: `npm test` mô phỏng 2000 ván Poker, 2000 ván Xì dách và luật Câu cá 3D |
 
 Muốn đổi số chip ban đầu, mức blind hay thời gian mỗi lượt, sửa các hằng số ở đầu file `game.js`.
