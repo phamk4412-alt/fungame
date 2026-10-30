@@ -317,7 +317,7 @@ function startFight() {
   const D = clamp((c.power / rod.strength) * 0.7 + c.rarity * 0.12, 0.1, 1.2);
   G.f = {
     D,
-    size: clamp(0.38 - D * 0.14 + (rod.strength - 1) * 0.04, 0.15, 0.42), // chiều cao thanh trắng
+    size: clamp(0.38 - D * 0.14 + (rod.strength - 1) * 0.04 + (rod.bar || 0), 0.15, 0.5), // chiều cao thanh trắng
     y: 0, // đáy thanh trắng (0 đáy, 1 đỉnh)
     vy: 0,
     m: 0.5, // vị trí que cá
@@ -637,9 +637,11 @@ function fight(dt) {
     f.goalT = (dart ? 0.5 : 0.6 + Math.random() * 1.3) / (0.7 + D * 0.5);
     if (dart && Math.random() < 0.3 + c.rarity * 0.1) startJump();
   }
-  const pull = (f.surging ? 16 : 8) * (0.6 + D * 0.5);
+  // cần êm (Poseidon) làm cá giật yếu hẳn
+  const calm = 1 - (rod.calm || 0);
+  const pull = (f.surging ? 16 : 8) * (0.6 + D * 0.5) * (f.surging ? calm : 1);
   f.mv += ((f.goal - f.m) * pull - f.mv * (f.surging ? 5 : 6)) * dt;
-  f.m = clamp(f.m + f.mv * dt + Math.sin(time.value * (5 + D * 6)) * 0.004 * D, 0.01, 0.99);
+  f.m = clamp(f.m + f.mv * dt + Math.sin(time.value * (5 + D * 6)) * 0.004 * D * calm, 0.01, 0.99);
 
   // que trong thanh trắng thì kéo được cá vào, ra ngoài thì cá kéo ngược ra
   f.inside = f.m >= f.y && f.m <= f.y + f.size;
@@ -679,7 +681,7 @@ function fight(dt) {
         ? `Que cá ở trên, ${mobile ? 'giữ nút' : 'giữ Space hoặc chuột'} để nâng thanh trắng lên!`
         : 'Que cá ở dưới, thả ra cho thanh trắng rơi xuống!',
   );
-  camShake = Math.max(camShake, f.surging ? 0.03 + 0.03 * D : 0.008);
+  camShake = Math.max(camShake, (f.surging ? 0.03 + 0.03 * D : 0.008) * calm);
   if (f.P <= 0) loseFight('slack');
   else if (f.P >= 1) winFight();
 }
@@ -776,6 +778,27 @@ function updateCamera(dt) {
   if (Math.abs(camera.fov - wantFov) > 0.05) {
     camera.fov = lerp(camera.fov, wantFov, Math.min(1, dt * 2.5));
     camera.updateProjectionMatrix();
+  }
+  // cảnh cắt có máy quay riêng: bay theo xuồng, người mình hiện đủ thân để không thấy tay lơ lửng
+  if (cine.on && cine.pos && G.mode !== 'fight') {
+    if (!cine.active) {
+      cine.active = true;
+      cine.cam.copy(camera.position);
+      cine.lookCur.copy(camera.position).add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(20));
+      player.angler.setFirstPerson(false);
+    }
+    cine.cam.lerp(cine.pos, Math.min(1, dt * 2.2));
+    cine.lookCur.lerp(cine.look, Math.min(1, dt * 4));
+    camera.position.copy(cine.cam);
+    camShake *= Math.pow(0.02, dt);
+    camera.position.x += (Math.random() - 0.5) * camShake;
+    camera.position.y += (Math.random() - 0.5) * camShake;
+    camera.lookAt(cine.lookCur);
+    return;
+  }
+  if (cine.active) {
+    cine.active = false;
+    player.angler.setFirstPerson(view === 'fp');
   }
   if (view === 'fp') return updateCameraFP(dt);
   const back = viewFwd();
@@ -1451,18 +1474,27 @@ function updateCine(ct, dt) {
         banner(`🐉 ${esc(bossInfo().name).toUpperCase()}!<small>Quăng câu vào vòng xoáy giữa hồ, cả hồ cùng ghì nó!</small>`, '#ff5a3a', 4200);
       });
   }
-  // máy quay hướng về xuồng rồi tới con quái
-  cine.look = ct < 9.6 ? boat.position.clone().setY(0.8) : m.headPos.clone();
+  // máy quay bám sau xuồng lúc ra khơi, rồi lùi ra xa quay toàn cảnh lúc quái trồi lên
+  const side = new THREE.Vector3(-toSpot.z, 0, toSpot.x);
+  if (ct < 9.6) {
+    cine.pos = boat.position.clone().addScaledVector(toSpot, -8).addScaledVector(side, 3.5).setY(2.6);
+    cine.look = boat.position.clone().addScaledVector(toSpot, 5).setY(0.6);
+    cine.zoom = 1;
+  } else {
+    cine.pos = B.spot.clone().addScaledVector(toSpot, -17).addScaledVector(side, 7).setY(4);
+    cine.look = m.headPos.clone();
+    cine.zoom = 0.85;
+  }
   cine.on = true;
-  cine.zoom = 0.5;
   if (ct >= 14) {
     fxs.done = true;
     cine.on = false;
+    cine.pos = null;
     npc.say = '';
   }
 }
 
-const cine = { on: false, zoom: 1, look: new THREE.Vector3() };
+const cine = { on: false, zoom: 1, look: new THREE.Vector3(), pos: null, cam: new THREE.Vector3(), lookCur: new THREE.Vector3(), active: false };
 
 // Ngoài giờ đánh nhau: con quái bơi lượn quanh vòng xoáy, thỉnh thoảng ngóc lên gầm
 function updateLurk(dt) {
@@ -1493,6 +1525,7 @@ function updateBoss(dt) {
   if (!B.monster) return;
   debris.update(dt, waterY);
   cine.on = false;
+  cine.pos = null;
   npc.state = !B.data ? 'home' : B.cineFx.done ? 'gone' : 'cine';
   if (B.data) {
     const ct = B.freeze ?? (serverNow() - B.data.at) / 1000;
@@ -1576,7 +1609,8 @@ function startBossFight() {
   G.f = {
     boss: true,
     D: 1.1,
-    size: clamp(0.25 + (rod.strength - 1) * 0.03, 0.22, 0.3),
+    size: clamp(0.25 + (rod.strength - 1) * 0.03 + (rod.bar || 0), 0.22, 0.4),
+    calm: 1 - (rod.calm || 0),
     y: 0.35,
     vy: 0,
     m: 0.5,
@@ -1661,13 +1695,13 @@ function bossFight(dt) {
       const n = phase;
       if (f.hitN < n && el >= f.hitN * 0.55) {
         f.hitN++;
-        f.m = clamp(f.m + (f.m > 0.5 ? -1 : 1) * (0.32 + Math.random() * 0.18), 0.03, 0.97);
+        f.m = clamp(f.m + (f.m > 0.5 ? -1 : 1) * (0.32 + Math.random() * 0.18) * f.calm, 0.03, 0.97);
         f.mv = 0;
         f.goal = f.m;
-        f.vy -= 1.3;
-        f.P -= 0.035;
+        f.vy -= 1.3 * f.calm;
+        f.P -= 0.035 * f.calm;
         f.T = 1.2;
-        camShake = 0.8;
+        camShake = 0.8 * f.calm;
         sound.slam();
         navigator.vibrate?.(180);
         flash();
@@ -1676,7 +1710,7 @@ function bossFight(dt) {
     }
     if (f.atk === 'thrash') {
       const c = 0.5 + Math.sin(f.t * 0.7) * 0.15;
-      f.m = clamp(c + Math.sin(f.t * 7.5) * 0.27 + Math.sin(f.t * 15) * 0.07, 0.02, 0.98);
+      f.m = clamp(c + (Math.sin(f.t * 7.5) * 0.27 + Math.sin(f.t * 15) * 0.07) * f.calm, 0.02, 0.98);
       camShake = Math.max(camShake, 0.2);
       if (Math.random() < dt * 8) fx.splashAt(G.fishPos.clone().add(new THREE.Vector3((Math.random() - 0.5) * 4, 0, (Math.random() - 0.5) * 4)), 1.2);
     }
@@ -1700,7 +1734,7 @@ function bossFight(dt) {
       f.goal = clamp(f.m + (Math.random() * 2 - 1) * (dart ? 0.75 : 0.45), 0.03, 0.97);
       f.goalT = (dart ? 0.45 : 0.5 + Math.random()) / (0.7 + D * 0.5);
     }
-    const pull = (atk === 'dive' || atk === 'drag' ? 22 : f.surging ? 17 : 9) * (0.6 + D * 0.5);
+    const pull = (atk === 'dive' || atk === 'drag' ? 22 : f.surging ? 17 : 9) * (0.6 + D * 0.5) * (atk || f.surging ? f.calm : 1);
     f.mv += ((f.goal - f.m) * pull - f.mv * 5) * dt;
     f.m = clamp(f.m + f.mv * dt + Math.sin(time.value * 11) * 0.006 * D, 0.01, 0.99);
   }
@@ -2055,7 +2089,7 @@ function renderShop(el) {
       const owned = me.rods.includes(r.id);
       const using = me.rod === r.id;
       const btn = using ? '<button class="btn small" disabled>Đang dùng</button>' : owned ? `<button class="btn small" data-buy="rod" data-id="${r.id}">Dùng</button>` : `<button class="btn small primary" data-buy="rod" data-id="${r.id}" ${!me.rich && me.money < r.price ? 'disabled' : ''}>${fmt(r.price)} xu</button>`;
-      return `<div class="row ${using ? 'current' : ''}"><div class="grow"><div class="title">🎣 ${esc(r.name)}</div><div class="desc">${esc(r.desc)}<br>Sức chịu ×${r.strength} · Tốc độ kéo ×${r.reel}${r.luck ? ` · May mắn +${Math.round(r.luck * 100)}%` : ''}</div></div>${btn}</div>`;
+      return `<div class="row ${using ? 'current' : ''}"><div class="grow"><div class="title">🎣 ${esc(r.name)}</div><div class="desc">${esc(r.desc)}<br>Sức chịu ×${r.strength} · Tốc độ kéo ×${r.reel}${r.luck ? ` · May mắn +${Math.round(r.luck * 100)}%` : ''}${r.bar ? ` · Thanh trắng +${Math.round(r.bar * 100)}% · Cá giật −${Math.round(r.calm * 100)}%` : ''}</div></div>${btn}</div>`;
     })
     .join('');
   const baits = C.baits

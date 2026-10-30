@@ -123,8 +123,10 @@ const RODS = {
   carbon: { name: 'Cần carbon', price: 600, strength: 1.3, reel: 1.25, luck: 0.1, desc: 'Nhẹ, chắc, kéo nhanh hơn.' },
   titan: { name: 'Cần titan', price: 3000, strength: 1.7, reel: 1.5, luck: 0.25, desc: 'Chịu được cá ngừ, cá tầm.' },
   long: { name: 'Cần Long Vương', price: 12000, strength: 2.3, reel: 1.9, luck: 0.5, desc: 'Cần của Long Vương, cá huyền thoại cũng phải nể.' },
+  // bar: thanh trắng dài thêm; calm: cá giật yếu đi bao nhiêu phần
+  poseidon: { name: 'Cần Poseidon', price: 30000, strength: 2.6, reel: 2.1, luck: 0.6, bar: 0.1, calm: 0.45, desc: 'Cần của thần biển, thân to chắc: thanh trắng dài hơn hẳn, cá và cả thủy quái giật yếu đi gần một nửa.' },
 };
-const ROD_ORDER = ['tre', 'carbon', 'titan', 'long'];
+const ROD_ORDER = ['tre', 'carbon', 'titan', 'long', 'poseidon'];
 
 // boost: nhân tỉ lệ ra cá theo từng độ hiếm; bite: cá cắn nhanh hơn
 const BAITS = {
