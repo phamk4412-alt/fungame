@@ -448,6 +448,7 @@ export const ROD_LOOK = {
   carbon: { length: 3.8, r0: 0.012, r1: 0.0025, blank: '#16181d', weave: true, wrap: '#b81e2a', trim: '#e8e8e8', grip: 'eva', seat: '#1a1a1a', reel: '#2a2e36', reelTrim: '#d02a2a', metal: 0.3, rough: 0.3, guides: 9 },
   titan: { length: 4.0, r0: 0.0125, r1: 0.0025, blank: '#7d8894', weave: true, wrap: '#1f3c6a', trim: '#c0c8d0', grip: 'cork', seat: '#3a4048', reel: '#b8c0c8', reelTrim: '#2a6ad0', metal: 0.7, rough: 0.22, guides: 10 },
   long: { length: 4.3, r0: 0.0135, r1: 0.003, blank: '#c89a2a', weave: true, wrap: '#8a0e0e', trim: '#ffd060', grip: 'eva', seat: '#3a0a0a', reel: '#d8a838', reelTrim: '#a01010', metal: 0.85, rough: 0.2, guides: 10, glow: '#ff6a00' },
+  poseidon: { length: 4.5, r0: 0.0175, r1: 0.0038, blank: '#0b5a7a', weave: true, wrap: '#e8b830', trim: '#ffe08a', grip: 'eva', seat: '#06283a', reel: '#1c8aa8', reelTrim: '#ffd060', metal: 0.85, rough: 0.16, guides: 11, glow: '#2ad8ff' },
 };
 
 // ---------- Kết cấu vật liệu cần câu ----------
