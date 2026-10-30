@@ -77,24 +77,38 @@ export class Sound {
     this.windGain.gain.value = 0.015;
     wind.connect(bp).connect(this.windGain).connect(this.master);
     wind.start(0, 0.7);
-    // tiếng máy cuộn: nhiễu cao, bật khi đang kéo
+    // tiếng máy cuộn: vù vù của bánh răng, bật khi đang quay tay quay
     const reel = this.noise(true);
-    const hp = c.createBiquadFilter();
-    hp.type = 'highpass';
-    hp.frequency.value = 3000;
+    const rbp2 = c.createBiquadFilter();
+    rbp2.type = 'bandpass';
+    rbp2.frequency.value = 1700;
+    rbp2.Q.value = 1.2;
     this.reelGain = c.createGain();
     this.reelGain.gain.value = 0;
     const am = c.createOscillator();
-    am.type = 'square';
-    am.frequency.value = 28;
+    am.type = 'sine';
+    am.frequency.value = 22;
     const amG = c.createGain();
-    amG.gain.value = 0.5;
+    amG.gain.value = 0.4;
     const amOut = c.createGain();
-    amOut.gain.value = 0.5;
+    amOut.gain.value = 0.6;
     am.connect(amG).connect(amOut.gain);
-    reel.connect(hp).connect(amOut).connect(this.reelGain).connect(this.master);
-    reel.start();
+    reel.connect(rbp2).connect(amOut).connect(this.reelGain).connect(this.master);
+    reel.start(0, 0.3);
     am.start();
+    this.reelAm = am;
+    // nước sủi khi cá quẫy dưới chân
+    const churn = this.noise(true);
+    const clp = c.createBiquadFilter();
+    clp.type = 'lowpass';
+    clp.frequency.value = 650;
+    this.churnGain = c.createGain();
+    this.churnGain.gain.value = 0;
+    churn.connect(clp).connect(this.churnGain).connect(this.master);
+    churn.start(0, 0.9);
+    this.clickBuf = this.makeClick();
+    this.clickT = 0;
+    this.creakT = 1;
     // tiếng mưa rơi lộp độp trên mặt hồ
     const rain = this.noise(true);
     const rbp = c.createBiquadFilter();
@@ -123,13 +137,90 @@ export class Sound {
     this.rainGain.gain.setTargetAtTime(r * 0.07, this.ctx.currentTime, 1.5);
   }
 
-  setFight(reeling, tension) {
+  // tiếng "tách" kim loại của bánh cóc trong máy câu
+  makeClick() {
+    const sr = this.ctx.sampleRate;
+    const buf = this.ctx.createBuffer(1, Math.floor(sr * 0.03), sr);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) {
+      const t = i / sr;
+      const ring = Math.sin(t * 2 * Math.PI * 3900) * 0.6 + Math.sin(t * 2 * Math.PI * 6100) * 0.4;
+      d[i] = (ring * 0.7 + (Math.random() * 2 - 1) * 0.5) * Math.exp(-t * 260);
+    }
+    return buf;
+  }
+
+  click(when, vol, rate) {
+    const s = this.ctx.createBufferSource();
+    s.buffer = this.clickBuf;
+    s.playbackRate.value = rate;
+    const g = this.ctx.createGain();
+    g.gain.value = vol;
+    s.connect(g).connect(this.master);
+    s.start(when);
+  }
+
+  // tiếng cần cong kêu răng rắc khi bị kéo mạnh
+  creak(strength) {
+    const c = this.ctx;
+    const o = c.createOscillator();
+    o.type = 'sawtooth';
+    const t = c.currentTime;
+    const f0 = 70 + Math.random() * 40;
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.linearRampToValueAtTime(f0 * (1.2 + Math.random() * 0.4), t + 0.25);
+    const lp = c.createBiquadFilter();
+    lp.type = 'bandpass';
+    lp.frequency.value = 420;
+    lp.Q.value = 3;
+    const trem = c.createOscillator();
+    trem.frequency.value = 35 + Math.random() * 25;
+    const tg = c.createGain();
+    tg.gain.value = 0.5;
+    const g = c.createGain();
+    const out = c.createGain();
+    trem.connect(tg).connect(g.gain);
+    o.connect(lp).connect(g).connect(out).connect(this.master);
+    this.env(out, 0.06 * strength, 0.04, 0.3);
+    o.start();
+    trem.start();
+    o.stop(t + 0.4);
+    trem.stop(t + 0.4);
+  }
+
+  // f: {reeling, inside, surging, tension} khi đang dằng co, null khi không
+  setFight(f, dt = 0) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
-    this.reelGain.gain.setTargetAtTime(reeling ? 0.09 : 0, t, 0.05);
-    const danger = Math.max(0, tension - 0.75) * 4;
-    this.tensionGain.gain.setTargetAtTime(Math.min(0.05, danger * 0.05), t, 0.05);
-    this.tensionOsc.frequency.setTargetAtTime(140 + tension * 260, t, 0.05);
+    const on = !!f;
+    const reeling = on && f.reeling;
+    // cá đang kéo dây ra: drag rít liên hồi, càng lao mạnh càng dồn dập
+    const drag = on && (!f.inside || f.surging);
+    this.reelGain.gain.setTargetAtTime(reeling ? 0.05 : 0, t, 0.05);
+    this.reelAm.frequency.setTargetAtTime(reeling ? 22 : 10, t, 0.1);
+    this.churnGain.gain.setTargetAtTime(on ? (f.surging ? 0.09 : 0.03) : 0, t, f && f.surging ? 0.05 : 0.3);
+    const tension = on ? f.tension : 0;
+    const danger = Math.max(0, tension - 0.6) * 2.5;
+    this.tensionGain.gain.setTargetAtTime(Math.min(0.04, danger * 0.04), t, 0.05);
+    this.tensionOsc.frequency.setTargetAtTime(140 + tension * 260 + Math.random() * 20, t, 0.05);
+    if (!on || this.muted) return;
+    // lách cách: quay tay quay ~18 tiếng/giây, drag xả dây 35-70 tiếng/giây
+    const rate = drag ? (f.surging ? 70 : 38) : reeling ? 18 : 0;
+    if (rate > 0) {
+      // clickT = còn bao lâu tới tiếng tách kế tiếp, xếp lịch trước 60 ms cho đều
+      this.clickT = Math.max(-0.05, this.clickT - dt);
+      while (this.clickT < 0.06) {
+        const when = t + Math.max(0, this.clickT);
+        if (drag) this.click(when, 0.11 + (f.surging ? 0.05 : 0), 1.15 + Math.random() * 0.1);
+        else this.click(when, 0.07, 0.85 + Math.random() * 0.08);
+        this.clickT += (1 / rate) * (0.85 + Math.random() * 0.3);
+      }
+    } else this.clickT = 0;
+    this.creakT -= dt;
+    if (this.creakT <= 0 && tension > 0.7) {
+      this.creak(Math.min(1.5, tension));
+      this.creakT = 0.6 + Math.random() * 1.2;
+    }
   }
 
   env(node, peak, attack, decay) {
