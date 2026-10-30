@@ -81,3 +81,42 @@ assert.strictEqual(p.money, 0);
 p.fish = Array.from({ length: 25 }, () => ({ s: 'ca_bang', w: 1, v: 10, at: t0 }));
 assert.ok(L.startCast(p, 'bang', 'giun', t0).error); // thùng đầy
 console.log('✓ Mua cần, mồi, hồ, thùng đá');
+
+// Nhiệm vụ Lão Ngư và thủy quái
+const q = L.newPlayer('q', 'Q', t0);
+assert.ok(L.questItem(q, 0)); // chưa nhận nhiệm vụ
+assert.strictEqual(L.acceptQuest(q, 'sen'), null);
+for (let i = 0; i < L.QUEST.items; i++) assert.strictEqual(L.questItem(q, i), null);
+assert.strictEqual(L.questItem(q, 0), null); // nhặt lại không tính hai lần
+assert.ok(L.questItem(q, 99));
+assert.strictEqual(q.quest.items.length, L.QUEST.items);
+assert.ok(!L.questDone(q.quest));
+for (let i = 0; i < L.QUEST.fish + 2; i++) {
+  const { cast: qc } = L.startCast(q, 'sen', 'giun', t0);
+  L.land(q, qc.id, true, t0 + qc.biteIn + 2000);
+}
+assert.strictEqual(q.quest.fish, L.QUEST.fish);
+assert.ok(L.questDone(q.quest));
+for (const lake of L.LAKE_ORDER) {
+  for (const ph of Object.keys(L.PHASES)) assert.ok(L.available(lake, ph).every(([, f]) => !f.boss)); // thủy quái không cắn câu thường
+}
+const b = L.newBoss('sen', 'Q', t0);
+assert.strictEqual(L.hitBoss(b, 'q', 1000, t0), false); // không ai hạ được trong một cú
+assert.ok(b.hp > L.BOSS_HP - 2);
+L.hitBoss(b, 'r', 1, t0 + 1000); // người thứ hai vào đánh, thủy quái trâu thêm
+assert.strictEqual(b.max, L.BOSS_HP * 1.5);
+let tt = t0;
+let killed = false;
+while (!killed && tt < t0 + L.BOSS_TTL_MS) {
+  tt += 1000;
+  killed = L.hitBoss(b, 'q', 1, tt) || L.hitBoss(b, 'r', 1, tt);
+}
+assert.ok(killed);
+const mins = (tt - t0) / 60000;
+assert.ok(mins > 2.5 && mins < 5, `hai người hạ thủy quái trong ${mins} phút`);
+assert.deepStrictEqual(L.bossWinners(b).sort(), ['q', 'r']);
+const before = q.fish.length;
+const won = L.bossReward(q, b, tt);
+assert.strictEqual(q.fish.length, before + 1);
+assert.strictEqual(won.fish.s, 'quai_sen');
+console.log('✓ Nhiệm vụ Lão Ngư và thủy quái');

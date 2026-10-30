@@ -10,6 +10,7 @@ const presence = new Map(); // id -> đang đứng ở hồ nào, làm gì (ch�
 const feed = []; // các mẻ cá mới nhất của mọi người
 let feedSeq = 0;
 let ready = null;
+const bosses = new Map(); // hồ -> thủy quái đang trồi lên (chỉ giữ trong bộ nhớ, ai ở hồ đó cũng đánh chung)
 
 const PRESENCE_TTL = 8000;
 const SPOTS = 6; // số chỗ đứng quanh mỗi hồ
@@ -86,7 +87,43 @@ function view(p, now) {
     legend: p.legend,
     biggest: p.biggest,
     spot: spotOf(p),
+    quest: p.quest || null,
   };
+}
+
+// Thủy quái hết giờ hoặc bị hạ thì giữ thêm một lúc cho mọi người kịp thấy, rồi Lão Ngư quay lại
+function bossAt(lake, now) {
+  const b = bosses.get(lake);
+  if (!b) return null;
+  const end = b.dead ? b.dead.at : b.until;
+  if (now - end > 25000) {
+    bosses.delete(lake);
+    return null;
+  }
+  return b;
+}
+
+function bossView(b, now, p) {
+  if (!b) return null;
+  const active = Object.values(b.fighters).filter((f) => now - f.at < 5000).length;
+  return {
+    s: b.s,
+    hp: Math.round(b.hp * 10) / 10,
+    max: b.max,
+    at: b.at,
+    until: b.until,
+    by: b.by,
+    fighters: active,
+    escaped: !b.dead && now > b.until,
+    dead: b.dead && { at: b.dead.at, names: b.dead.names, w: b.w, me: b.dead.ids.includes(p.id) },
+  };
+}
+
+function cleanPos(c) {
+  if (!Array.isArray(c) || c.length !== 3) return null;
+  const v = c.map(Number);
+  if (!v.every(Number.isFinite)) return null;
+  return [Math.round(v[0] * 100) / 100, Math.round(v[1] * 100) / 100, Math.round(v[2] * 100) / 100];
 }
 
 // Mỗi người một chỗ đứng cố định quanh hồ để bạn bè thấy nhau
@@ -108,6 +145,7 @@ const CATALOG = {
   rarity: L.RARITY,
   lakes: L.LAKE_ORDER.map((id) => ({ id, ...L.LAKES[id] })),
   fish: Object.fromEntries(Object.entries(L.FISH).map(([id, f]) => [id, { ...f }])),
+  quest: L.QUEST,
   rods: L.ROD_ORDER.map((id) => ({ id, ...L.RODS[id] })),
   baits: L.BAIT_ORDER.map((id) => ({ id, ...L.BAITS[id] })),
   coolers: L.COOLERS,
@@ -200,6 +238,7 @@ const routes = {
       rod: p.rod,
       act: String(body.act || 'idle').slice(0, 10),
       cast: cleanCast(body.cast),
+      pos: cleanPos(body.pos),
       tension: Math.max(0, Math.min(1.5, Number(body.tension) || 0)),
       landed: prev && prev.landed && now - prev.landed.at < 6000 ? prev.landed : null,
       at: now,
@@ -210,7 +249,59 @@ const routes = {
       if (id !== p.id && pr.lake === lake && now - pr.at < PRESENCE_TTL) others.push({ id, ...pr });
     }
     const since = Number(body.since) || 0;
-    return [200, { now, spot, others, feed: feed.filter((f) => f.seq > since), feedSeq }];
+    return [200, { now, spot, others, feed: feed.filter((f) => f.seq > since), feedSeq, boss: bossView(bossAt(lake, now), now, p) }];
+  },
+
+  // Lão Ngư giao việc: nhặt hũ thính rơi quanh bờ và câu đủ cá ở hồ này
+  'POST quest/accept': (body, now, p) => {
+    const lake = String(body.lake || p.lake);
+    if (bossAt(lake, now)) return [400, { error: 'Lão Ngư không còn ở đây nữa...' }];
+    const err = L.acceptQuest(p, lake);
+    if (err) return [400, { error: err }];
+    persist(p);
+    return [200, { state: view(p, now) }];
+  },
+
+  'POST quest/item': (body, now, p) => {
+    const err = L.questItem(p, Number(body.i));
+    if (err) return [400, { error: err }];
+    persist(p);
+    return [200, { state: view(p, now) }];
+  },
+
+  // Xong nhiệm vụ: Lão Ngư chèo ra giữa hồ và thủy quái trồi lên cho cả hồ cùng câu
+  'POST quest/finish': (body, now, p) => {
+    const q = p.quest;
+    if (!L.questDone(q)) return [400, { error: 'Bạn chưa làm xong nhiệm vụ.' }];
+    if (bossAt(q.lake, now)) return [400, { error: 'Thủy quái đang ở hồ này rồi!' }];
+    const b = L.newBoss(q.lake, p.name, now);
+    bosses.set(q.lake, b);
+    p.quest = null;
+    persist(p);
+    return [200, { boss: bossView(b, now, p), state: view(p, now) }];
+  },
+
+  // Sức kéo góp vào thủy quái, máy chủ giới hạn theo thời gian để không ai hạ nó tức thì
+  'POST boss/hit': (body, now, p) => {
+    const lake = String(body.lake || p.lake);
+    const b = bossAt(lake, now);
+    if (!b || b.dead || now > b.until) return [200, { boss: bossView(b, now, p), state: view(p, now) }];
+    if (L.hitBoss(b, p.id, body.dmg, now)) {
+      const ids = L.bossWinners(b);
+      if (!ids.includes(p.id)) ids.push(p.id);
+      const names = [];
+      for (const id of ids) {
+        const q = players.get(id);
+        if (!q) continue;
+        L.bossReward(q, b, now);
+        persist(q);
+        names.push(q.name);
+      }
+      b.dead = { at: now, ids, names };
+      feed.push({ seq: ++feedSeq, name: names.join(', '), id: p.id, s: b.s, w: b.w, rarity: 3, lake, at: now });
+      if (feed.length > 40) feed.shift();
+    }
+    return [200, { boss: bossView(b, now, p), state: view(p, now) }];
   },
 
   // Bảng hạng nhỏ trên màn hình: hạng của mình, người đứng đầu và hai người sát bên

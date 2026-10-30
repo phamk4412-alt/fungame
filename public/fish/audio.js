@@ -289,6 +289,139 @@ export class Sound {
     s.stop(c.currentTime + 0.3);
   }
 
+  // tiếng thủy quái gầm: răng cưa trầm trượt xuống, rè rè qua lọc
+  roar(len = 2.2) {
+    if (!this.ctx) return;
+    const c = this.ctx;
+    const t = c.currentTime;
+    const out = c.createGain();
+    out.connect(this.master);
+    out.gain.setValueAtTime(0, t);
+    out.gain.linearRampToValueAtTime(0.32, t + 0.15);
+    out.gain.setValueAtTime(0.32, t + len * 0.6);
+    out.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    const lp = c.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(900, t);
+    lp.frequency.linearRampToValueAtTime(350, t + len);
+    lp.Q.value = 4;
+    lp.connect(out);
+    for (const [f, d] of [[62, 0], [93, 4], [124, -6]]) {
+      const o = c.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(f * 1.25, t);
+      o.frequency.linearRampToValueAtTime(f * 0.8, t + len);
+      o.detune.value = d * 10;
+      const wob = c.createOscillator();
+      wob.frequency.value = 9 + Math.random() * 6;
+      const wg = c.createGain();
+      wg.gain.value = f * 0.12;
+      wob.connect(wg).connect(o.frequency);
+      o.connect(lp);
+      o.start(t);
+      wob.start(t);
+      o.stop(t + len + 0.1);
+      wob.stop(t + len + 0.1);
+    }
+    const n = this.noise();
+    const bp = c.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 500;
+    bp.Q.value = 0.8;
+    const ng = c.createGain();
+    ng.gain.value = 0.6;
+    n.connect(bp).connect(ng).connect(out);
+    n.start(t, Math.random());
+    n.stop(t + len + 0.1);
+  }
+
+  // ầm ầm dưới đáy hồ trước khi quái trồi lên
+  rumble(len = 3) {
+    if (!this.ctx) return;
+    const c = this.ctx;
+    const n = this.noise();
+    const lp = c.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 120;
+    const g = c.createGain();
+    n.connect(lp).connect(g).connect(this.master);
+    const t = c.currentTime;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.9, t + len * 0.8);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    n.start(t, Math.random());
+    n.stop(t + len + 0.1);
+  }
+
+  // gỗ vỡ răng rắc
+  crunch() {
+    if (!this.ctx) return;
+    const c = this.ctx;
+    for (let i = 0; i < 7; i++) {
+      const n = this.noise();
+      const bp = c.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = 600 + Math.random() * 1800;
+      bp.Q.value = 2;
+      const g = c.createGain();
+      n.connect(bp).connect(g).connect(this.master);
+      const t = c.currentTime + i * 0.045 + Math.random() * 0.03;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.5, t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+      n.start(t, Math.random());
+      n.stop(t + 0.15);
+    }
+    this.splash(3);
+  }
+
+  // cú giật mạnh: tiếng đập trầm và dây kêu tưng
+  slam() {
+    if (!this.ctx) return;
+    const c = this.ctx;
+    const o = c.createOscillator();
+    o.type = 'sine';
+    const t = c.currentTime;
+    o.frequency.setValueAtTime(110, t);
+    o.frequency.exponentialRampToValueAtTime(38, t + 0.35);
+    const g = c.createGain();
+    o.connect(g).connect(this.master);
+    g.gain.setValueAtTime(0.6, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+    o.start(t);
+    o.stop(t + 0.55);
+    this.tone(1900, 0, 0.25, 'triangle', 0.05);
+    this.splash(2.5);
+  }
+
+  // máy đuôi tôm của Lão Ngư
+  motor(on) {
+    if (!this.ctx) return;
+    const c = this.ctx;
+    if (on && !this.motorOsc) {
+      const o = c.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.value = 46;
+      const am = c.createOscillator();
+      am.frequency.value = 23;
+      const amG = c.createGain();
+      amG.gain.value = 0.03;
+      const g = c.createGain();
+      g.gain.value = 0.03;
+      const lp = c.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 500;
+      am.connect(amG).connect(g.gain);
+      o.connect(lp).connect(g).connect(this.master);
+      o.start();
+      am.start();
+      this.motorOsc = [o, am];
+    } else if (!on && this.motorOsc) {
+      for (const o of this.motorOsc) o.stop();
+      this.motorOsc = null;
+    }
+  }
+
   tone(freq, when, dur, type = 'triangle', vol = 0.12) {
     const c = this.ctx;
     const o = c.createOscillator();

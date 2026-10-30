@@ -1169,7 +1169,8 @@ export class Angler {
       const ankle = new THREE.Vector3(s * 0.1, 0.11, 0.0);
       const thigh = add(segment(pants, 0.088, 0.066));
       place(thigh, hip, knee);
-      add(joint(pants, 0.066)).position.copy(knee);
+      const kneeJ = add(joint(pants, 0.066));
+      kneeJ.position.copy(knee);
       const calf = add(segment(pants, 0.064, 0.05));
       place(calf, knee, ankle);
       const boot = new THREE.Group();
@@ -1185,7 +1186,7 @@ export class Angler {
       boot.rotation.y = s * -0.12;
       boot.traverse((m) => (m.castShadow = true));
       this.body.add(boot);
-      return { thigh, calf };
+      return { s, thigh, calf, kneeJ, boot, hip };
     });
 
     // hông, thân, áo gile hở trước, thắt lưng
@@ -1349,9 +1350,31 @@ export class Angler {
     return { base, dir };
   }
 
+  // bước chân khi đi bộ: đùi đánh ra trước sau, gối gập lúc nhấc chân, người nhún theo nhịp
+  updateLegs(dt) {
+    this.stride = THREE.MathUtils.lerp(this.stride || 0, this.walking ? 1 : 0, Math.min(1, dt * 7));
+    if (this.stride < 0.005 && !this._strideOn) return 0;
+    this._strideOn = this.stride >= 0.005;
+    this.stepT = (this.stepT || 0) + dt * 7.5 * this.stride;
+    for (const leg of this.legs) {
+      const ph = this.stepT + (leg.s > 0 ? Math.PI : 0);
+      const sw = Math.sin(ph) * 0.42 * this.stride;
+      const lift = Math.max(0, Math.cos(ph)) * 0.75 * this.stride;
+      const K = leg.hip.clone().add(new THREE.Vector3(0.005 * leg.s, -Math.cos(sw) * 0.42, -Math.sin(sw) * 0.42 - 0.035));
+      const ca = sw - lift;
+      const A = K.clone().add(new THREE.Vector3(0, -Math.cos(ca) * 0.4, -Math.sin(ca) * 0.4 + 0.035));
+      place(leg.thigh, leg.hip, K);
+      leg.kneeJ.position.copy(K);
+      place(leg.calf, K, A);
+      leg.boot.position.set(A.x, A.y - 0.11, A.z);
+      leg.boot.rotation.x = -ca * 0.6;
+    }
+    return Math.abs(Math.sin(this.stepT)) * 0.035 * this.stride;
+  }
+
   update(dt, pull, bend) {
     this.breath += dt;
-    this.body.position.y = Math.sin(this.breath * 1.6) * 0.006;
+    this.body.position.y = Math.sin(this.breath * 1.6) * 0.006 + this.updateLegs(dt);
     // nghiêng người theo hướng ghì cần
     this.body.rotation.z = THREE.MathUtils.lerp(this.body.rotation.z, -this.lean * 0.09, Math.min(1, dt * 6));
     this.body.rotation.x = THREE.MathUtils.lerp(this.body.rotation.x, bend > 0.3 ? 0.08 : 0, Math.min(1, dt * 4));
