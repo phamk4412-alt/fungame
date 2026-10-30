@@ -329,7 +329,7 @@ function startFight() {
 }
 
 function loseFight(kind) {
-  sound.setFight(false, 0);
+  sound.setFight(null);
   if (kind === 'snap') {
     sound.snap();
     navigator.vibrate?.([80, 40, 80]);
@@ -340,7 +340,7 @@ function loseFight(kind) {
 }
 
 async function winFight() {
-  sound.setFight(false, 0);
+  sound.setFight(null);
   setMode('landing');
   G.jump = null;
   const from = G.fishPos.clone();
@@ -573,7 +573,7 @@ function updateGame(dt) {
   else player.bobber.position.copy(player.line.endPoint);
   player.bobber.rotation.z = G.mode === 'fight' ? Math.sin(time.value * 8) * 0.4 : 0;
   player.bobber.userData.glow.emissiveIntensity = world.night * 3;
-  sound.setFight(G.mode === 'fight' && G.held, G.mode === 'fight' ? G.f.T : 0);
+  sound.setFight(G.mode === 'fight' ? { reeling: G.held, inside: G.f.inside, surging: G.f.surging, tension: G.f.T } : null, dt);
   if (G.jump) updateJump(dt);
 }
 
