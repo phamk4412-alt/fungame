@@ -777,29 +777,48 @@ export class World {
     return (Math.sin(x * 0.55 + t * 1.3) * 0.022 + Math.sin(z * 0.73 + t * 1.7 + 1.3) * 0.018 + Math.sin((x + z) * 1.9 + t * 2.8) * 0.006) * a;
   }
 
-  computeSpots() {
+  // điểm bờ hồ cách chỗ đứng giữa "off" mét dọc theo bờ, kèm hướng nhìn ra giữa hồ
+  shorePoint(off) {
     const T = this.theme;
     const [cx, cz] = T.center;
     const [rx, rz] = T.R;
+    const a = Math.PI / 2 + off / Math.max(rx, rz) * (rx > 200 ? 1 : 1.25);
+    const dir = new THREE.Vector3(Math.cos(a) * rx, 0, Math.sin(a) * rz).normalize();
+    let shore = null;
+    for (let s = 0.5; s < 1.6; s += 0.002) {
+      const x = cx + Math.cos(a) * rx * s;
+      const z = cz + Math.sin(a) * rz * s;
+      if (this.heightAt(x, z) > 0.35) {
+        shore = new THREE.Vector3(x, 0, z);
+        break;
+      }
+    }
+    shore = shore || new THREE.Vector3(cx + dir.x * rx, 0, cz + dir.z * rz);
+    const face = new THREE.Vector3(cx - shore.x, 0, cz - shore.z).normalize();
+    return { shore, face };
+  }
+
+  computeSpots() {
     const offsets = [0, -8, 8, -16, 16, -24];
     return offsets.map((off) => {
-      const a = Math.PI / 2 + off / Math.max(rx, rz) * (rx > 200 ? 1 : 1.25);
-      const dir = new THREE.Vector3(Math.cos(a) * rx, 0, Math.sin(a) * rz).normalize();
-      let shore = null;
-      for (let s = 0.5; s < 1.6; s += 0.002) {
-        const x = cx + Math.cos(a) * rx * s;
-        const z = cz + Math.sin(a) * rz * s;
-        if (this.heightAt(x, z) > 0.35) {
-          shore = new THREE.Vector3(x, 0, z);
-          break;
-        }
-      }
-      shore = shore || new THREE.Vector3(cx + dir.x * rx, 0, cz + dir.z * rz);
-      const face = new THREE.Vector3(cx - shore.x, 0, cz - shore.z).normalize();
+      const { shore, face } = this.shorePoint(off);
       const stand = shore.clone().addScaledVector(face, 8.5);
       stand.y = 0.62;
       return { shore, face, stand, yaw: Math.atan2(-face.x, -face.z) };
     });
+  }
+
+  // đứng được ở đây không: trên bờ hoặc trên cầu câu; trả về độ cao chỗ đặt chân, không đứng được thì null
+  groundAt(x, z) {
+    const h = this.heightAt(x, z);
+    for (const sp of this.spots) {
+      const dx = x - sp.shore.x;
+      const dz = z - sp.shore.z;
+      const along = dx * sp.face.x + dz * sp.face.z;
+      const across = -dx * sp.face.z + dz * sp.face.x;
+      if (along > -2.6 && along < 9 && Math.abs(across) < 1.05) return Math.max(0.62, h);
+    }
+    return h > 0.15 ? h : null;
   }
 
   buildTerrain(g, me) {

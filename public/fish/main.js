@@ -7,6 +7,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { World, QUALITY, time } from './world.js';
 import { makeFish, fishLength, Angler, FishingLine, makeBobber } from './models.js';
 import { Effects } from './fx.js';
+import { makeBoat, makeJar, Debris, Monster } from './boss.js';
 import { Sound } from './audio.js';
 import { clamp, lerp, smoothstep } from './noise.js';
 
@@ -108,12 +109,14 @@ if (Q.bloom) {
   composer.addPass(new OutputPass());
 }
 
+let baseFov = 55;
 function resize() {
   const w = innerWidth;
   const h = innerHeight;
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
-  camera.fov = (w < h ? 68 : 55) + (view === 'fp' ? 8 : 0);
+  baseFov = (w < h ? 68 : 55) + (view === 'fp' ? 8 : 0);
+  camera.fov = baseFov;
   camera.updateProjectionMatrix();
   if (composer) {
     composer.setSize(w, h);
@@ -198,7 +201,7 @@ function aimDirection() {
 
 function press() {
   sound.start();
-  if (!me || $('sheet').classList.contains('hidden') === false) return;
+  if (!me || $('sheet').classList.contains('hidden') === false || !$('talk').classList.contains('hidden')) return;
   G.held = true;
   $('action').classList.add('held');
   $('baitMenu').classList.add('hidden');
@@ -226,6 +229,9 @@ function press() {
     case 'show':
       collect();
       break;
+    case 'walk':
+      walkAction();
+      break;
     default:
   }
 }
@@ -250,6 +256,14 @@ function doCast() {
   const v = G.target.clone().sub(tip).addScaledVector(g, -0.5 * T * T).divideScalar(T);
   G.flight = { from: tip, v, T, g };
   G.cast = null;
+  G.castFailed = false;
+  sound.whoosh();
+  setMode('flying');
+  // quăng trúng vòng xoáy lúc thủy quái đang ở hồ thì nó đớp mồi, không cần hỏi máy chủ
+  if (bossActive() && Math.hypot(G.target.x - B.spot.x, G.target.z - B.spot.z) < 15) {
+    G.cast = { boss: true, biteIn: 1500 + Math.random() * 1200, gotAt: performance.now(), power: 3, rarity: 3 };
+    return;
+  }
   G.castPending = api('POST', 'cast', { lake: world.lakeId, bait: G.bait })
     .then((d) => {
       G.cast = { ...d.cast, gotAt: performance.now() };
@@ -259,9 +273,6 @@ function doCast() {
       toast(e.message);
       G.castFailed = true;
     });
-  G.castFailed = false;
-  sound.whoosh();
-  setMode('flying');
 }
 
 function landed() {
@@ -287,7 +298,8 @@ function scheduleBite() {
 }
 
 function abandon(lostMsg) {
-  if (G.cast) api('POST', 'land', { castId: G.cast.id, ok: false }).catch(() => {});
+  if (G.f?.boss) endBossFight();
+  if (G.cast && !G.cast.boss) api('POST', 'land', { castId: G.cast.id, ok: false }).catch(() => {});
   G.cast = null;
   if (lostMsg) {
     banner(lostMsg[0] + (lostMsg[1] ? `<small>${lostMsg[1]}</small>` : ''), '#ff8a7a', 1900);
@@ -299,6 +311,7 @@ function abandon(lostMsg) {
 
 function startFight() {
   const c = G.cast;
+  if (c.boss) return startBossFight();
   const rod = ROD_STATS();
   // độ khó: cá càng to, càng khỏe và càng hiếm thì que cá chạy càng nhanh, thanh trắng càng ngắn
   const D = clamp((c.power / rod.strength) * 0.7 + c.rarity * 0.12, 0.1, 1.2);
@@ -392,8 +405,11 @@ function beginShow(d, from) {
 
 function collect() {
   if (!G.show) return;
-  scene.remove(G.show.model.group);
-  G.show.model.dispose();
+  if (G.show.boss) B.monster.dive(B.spot);
+  else {
+    scene.remove(G.show.model.group);
+    G.show.model.dispose();
+  }
   G.show = null;
   $('catch').classList.add('hidden');
   $('vignette').classList.remove('on');
@@ -413,6 +429,7 @@ function updateGame(dt) {
   let targetPitch = 0.55 + Math.sin(time.value * 0.7) * 0.02;
   let targetYaw = 0;
   a.reeling = false;
+  a.walking = false;
   player.bobber.visible = true;
 
   const aimAt = (p) => {
@@ -486,7 +503,7 @@ function updateGame(dt) {
       break;
     }
     case 'bite': {
-      const win = G.cast && G.cast.rarity === 3 ? 0.8 : 1.15;
+      const win = G.cast?.boss ? 1.4 : G.cast && G.cast.rarity === 3 ? 0.8 : 1.15;
       const k = Math.min(1, G.t * 5);
       G.bob.y = waterY(G.bob.x, G.bob.z) - 0.28 * k;
       G.bob.x += Math.sin(G.t * 9) * 0.004;
@@ -510,6 +527,7 @@ function updateGame(dt) {
       a.reeling = G.held;
       lineEnd = G.fishPos;
       lineLen = player.angler.rod.tip.distanceTo(G.fishPos) * (G.f.T < 0.15 ? 1.06 : 0.995);
+      if (G.f.boss) bend = clamp(G.f.T, 0, 1.2) * 0.95;
       G.bob.set(G.fishPos.x, waterY(G.fishPos.x, G.fishPos.z) - 0.04, G.fishPos.z);
       break;
     case 'landing':
@@ -519,8 +537,19 @@ function updateGame(dt) {
       lineEnd = G.fishPos;
       lineLen = player.angler.rod.tip.distanceTo(G.fishPos);
       break;
+    case 'walk':
+      updateWalk(dt);
+      targetPitch = view === 'fp' ? 0.45 : 1.15;
+      break;
     case 'show': {
       const s = G.show;
+      if (s.boss) {
+        updateBossShow(dt);
+        player.bobber.visible = false;
+        targetPitch = 0.95;
+        hint('');
+        break;
+      }
       s.t += dt;
       const k = Math.min(1, s.t / 0.9);
       // cá vọt khỏi mặt nước bay vào tay
@@ -578,6 +607,7 @@ function updateGame(dt) {
 }
 
 function fight(dt) {
+  if (G.f.boss) return bossFight(dt);
   const f = G.f;
   const c = G.cast;
   const rod = ROD_STATS();
@@ -717,7 +747,8 @@ canvas.addEventListener('pointerdown', (e) => {
 });
 canvas.addEventListener('pointermove', (e) => {
   if (!drag) return;
-  cam.yaw = clamp(drag.yaw - ((e.clientX - drag.x) / innerWidth) * 2.4, -1.4, 1.4);
+  cam.yaw = drag.yaw - ((e.clientX - drag.x) / innerWidth) * 2.4;
+  if (G.mode !== 'walk') cam.yaw = clamp(cam.yaw, -1.4, 1.4);
   cam.pitch = clamp(drag.pitch + ((e.clientY - drag.y) / innerHeight) * 1.2, -0.05, 0.75);
 });
 canvas.addEventListener('pointerup', () => {
@@ -727,24 +758,40 @@ canvas.addEventListener('pointerup', () => {
 });
 canvas.addEventListener('wheel', (e) => (cam.dist = clamp(cam.dist + e.deltaY * 0.004, 2.8, 9)), { passive: true });
 
+// hướng nhìn ngang: lúc đi bộ theo người, lúc câu theo chỗ đứng cộng góc kéo màn hình
+function viewFwd() {
+  if (G.mode === 'walk') {
+    const v = viewYaw();
+    return new THREE.Vector3(-Math.sin(v), 0, -Math.cos(v));
+  }
+  const f = world.spots[world.mySpot].face;
+  const yaw = cam.yaw;
+  return new THREE.Vector3(f.x * Math.cos(yaw) - f.z * Math.sin(yaw), 0, f.x * Math.sin(yaw) + f.z * Math.cos(yaw));
+}
+
 function updateCamera(dt) {
   if (!player.angler) return;
+  // lúc xem cảnh thủy quái thì máy quay zoom vào như ống nhòm
+  const wantFov = cine.on && G.mode !== 'fight' ? baseFov * cine.zoom : baseFov;
+  if (Math.abs(camera.fov - wantFov) > 0.05) {
+    camera.fov = lerp(camera.fov, wantFov, Math.min(1, dt * 2.5));
+    camera.updateProjectionMatrix();
+  }
   if (view === 'fp') return updateCameraFP(dt);
-  const sp = world.spots[world.mySpot];
-  const f = sp.face;
-  const right = new THREE.Vector3(-f.z, 0, f.x);
-  const yaw = cam.yaw;
-  const back = new THREE.Vector3(f.x * Math.cos(yaw) - f.z * Math.sin(yaw), 0, f.x * Math.sin(yaw) + f.z * Math.cos(yaw));
+  const back = viewFwd();
+  const right = new THREE.Vector3(-back.z, 0, back.x);
+  const base = G.mode === 'walk' ? player.angler.group.position : world.spots[world.mySpot].stand;
   let dist = cam.dist;
-  let lookAt = sp.stand.clone().addScaledVector(back, 18);
+  let lookAt = base.clone().addScaledVector(back, 18);
   lookAt.y = 0.8 + cam.pitch * -6;
   if (G.mode === 'fight' || G.mode === 'bite' || G.mode === 'wait') {
     const k = G.mode === 'fight' ? 0.55 : 0.3;
     lookAt.lerp(G.bob, k);
     lookAt.y = Math.max(lookAt.y, 0.2);
   }
-  const pos = sp.stand.clone().addScaledVector(back, -dist).addScaledVector(right, 1.5);
-  pos.y = 2.5 + cam.pitch * 5;
+  if (cine.on && G.mode !== 'fight') lookAt.lerp(cine.look, 0.85);
+  const pos = base.clone().addScaledVector(back, -dist).addScaledVector(right, G.mode === 'walk' ? 0.6 : 1.5);
+  pos.y = base.y + 1.9 + cam.pitch * 5;
   if (G.mode === 'show') {
     dist = 3;
   }
@@ -753,8 +800,8 @@ function updateCamera(dt) {
     cam.look.copy(lookAt);
     cam.inited = true;
   }
-  const k = Math.min(1, dt * (G.mode === 'show' ? 1.5 : 3));
-  if (G.mode !== 'show' || G.show.t < 0.9) {
+  const k = Math.min(1, dt * (G.mode === 'show' ? 1.5 : G.mode === 'walk' ? 8 : 3));
+  if (G.mode !== 'show' || G.show.t < 0.9 || G.show.boss) {
     cam.pos.lerp(pos, k);
     cam.look.lerp(lookAt, k);
   }
@@ -768,11 +815,8 @@ function updateCamera(dt) {
 // Góc nhìn thứ nhất: mắt ở đầu người câu, nhìn theo hướng kéo màn hình, lúc có cá thì nhìn theo phao
 function updateCameraFP(dt) {
   const a = player.angler;
-  const sp = world.spots[world.mySpot];
-  const f = sp.face;
-  const eye = a.group.localToWorld(new THREE.Vector3(0, 1.66, 0.04));
-  const yaw = cam.yaw;
-  const fwd = new THREE.Vector3(f.x * Math.cos(yaw) - f.z * Math.sin(yaw), 0, f.x * Math.sin(yaw) + f.z * Math.cos(yaw));
+  const eye = a.group.localToWorld(new THREE.Vector3(0, 1.66 + a.body.position.y, 0.04));
+  const fwd = viewFwd();
   const down = 0.1 + cam.pitch * 0.55;
   let look = eye.clone().addScaledVector(fwd, 20);
   look.y = eye.y - Math.tan(down) * 20;
@@ -782,6 +826,7 @@ function updateCameraFP(dt) {
     tgt.y += 0.6;
     look.lerp(tgt, k);
   }
+  if (cine.on && G.mode !== 'fight') look.lerp(cine.look, 0.85);
   if (!cam.inited) {
     cam.pos.copy(eye);
     cam.look.copy(look);
@@ -789,7 +834,8 @@ function updateCameraFP(dt) {
   }
   const k = Math.min(1, dt * 4);
   cam.pos.copy(eye);
-  if (G.mode !== 'show' || G.show.t < 0.9) cam.look.lerp(look, k);
+  if (G.mode === 'walk') cam.look.copy(look);
+  else if (G.mode !== 'show' || G.show.t < 0.9 || G.show.boss) cam.look.lerp(look, k);
   camera.position.copy(cam.pos);
   // thở nhẹ, lúc kéo cá thì rung theo sức cá
   camera.position.y += Math.sin(time.value * 1.6) * 0.006;
@@ -830,14 +876,16 @@ async function pollPresence() {
       lake: world.lakeId,
       act,
       cast: inWater ? [G.bob.x, G.bob.z] : null,
+      pos: act === 'walk' ? [walker.pos.x, walker.pos.z, viewYaw()] : null,
       tension: G.mode === 'fight' ? G.f.T : 0,
       since: feedSeq,
     });
-    if (d.spot !== world.mySpot && !['flying', 'wait', 'bite', 'fight', 'landing', 'show'].includes(G.mode)) {
+    if (d.spot !== world.mySpot && !['flying', 'wait', 'bite', 'fight', 'landing', 'show', 'walk'].includes(G.mode)) {
       world.setMySpot(d.spot);
       spawnPlayer();
     }
     syncRemotes(d.others);
+    onBoss(d.boss);
     for (const it of d.feed) {
       if (feedInit && it.id !== me.id && (it.rarity >= 1 || it.lake === world.lakeId)) showFeed(it);
     }
@@ -933,6 +981,23 @@ function updateRemotes(dt) {
       r.bob.set(0, 0, 0);
       a.reeling = false;
     }
+    // bạn đang đi dạo thì đặt đúng chỗ, đứng câu thì về cầu
+    const sp = world.spots[r.spot];
+    const walking = o.act === 'walk' && o.pos;
+    const tx = walking ? o.pos[0] : sp.stand.x;
+    const tz = walking ? o.pos[1] : sp.stand.z;
+    const gp = a.group.position;
+    const far = Math.hypot(tx - gp.x, tz - gp.z);
+    if (far > 30) gp.set(tx, gp.y, tz);
+    else {
+      gp.x = lerp(gp.x, tx, Math.min(1, dt * 3));
+      gp.z = lerp(gp.z, tz, Math.min(1, dt * 3));
+    }
+    gp.y = walking ? (world.groundAt(gp.x, gp.z) ?? gp.y) : sp.stand.y;
+    const ty = walking ? o.pos[2] : sp.yaw;
+    a.group.rotation.y += Math.atan2(Math.sin(ty - a.group.rotation.y), Math.cos(ty - a.group.rotation.y)) * Math.min(1, dt * 5);
+    a.walking = far > 0.25;
+    if (walking) pitch = 1.15;
     a.pitch = lerp(a.pitch, pitch, Math.min(1, dt * 4));
     a.update(dt, pull, bend);
     r.line.length = inWater ? a.rod.tip.distanceTo(r.bob) * 1.04 : 0.9;
@@ -952,6 +1017,851 @@ function updateRemotes(dt) {
   }
 }
 
+// ---------- Đi dạo dọc bờ ----------
+
+const walker = { pos: new THREE.Vector3(), base: 0, keys: new Set(), joy: { x: 0, y: 0 }, moving: false, run: false };
+const WALK_KEYS = { KeyW: [0, 1], ArrowUp: [0, 1], KeyS: [0, -1], ArrowDown: [0, -1], KeyA: [-1, 0], ArrowLeft: [-1, 0], KeyD: [1, 0], ArrowRight: [1, 0] };
+const viewYaw = () => walker.base - cam.yaw;
+
+function startWalk() {
+  if (G.mode !== 'idle' || !player.angler) return;
+  const sp = world.spots[world.mySpot];
+  walker.pos.copy(sp.stand);
+  walker.base = sp.yaw;
+  setMode('walk');
+}
+
+// về lại chỗ câu trên cầu của mình
+function returnToSpot() {
+  closeTalk();
+  walker.keys.clear();
+  setMode('idle');
+  spawnPlayer();
+  cam.yaw = 0;
+  cam.inited = false;
+}
+
+function updateWalk(dt) {
+  const a = player.angler;
+  let ix = walker.joy.x;
+  let iy = walker.joy.y;
+  for (const k of walker.keys) {
+    ix += WALK_KEYS[k][0];
+    iy += WALK_KEYS[k][1];
+  }
+  const len = Math.hypot(ix, iy);
+  walker.moving = len > 0.15;
+  const v = viewYaw();
+  if (walker.moving) {
+    ix /= Math.max(1, len);
+    iy /= Math.max(1, len);
+    const speed = walker.run ? 7 : 4.2;
+    const fx = -Math.sin(v);
+    const fz = -Math.cos(v);
+    const dx = (fx * iy + Math.cos(v) * ix) * speed * dt;
+    const dz = (fz * iy - Math.sin(v) * ix) * speed * dt;
+    const home = world.spots[0].shore;
+    const ok = (x, z) => world.groundAt(x, z) !== null && Math.hypot(x - home.x, z - home.z) < 95;
+    // chạm nước thì trượt theo mép bờ
+    if (ok(walker.pos.x + dx, walker.pos.z + dz)) {
+      walker.pos.x += dx;
+      walker.pos.z += dz;
+    } else if (ok(walker.pos.x + dx, walker.pos.z)) walker.pos.x += dx;
+    else if (ok(walker.pos.x, walker.pos.z + dz)) walker.pos.z += dz;
+  }
+  const ground = world.groundAt(walker.pos.x, walker.pos.z) ?? walker.pos.y;
+  walker.pos.y = lerp(walker.pos.y, ground, Math.min(1, dt * 12));
+  a.group.position.copy(walker.pos);
+  a.group.rotation.y = v;
+  a.walking = walker.moving;
+  // đi gần tới chỗ đứng của mình thì tự về chỗ câu
+  const sp = world.spots[world.mySpot];
+  if (G.t > 1.5 && walker.moving && iy < 0 && walker.pos.distanceTo(sp.stand) < 0.8) returnToSpot();
+  pickJars();
+  const near = nearNpc();
+  hint(
+    near
+      ? `${mobile ? 'Bấm nút' : 'Bấm Space hoặc E'} để nói chuyện với Lão Ngư`
+      : mobile
+        ? 'Kéo vòng tròn để đi · kéo màn hình để nhìn quanh'
+        : 'W A S D để đi, giữ Shift để chạy · kéo chuột để nhìn quanh',
+  );
+  const label = near ? '💬 Nói chuyện' : '🎣 Về chỗ câu';
+  if ($('actionText').textContent !== label) $('actionText').textContent = label;
+  $('action').classList.toggle('speak', !!near);
+}
+
+function walkAction() {
+  if (nearNpc()) openTalk();
+  else returnToSpot();
+}
+
+addEventListener('keydown', (e) => {
+  if (document.activeElement?.tagName === 'INPUT') return;
+  if (e.key === 'Shift') walker.run = true;
+  if (WALK_KEYS[e.code]) {
+    if (G.mode === 'idle' && $('sheet').classList.contains('hidden')) startWalk();
+    if (G.mode === 'walk') {
+      walker.keys.add(e.code);
+      e.preventDefault();
+    }
+  }
+  if (e.code === 'KeyE' && G.mode === 'walk' && nearNpc()) openTalk();
+  if (e.code === 'Escape') closeTalk();
+});
+addEventListener('keyup', (e) => {
+  if (e.key === 'Shift') walker.run = false;
+  walker.keys.delete(e.code);
+});
+addEventListener('blur', () => walker.keys.clear());
+
+// cần điều khiển trên điện thoại
+const joy = $('joy');
+let joyId = null;
+const joyMove = (e) => {
+  const r = joy.getBoundingClientRect();
+  let x = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
+  let y = -(e.clientY - (r.top + r.height / 2)) / (r.height / 2);
+  const l = Math.hypot(x, y);
+  if (l > 1) {
+    x /= l;
+    y /= l;
+  }
+  walker.joy.x = x;
+  walker.joy.y = y;
+  $('joyKnob').style.transform = `translate(${x * 34}px, ${-y * 34}px)`;
+};
+joy.addEventListener('pointerdown', (e) => {
+  joyId = e.pointerId;
+  joy.setPointerCapture(e.pointerId);
+  joyMove(e);
+});
+joy.addEventListener('pointermove', (e) => e.pointerId === joyId && joyMove(e));
+const joyEnd = () => {
+  joyId = null;
+  walker.joy.x = walker.joy.y = 0;
+  $('joyKnob').style.transform = '';
+};
+joy.addEventListener('pointerup', joyEnd);
+joy.addEventListener('pointercancel', joyEnd);
+$('walkBtn').addEventListener('click', () => {
+  sound.start();
+  startWalk();
+});
+
+// ---------- Lão Ngư, nhiệm vụ và thủy quái ----------
+
+const npc = { angler: null, boat: null, home: new THREE.Vector3(), yaw: 0, tag: null, jars: [], say: '', state: 'home' };
+const B = { data: null, at: 0, spot: new THREE.Vector3(), monster: null, hp: 0, seenDead: 0, seenEsc: 0, cineFx: {}, lurkT: 0, riseT: 0, showT: 0 };
+const debris = new Debris(scene);
+const UP_V = new THREE.Vector3(0, 1, 0);
+const JAR_OFFS = [
+  [-44, 6],
+  [-31, 11],
+  [-3, 15],
+  [25, 7],
+  [52, 5],
+];
+const bossInfo = () => C.fish[`quai_${world.lakeId}`];
+
+// dựng xuồng, Lão Ngư, hũ thính và thủy quái cho hồ vừa tới
+function buildQuestScene() {
+  const g = world.lakeGroup;
+  const { shore, face } = world.shorePoint(36);
+  let d = 3.5;
+  while (d < 16 && world.heightAt(shore.x + face.x * d, shore.z + face.z * d) > -0.45) d += 0.5;
+  npc.home.copy(shore).addScaledVector(face, d);
+  npc.talkR = d + 5;
+  npc.yaw = Math.atan2(-face.x, -face.z);
+  npc.boat = makeBoat();
+  npc.boat.position.copy(npc.home);
+  npc.boat.rotation.y = npc.yaw;
+  g.add(npc.boat);
+  npc.angler = new Angler({ hat: 'nonla', outfit: 3, rod: 'tre' });
+  npc.angler.group.position.set(0, 0.04, 0.55);
+  npc.angler.pitch = 1.2;
+  npc.boat.add(npc.angler.group);
+  g.add(npc.angler.rod.group);
+  if (!npc.tag) {
+    npc.tag = document.createElement('div');
+    npc.tag.className = 'name-tag npc-tag';
+    $('labels').appendChild(npc.tag);
+  }
+  npc.jars = JAR_OFFS.map(([off, inland]) => {
+    const p = world.shorePoint(off);
+    const at = p.shore.clone().addScaledVector(p.face, -inland);
+    at.y = world.heightAt(at.x, at.z);
+    const jar = makeJar();
+    jar.position.copy(at);
+    jar.visible = false;
+    g.add(jar);
+    return jar;
+  });
+  const sp = world.spots[0];
+  B.spot.copy(sp.stand).addScaledVector(sp.face, 30).setY(0);
+  B.monster = new Monster(bossInfo().look);
+  B.monster.dive(B.spot);
+  B.monster.group.visible = false;
+  g.add(B.monster.group);
+  B.data = null;
+  B.at = 0;
+  setNpcVisible(true);
+}
+
+function setNpcVisible(on) {
+  npc.boat.visible = on;
+  npc.angler.rod.group.visible = on;
+  if (on) {
+    npc.boat.position.copy(npc.home);
+    npc.boat.rotation.set(0, npc.yaw, 0);
+    npc.angler.group.visible = true;
+  }
+}
+
+function nearNpc() {
+  if (G.mode !== 'walk' || npc.state !== 'home' || !npc.boat) return false;
+  return Math.hypot(walker.pos.x - npc.home.x, walker.pos.z - npc.home.z) < npc.talkR;
+}
+
+const questHere = () => me?.quest && me.quest.lake === world.lakeId;
+
+// ---- hội thoại ----
+function openTalk() {
+  const q = me.quest;
+  const N = C.quest;
+  let text;
+  let btns;
+  if (!q) {
+    text = `Hà... cậu cũng câu ở hồ này à? Mấy đêm nay có thứ gì khổng lồ dưới đáy hồ, nó cắn nát lưới của lão, nuốt luôn cả xuồng của lão Tư. Lão muốn dụ nó lên, mà lại đánh rơi mấy hũ thính quanh bờ. Cậu nhặt giúp lão <b>${N.items} hũ thính</b>, câu thêm <b>${N.fish} con cá</b> làm mồi nhử, xong quay lại đây gặp lão.`;
+    btns = [['📜 Nhận nhiệm vụ', 'primary', acceptQuest], ['Để sau', '', closeTalk]];
+  } else if (q.lake !== world.lakeId) {
+    const l = C.lakes.find((x) => x.id === q.lake);
+    text = `Cậu đang giúp lão ở ${esc(l.name)} mà? Muốn làm ở hồ này thì phải làm lại từ đầu đấy.`;
+    btns = [['Làm ở hồ này', 'primary', acceptQuest], ['Thôi', '', closeTalk]];
+  } else if (q.items.length >= N.items && q.fish >= N.fish) {
+    text = 'Giỏi lắm! Đủ thính, đủ mồi rồi. Lão ra giữa hồ dụ nó lên đây. Nó mà trồi lên thì cả hồ cùng quăng câu vào nó nhé, <b>nó khỏe lắm</b>, phải ghì cho chắc!';
+    btns = [['⚓ Lão ra khơi đi!', 'gold', finishQuest], ['Chờ chút', '', closeTalk]];
+  } else {
+    text = `Được <b>${q.items.length}/${N.items}</b> hũ thính, <b>${Math.min(q.fish, N.fish)}/${N.fish}</b> con cá rồi. Hũ thính có cột sáng vàng, rơi rải rác quanh bờ đấy. Cố lên cậu!`;
+    btns = [['Đi tiếp', 'primary', closeTalk]];
+  }
+  $('talkText').innerHTML = text;
+  $('talkBtns').innerHTML = '';
+  for (const [label, cls, fn] of btns) {
+    const b = document.createElement('button');
+    b.className = `btn ${cls}`;
+    b.textContent = label;
+    b.addEventListener('click', fn);
+    $('talkBtns').appendChild(b);
+  }
+  $('talk').classList.remove('hidden');
+}
+
+function closeTalk() {
+  $('talk').classList.add('hidden');
+}
+
+async function acceptQuest() {
+  try {
+    await api('POST', 'quest/accept', { lake: world.lakeId });
+    closeTalk();
+    banner('📜 Nhận nhiệm vụ<small>Nhặt hũ thính có cột sáng vàng quanh bờ và câu đủ cá</small>', '#ffd66a', 2600);
+    sound.coin();
+  } catch (e) {
+    toast(e.message);
+  }
+}
+
+async function finishQuest() {
+  try {
+    const d = await api('POST', 'quest/finish', {});
+    closeTalk();
+    onBoss(d.boss);
+  } catch (e) {
+    toast(e.message);
+  }
+}
+
+// ---- hũ thính ----
+const jarPending = new Set();
+function pickJars() {
+  if (!questHere()) return;
+  npc.jars.forEach((jar, i) => {
+    if (!jar.visible || jarPending.has(i)) return;
+    if (Math.hypot(jar.position.x - walker.pos.x, jar.position.z - walker.pos.z) > 1.6) return;
+    jarPending.add(i);
+    jar.visible = false;
+    fx.burst(jar.position.clone().setY(jar.position.y + 0.4), '#ffd66a', 60, 1);
+    sound.coin();
+    api('POST', 'quest/item', { i })
+      .then(() => {
+        const n = me.quest ? me.quest.items.length : 0;
+        banner(`🏺 Hũ thính ${n}/${C.quest.items}`, '#ffd66a', 1300);
+      })
+      .catch((e) => toast(e.message))
+      .finally(() => jarPending.delete(i));
+  });
+}
+
+function renderQuest() {
+  const el = $('quest');
+  if (!el || !me || !C) return;
+  const q = me.quest;
+  const N = C.quest;
+  if (q) {
+    const l = C.lakes.find((x) => x.id === q.lake);
+    const done = q.items.length >= N.items && q.fish >= N.fish;
+    el.innerHTML =
+      `<div class="q-title">📜 Nhiệm vụ Lão Ngư${q.lake !== world.lakeId ? ` · ${esc(l.name)}` : ''}</div>` +
+      `<div class="${q.items.length >= N.items ? 'ok' : ''}">🏺 Nhặt hũ thính ${q.items.length}/${N.items}</div>` +
+      `<div class="${q.fish >= N.fish ? 'ok' : ''}">🐟 Câu cá ở hồ này ${Math.min(q.fish, N.fish)}/${N.fish}</div>` +
+      (done ? '<div class="ok">✅ Quay lại gặp Lão Ngư</div>' : '');
+  } else if (npc.state === 'home') {
+    el.innerHTML = `<div class="q-title">❗ Lão Ngư đang chờ ở góc bờ</div><div class="muted">Bấm 🚶 để đi bộ tới nói chuyện</div>`;
+  } else el.innerHTML = '';
+  el.classList.toggle('hidden', !el.innerHTML);
+}
+
+// ---- thủy quái: trạng thái chung của cả hồ từ máy chủ ----
+function onBoss(b) {
+  if (!b) {
+    if (B.data) bossGone();
+    return;
+  }
+  const fresh = B.at !== b.at;
+  B.data = b;
+  if (fresh) {
+    B.at = b.at;
+    B.seenDead = 0;
+    B.seenEsc = 0;
+    B.cineFx = {};
+    B.monster.group.visible = true;
+    B.monster.dive(B.spot);
+    B.monster.snap = true;
+    // tới hồ muộn thì không xem lại cảnh xuồng bị cắn
+    if (serverNow() - b.at > 14000) B.cineFx.done = true;
+  }
+  B.hp = b.hp - (G.f?.boss ? G.f.dmg : 0);
+  if (b.dead && !B.seenDead) {
+    B.seenDead = 1;
+    bossDefeated(b);
+  }
+  if (b.escaped && !B.seenEsc && !b.dead) {
+    B.seenEsc = 1;
+    if (G.f?.boss) abandon();
+    banner('Thủy quái đã lặn mất tăm...<small>Lão Ngư sẽ sớm quay lại</small>', '#9ab0c0', 3000);
+  }
+  renderQuest();
+}
+
+function bossGone() {
+  B.data = null;
+  npc.say = '';
+  sound.motor(false);
+  B.monster.dive(B.spot);
+  B.monster.group.visible = false;
+  setNpcVisible(true);
+  $('bossBar').classList.add('hidden');
+  document.body.classList.remove('boss-on');
+  renderQuest();
+}
+
+const bossActive = () => B.data && !B.data.dead && !B.data.escaped && B.cineFx.done;
+
+// Cảnh Lão Ngư lái xuồng ra giữa hồ rồi bị thủy quái cắn nát, mọi người cùng hồ thấy cùng lúc
+function updateCine(ct, dt) {
+  const fxs = B.cineFx;
+  const m = B.monster;
+  const boat = npc.boat;
+  const once = (k, fn) => {
+    if (!fxs[k]) {
+      fxs[k] = true;
+      fn();
+    }
+  };
+  const toSpot = B.spot.clone().sub(npc.home).setY(0).normalize();
+  if (ct < 9.9) {
+    const k = smoothstep(0.6, 7, ct);
+    boat.visible = true;
+    boat.position.lerpVectors(npc.home, B.spot.clone().addScaledVector(toSpot, -2.5), k);
+    const yaw = Math.atan2(-toSpot.x, -toSpot.z);
+    boat.rotation.y = lerp(npc.yaw, yaw, smoothstep(0.6, 2, ct));
+    if (ct > 0.6 && ct < 7) {
+      once('motor', () => sound.motor(true));
+      boat.userData.prop.rotation.z += dt * 40;
+      if (Math.random() < dt * 12) fx.splashAt(boat.position.clone().addScaledVector(toSpot, -1.9), 0.25);
+      if (Math.random() < dt * 4) world.addRipple(boat.position.x, boat.position.z, 0.6);
+    }
+    if (ct > 7) once('motorOff', () => sound.motor(false));
+    npc.say = ct < 3.5 ? 'Lão đi đây! Chờ lão dụ nó lên!' : ct > 7.2 ? 'Hử...? Có gì dưới nước...' : '';
+    if (ct > 7) {
+      once('rumble', () => sound.rumble(2.8));
+      camShake = Math.max(camShake, (ct - 7) * 0.08);
+      if (Math.random() < dt * 10) world.addRipple(B.spot.x + (Math.random() - 0.5) * 8, B.spot.z + (Math.random() - 0.5) * 8, 0.8);
+      if (Math.random() < dt * 6) fx.splashAt(B.spot.clone().add(new THREE.Vector3((Math.random() - 0.5) * 6, 0, (Math.random() - 0.5) * 6)), 0.3);
+    }
+  }
+  const s = m.scale;
+  if (ct >= 9 && ct < 9.7) {
+    // phóng vọt lên cạnh xuồng, há hàm
+    once('burst', () => {
+      fx.splashAt(B.spot, 3);
+      fx.splashAt(B.spot.clone().add(new THREE.Vector3(1, 0, 1)), 2.5);
+      world.addRipple(B.spot.x, B.spot.z, 3);
+      sound.splash(3);
+      camShake = 0.7;
+      npc.say = 'ÁÁÁÁ!!!';
+    });
+    const k = smoothstep(9, 9.6, ct);
+    const head = B.spot.clone().addScaledVector(toSpot, 1.5).setY(-3 + 9 * k * s);
+    m.rise(B.spot.clone().addScaledVector(toSpot, 3), head, new THREE.Vector3(-toSpot.x * 0.4, 1, -toSpot.z * 0.4), 1);
+  } else if (ct >= 9.7 && ct < 10.4) {
+    // đớp xuống xuồng
+    const k = smoothstep(9.7, 10.15, ct);
+    const head = B.spot.clone().addScaledVector(toSpot, -1.5).setY(lerp(6 * s, 1.2, k));
+    m.rise(B.spot.clone().addScaledVector(toSpot, 3), head, new THREE.Vector3(-toSpot.x, lerp(0.3, -1.4, k), -toSpot.z), ct < 10.05 ? 1 : 0);
+    if (ct > 10.05)
+      once('crunch', () => {
+        sound.crunch();
+        debris.burst(boat.position, 18);
+        fx.splashAt(boat.position, 3);
+        world.addRipple(boat.position.x, boat.position.z, 3);
+        boat.visible = false;
+        npc.angler.rod.group.visible = false;
+        npc.say = '';
+        camShake = 0.9;
+        navigator.vibrate?.([120, 60, 200]);
+      });
+  } else if (ct >= 10.4 && ct < 12.8) {
+    // ngóc cao gầm về phía bờ
+    const k = smoothstep(10.4, 11.2, ct);
+    const toShore = stand().clone().sub(B.spot).setY(0).normalize();
+    const head = B.spot.clone().addScaledVector(toShore, 2).setY(lerp(1.2, 8.5 * s, k));
+    m.rise(B.spot.clone().addScaledVector(toShore, -3), head, toShore.clone().setY(-0.25), ct > 10.9 ? 1 : 0.2);
+    once('roar', () => setTimeout(() => sound.roar(2.6), 500));
+    if (ct > 10.9 && ct < 12.5) camShake = Math.max(camShake, 0.35);
+  } else if (ct >= 12.8) {
+    m.swim(B.spot, toSpot, 1.2);
+    once('dive', () => {
+      fx.splashAt(B.spot, 2.5);
+      sound.splash(2.5);
+    });
+    if (ct > 13.2)
+      once('banner', () => {
+        banner(`🐉 ${esc(bossInfo().name).toUpperCase()}!<small>Quăng câu vào vòng xoáy giữa hồ, cả hồ cùng ghì nó!</small>`, '#ff5a3a', 4200);
+      });
+  }
+  // máy quay hướng về xuồng rồi tới con quái
+  cine.look = ct < 9.6 ? boat.position.clone().setY(0.8) : m.headPos.clone();
+  cine.on = true;
+  cine.zoom = 0.5;
+  if (ct >= 14) {
+    fxs.done = true;
+    cine.on = false;
+    npc.say = '';
+  }
+}
+
+const cine = { on: false, zoom: 1, look: new THREE.Vector3() };
+
+// Ngoài giờ đánh nhau: con quái bơi lượn quanh vòng xoáy, thỉnh thoảng ngóc lên gầm
+function updateLurk(dt) {
+  const m = B.monster;
+  B.lurkT += dt;
+  const a = B.lurkT * 0.35;
+  const head = B.spot.clone().add(new THREE.Vector3(Math.cos(a) * 6, 0, Math.sin(a) * 6));
+  const dir = new THREE.Vector3(-Math.sin(a), 0, Math.cos(a));
+  B.riseT -= dt;
+  if (B.riseT < -2.5) B.riseT = 12 + Math.random() * 8;
+  if (B.riseT < 0) {
+    const toShore = stand().clone().sub(head).setY(0).normalize();
+    m.rise(head.clone().addScaledVector(toShore, -3), head.clone().setY(6 * m.scale), toShore.setY(-0.2), 0.9);
+    if (B.riseT > -dt * 1.5) {
+      fx.splashAt(head, 2);
+      sound.roar(1.6);
+    }
+  } else m.swim(head, dir, 0.5);
+  // vòng xoáy cho biết chỗ quăng câu
+  if (Math.random() < dt * 5) {
+    const r = 3 + Math.random() * 7;
+    const t = Math.random() * 6.28;
+    world.addRipple(B.spot.x + Math.cos(t) * r, B.spot.z + Math.sin(t) * r, 0.7);
+  }
+}
+
+function updateBoss(dt) {
+  if (!B.monster) return;
+  debris.update(dt, waterY);
+  cine.on = false;
+  npc.state = !B.data ? 'home' : B.cineFx.done ? 'gone' : 'cine';
+  if (B.data) {
+    const ct = B.freeze ?? (serverNow() - B.data.at) / 1000;
+    if (!B.cineFx.done) updateCine(ct, dt);
+    else if (!(G.f?.boss && G.mode === 'fight') && !(G.show?.boss)) updateLurk(dt);
+    if (B.cineFx.done) setNpcVisible(false);
+    renderBossBar();
+  }
+  B.monster.update(dt, G.f?.boss ? 6 : 3);
+  // xuồng dập dềnh, Lão Ngư ngó về phía người chơi đứng gần
+  if (npc.boat?.visible) {
+    const bp = npc.boat.position;
+    bp.y = waterY(bp.x, bp.z) + Math.sin(time.value * 1.3) * 0.03 - 0.05;
+    npc.boat.rotation.z = Math.sin(time.value * 1.1) * 0.04;
+    npc.boat.rotation.x = Math.sin(time.value * 0.8) * 0.02;
+    const na = npc.angler;
+    na.aimYaw = 0;
+    na.pitch = lerp(na.pitch, 1.2, Math.min(1, dt * 2));
+    if (npc.state === 'home' && G.mode === 'walk') {
+      const rel = walker.pos.clone().sub(bp);
+      const want = Math.atan2(-rel.x, -rel.z) - npc.boat.rotation.y;
+      na.group.rotation.y = lerp(na.group.rotation.y, rel.length() < 14 ? want : 0, Math.min(1, dt * 3));
+    }
+    na.update(dt, null, 0);
+  }
+  // hũ thính chỉ hiện khi đang làm nhiệm vụ ở hồ này
+  npc.jars.forEach((jar, i) => {
+    const show = questHere() && !me.quest.items.includes(i) && !jarPending.has(i);
+    jar.visible = show;
+    if (show) {
+      jar.rotation.y += dt * 0.8;
+      jar.userData.glow.material.opacity = 0.2 + Math.sin(time.value * 3 + i) * 0.08;
+    }
+  });
+  // nhãn trên đầu Lão Ngư
+  if (npc.tag) {
+    const visible = npc.boat?.visible && npc.angler.group.visible;
+    const head = npc.boat ? npc.boat.localToWorld(new THREE.Vector3(0, 2.4, 0.55)) : null;
+    let show = false;
+    if (visible) {
+      head.project(camera);
+      show = head.z < 1 && Math.abs(head.x) < 1.2 && Math.abs(head.y) < 1.2;
+    }
+    npc.tag.style.display = show ? '' : 'none';
+    if (show) {
+      npc.tag.style.left = `${((head.x + 1) / 2) * innerWidth}px`;
+      npc.tag.style.top = `${((1 - head.y) / 2) * innerHeight}px`;
+      const q = me?.quest;
+      const mark = !q || q.lake !== world.lakeId ? '❗' : q.items.length >= C.quest.items && q.fish >= C.quest.fish ? '✅' : '❓';
+      const html = npc.say ? `<span class="say">${esc(npc.say)}</span>` : `<span class="qmark">${mark}</span> 👴 Lão Ngư`;
+      if (npc.tag.innerHTML !== html) npc.tag.innerHTML = html;
+    }
+  }
+}
+
+function renderBossBar() {
+  const b = B.data;
+  const el = $('bossBar');
+  const on = !!b && B.cineFx.done && !b.dead && !b.escaped;
+  el.classList.toggle('hidden', !on);
+  document.body.classList.toggle('boss-on', on);
+  if (!on) return;
+  const hp = Math.max(0, B.hp);
+  const left = Math.max(0, b.until - serverNow());
+  $('bossName').textContent = `🐉 ${bossInfo().name}`;
+  $('bossFill').style.width = `${(hp / b.max) * 100}%`;
+  $('bossInfo').textContent = `${Math.ceil(hp)}/${Math.round(b.max)} · ⚔️ ${Math.max(b.fighters, G.f?.boss ? 1 : 0)} người đang ghì · ⏳ ${Math.floor(left / 60000)}:${String(Math.floor(left / 1000) % 60).padStart(2, '0')}`;
+}
+
+// ---- trận ghì thủy quái ----
+const ATTACKS = {
+  jerk: { name: 'GIẬT MẠNH!', dur: 1.6, phase: 1 },
+  dive: { name: 'LẶN SÂU!', dur: 3, phase: 1 },
+  thrash: { name: 'QUẪY ĐIÊN CUỒNG!', dur: 3.4, phase: 1 },
+  roar: { name: 'GẦM THÉT!', dur: 3.2, phase: 2 },
+  drag: { name: 'KÉO XIẾT!', dur: 2.6, phase: 3 },
+};
+
+function startBossFight() {
+  const rod = ROD_STATS();
+  G.f = {
+    boss: true,
+    D: 1.1,
+    size: clamp(0.25 + (rod.strength - 1) * 0.03, 0.22, 0.3),
+    y: 0.35,
+    vy: 0,
+    m: 0.5,
+    mv: 0,
+    goal: 0.5,
+    goalT: 0.6,
+    inside: true,
+    T: 0.7,
+    P: 1, // độ bền dây: về 0 là đứt
+    surging: false,
+    angle: 0,
+    dist: G.bob.distanceTo(stand()),
+    splashT: 0,
+    atk: null,
+    atkT: 3,
+    warn: 0,
+    hitN: 0,
+    dmg: 0,
+    sendT: 1,
+    t: 0,
+  };
+  G.fishPos.copy(G.bob);
+  $('fight').classList.add('boss');
+  $('fight').style.setProperty('--rar', '#ff5a3a');
+  banner('THỦY QUÁI CẮN CÂU!<small>Giữ que cá trong thanh trắng, đừng để đứt dây!</small>', '#ff5a3a', 2200);
+  sound.roar(1.8);
+  fx.splashAt(G.bob, 2.5);
+  camShake = 0.6;
+  navigator.vibrate?.(300);
+  setMode('fight');
+}
+
+function bossFight(dt) {
+  const f = G.f;
+  f.t += dt;
+  const frac = clamp(B.hp / (B.data?.max || 1), 0, 1);
+  const phase = frac > 0.66 ? 1 : frac > 0.33 ? 2 : 3;
+  const D = 1.05 + phase * 0.15;
+  const atk = f.atk && f.warn <= 0 ? f.atk : null;
+
+  // thanh trắng
+  f.vy += (G.held ? 2.8 : -2.4) * dt;
+  f.vy = clamp(f.vy, -1.8, 1.5);
+  f.y += f.vy * dt;
+  const size = f.size * (atk === 'roar' ? 0.62 : 1);
+  if (f.y < 0) {
+    f.y = 0;
+    f.vy = -f.vy * 0.35;
+  }
+  if (f.y > 1 - size) {
+    f.y = 1 - size;
+    f.vy = Math.min(0, f.vy);
+  }
+
+  // chọn đòn kế tiếp, báo trước một chút cho người chơi kịp phản ứng
+  if (!f.atk) {
+    f.atkT -= dt;
+    if (f.atkT <= 0) {
+      const pool = Object.keys(ATTACKS).filter((k) => ATTACKS[k].phase <= phase);
+      f.atk = pool[Math.floor(Math.random() * pool.length)];
+      f.warn = phase === 3 ? 0.55 : 0.8;
+      f.atkLeft = ATTACKS[f.atk].dur;
+      f.hitN = 0;
+      $('bossWarn').textContent = `⚠️ ${ATTACKS[f.atk].name} ⚠️`;
+      $('bossWarn').classList.remove('hidden');
+      sound.bite();
+    }
+  } else if (f.warn > 0) {
+    f.warn -= dt;
+    if (f.warn <= 0) {
+      if (f.atk === 'roar') {
+        sound.roar(2.4);
+        $('vignette').classList.add('rage');
+      }
+      if (f.atk === 'dive') sound.splash(2);
+    }
+  } else {
+    f.atkLeft -= dt;
+    const el = ATTACKS[f.atk].dur - f.atkLeft;
+    if (f.atk === 'jerk') {
+      // hai ba cú giật liên tiếp, giai đoạn sau giật nhiều hơn
+      const n = phase;
+      if (f.hitN < n && el >= f.hitN * 0.55) {
+        f.hitN++;
+        f.m = clamp(f.m + (f.m > 0.5 ? -1 : 1) * (0.32 + Math.random() * 0.18), 0.03, 0.97);
+        f.mv = 0;
+        f.goal = f.m;
+        f.vy -= 1.3;
+        f.P -= 0.035;
+        f.T = 1.2;
+        camShake = 0.8;
+        sound.slam();
+        navigator.vibrate?.(180);
+        flash();
+        fx.splashAt(G.fishPos, 2.2);
+      }
+    }
+    if (f.atk === 'thrash') {
+      const c = 0.5 + Math.sin(f.t * 0.7) * 0.15;
+      f.m = clamp(c + Math.sin(f.t * 7.5) * 0.27 + Math.sin(f.t * 15) * 0.07, 0.02, 0.98);
+      camShake = Math.max(camShake, 0.2);
+      if (Math.random() < dt * 8) fx.splashAt(G.fishPos.clone().add(new THREE.Vector3((Math.random() - 0.5) * 4, 0, (Math.random() - 0.5) * 4)), 1.2);
+    }
+    if (f.atk === 'roar') camShake = Math.max(camShake, 0.3);
+    if (f.atkLeft <= 0) {
+      f.atk = null;
+      $('bossWarn').classList.add('hidden');
+      $('vignette').classList.remove('rage');
+      f.atkT = phase === 1 ? 4.5 + Math.random() * 3.5 : phase === 2 ? 3.2 + Math.random() * 2.8 : 2.2 + Math.random() * 2.2;
+    }
+  }
+
+  // que cá: bơi như cá khủng, lúc lặn sâu thì kéo xuống đáy, lúc kéo xiết thì vọt lên đỉnh
+  if (atk !== 'thrash') {
+    f.goalT -= dt;
+    if (atk === 'dive') f.goal = 0.04;
+    else if (atk === 'drag') f.goal = 0.96;
+    else if (f.goalT <= 0) {
+      const dart = Math.random() < 0.3 + phase * 0.1;
+      f.surging = dart;
+      f.goal = clamp(f.m + (Math.random() * 2 - 1) * (dart ? 0.75 : 0.45), 0.03, 0.97);
+      f.goalT = (dart ? 0.45 : 0.5 + Math.random()) / (0.7 + D * 0.5);
+    }
+    const pull = (atk === 'dive' || atk === 'drag' ? 22 : f.surging ? 17 : 9) * (0.6 + D * 0.5);
+    f.mv += ((f.goal - f.m) * pull - f.mv * 5) * dt;
+    f.m = clamp(f.m + f.mv * dt + Math.sin(time.value * 11) * 0.006 * D, 0.01, 0.99);
+  }
+
+  // trong thanh thì gây sát thương và dây đỡ căng, ra ngoài thì dây mòn dần
+  f.inside = f.m >= f.y && f.m <= f.y + size;
+  if (f.inside) {
+    f.dmg += dt;
+    B.hp -= dt;
+    f.P = Math.min(1, f.P + 0.03 * dt);
+  } else f.P -= (0.075 + phase * 0.02 + (atk === 'drag' ? 0.09 : 0)) * dt;
+  f.T += ((f.inside ? 0.6 + 0.1 * Math.sin(time.value * 5) : 1.05) + (atk ? 0.15 : 0) - f.T) * Math.min(1, dt * 4);
+
+  // gửi sức kéo lên máy chủ mỗi giây
+  f.sendT -= dt;
+  if (f.sendT <= 0 && f.dmg > 0) {
+    f.sendT = 1;
+    const dmg = f.dmg;
+    f.dmg = 0;
+    api('POST', 'boss/hit', { lake: world.lakeId, dmg })
+      .then((d) => onBoss(d.boss))
+      .catch(() => {
+        f.dmg += dmg;
+      });
+  }
+
+  // con quái dưới nước: càng yếu càng bị lôi lại gần bờ
+  f.angle += ((f.m - 0.5) * 1.6 - f.angle) * Math.min(1, dt * 2.5);
+  const d = lerp(f.dist, 11, 1 - frac);
+  const fc = face();
+  const dir = new THREE.Vector3(fc.x * Math.cos(f.angle) - fc.z * Math.sin(f.angle), 0, fc.x * Math.sin(f.angle) + fc.z * Math.cos(f.angle));
+  const at = stand().clone().addScaledVector(dir, d);
+  at.y = 0;
+  const m = B.monster;
+  const lunge = atk === 'jerk' || atk === 'roar' || (f.warn > 0 && f.atk === 'roar');
+  if (lunge) {
+    const toShore = dir.clone().multiplyScalar(-1);
+    m.rise(at.clone().addScaledVector(dir, 4), at.clone().setY((atk === 'roar' ? 7 : 4.5) * m.scale), toShore.setY(atk === 'roar' ? -0.15 : -0.4), atk === 'roar' ? 1 : 0.7);
+  } else if (atk === 'dive') m.swim(at, dir, 2.5);
+  else m.swim(at, dir.clone().applyAxisAngle(UP_V, Math.sin(f.t * 1.3) * 0.6), 0.45);
+  m.mouth(G.fishPos);
+  G.fishPos.y = Math.max(G.fishPos.y, -0.2);
+  f.splashT -= dt;
+  if (f.splashT <= 0) {
+    f.splashT = f.surging || atk ? 0.12 : 0.35;
+    fx.splashAt(G.fishPos, f.surging || atk ? 1.1 : 0.5);
+    world.addRipple(G.fishPos.x, G.fishPos.z, 1.2);
+    if (Math.random() < 0.25) sound.splash(1.5);
+  }
+
+  // giao diện
+  $('zone').style.bottom = `${f.y * 100}%`;
+  $('zone').style.height = `${size * 100}%`;
+  $('zone').classList.toggle('in', f.inside);
+  $('mark').style.bottom = `${f.m * 100}%`;
+  $('progress').style.height = `${clamp(f.P, 0, 1) * 100}%`;
+  $('progress').classList.toggle('low', f.P < 0.3);
+  $('fight').classList.toggle('danger', !f.inside && f.P < 0.3);
+  hint(f.P < 0.3 ? '⚠️ Dây sắp đứt! Đưa que cá vào thanh trắng ngay!' : f.inside ? `Ghì chặt! Thủy quái còn ${Math.ceil(Math.max(0, B.hp))} máu` : 'Que cá ra ngoài rồi, dây đang mòn!');
+  camShake = Math.max(camShake, f.surging ? 0.08 : 0.03);
+  if (f.P <= 0) {
+    sound.setFight(null);
+    sound.snap();
+    navigator.vibrate?.([80, 40, 80]);
+    endBossFight();
+    abandon(['ĐỨT DÂY!', 'Thủy quái vẫn còn đó, quăng câu lại ngay!']);
+  }
+}
+
+function endBossFight() {
+  $('fight').classList.remove('boss');
+  $('bossWarn').classList.add('hidden');
+  $('vignette').classList.remove('rage');
+  if (G.f?.boss && G.f.dmg > 0) api('POST', 'boss/hit', { lake: world.lakeId, dmg: G.f.dmg }).then((d) => onBoss(d.boss)).catch(() => {});
+  if (G.f) G.f.dmg = 0;
+}
+
+function flash() {
+  const el = $('flash');
+  el.classList.remove('on');
+  void el.offsetWidth;
+  el.classList.add('on');
+}
+
+// thủy quái gục: ai góp sức đều được một con, còn lại thì xem thông báo
+function bossDefeated(b) {
+  const info = bossInfo();
+  const fighting = G.f?.boss && G.mode === 'fight';
+  if (fighting) {
+    endBossFight();
+    sound.setFight(null);
+  }
+  if (b.dead.me) api('GET', 'me').catch(() => {});
+  if (b.dead.me && (fighting || ['idle', 'walk', 'wait', 'reelin'].includes(G.mode))) {
+    if (G.mode === 'wait' && G.cast && !G.cast.boss) api('POST', 'land', { castId: G.cast.id, ok: false }).catch(() => {});
+    G.cast = null;
+    G.f = null;
+    if (G.mode === 'walk') returnToSpot();
+    bossShow(b, info);
+    return;
+  }
+  if (fighting) {
+    // vừa móc vào thì quái đã gục, chưa kịp góp sức
+    G.cast = null;
+    G.reelFrom = G.fishPos.clone();
+    G.f = null;
+    setMode('reelin');
+  }
+  banner(`🎉 ${esc(b.dead.names.join(', '))}<small>đã hạ ${esc(info.name)}!</small>`, '#ffc93c', 3500);
+  B.monster.dive(B.spot);
+}
+
+function bossShow(b, info) {
+  const w = b.dead.w;
+  const v = Math.round(info.price[0] + info.price[1] * w);
+  G.show = { boss: true, info, t: 0, rarity: C.rarity[3], len: info.look.len, d: { fish: { s: `quai_${world.lakeId}`, w: w, v } } };
+  setMode('show');
+  sound.roar(3);
+  camShake = 1;
+  banner('ĐÃ HẠ THỦY QUÁI!', '#ffc93c', 3000);
+  setTimeout(() => {
+    if (G.mode !== 'show' || !G.show?.boss) return;
+    sound.fanfare(3);
+    $('catchRarity').textContent = '🐉 Boss · Huyền thoại';
+    $('catchRarity').style.color = '#ff7a3a';
+    $('catchName').textContent = info.name;
+    $('catchWeight').textContent = kg(w);
+    $('catchLen').textContent = `${(info.look.len + w / 600).toFixed(1)} m`;
+    $('catchValue').textContent = `${fmt(v)} xu`;
+    const others = b.dead.names.length > 1 ? `Cùng hạ với: ${b.dead.names.join(', ')}` : 'Một mình hạ thủy quái!';
+    $('catchRecord').textContent = `🏆 ${others}`;
+    $('catchRecord').classList.remove('hidden');
+    $('catch').classList.remove('hidden');
+    $('vignette').classList.add('on');
+  }, 2600);
+}
+
+// thủy quái gục: trồi lên lần cuối, gầm rồi đổ ập xuống nước
+function updateBossShow(dt) {
+  const s = G.show;
+  s.t += dt;
+  const m = B.monster;
+  const toShore = stand().clone().sub(B.spot).setY(0).normalize();
+  const at = stand().clone().addScaledVector(toShore, -16).setY(0);
+  if (s.t < 2.2) m.rise(at.clone().addScaledVector(toShore, -4), at.clone().setY(8 * m.scale), toShore.clone().setY(0.4), 1);
+  else if (s.t < 3.4) m.rise(at.clone().addScaledVector(toShore, -4), at.clone().addScaledVector(toShore, 3).setY(0.5), toShore.clone().setY(-1), 0.6);
+  else m.swim(at, toShore, 0.1);
+  if (s.t > 3.2 && !s.fell) {
+    s.fell = true;
+    fx.splashAt(at, 3);
+    fx.splashAt(at.clone().addScaledVector(toShore, 3), 3);
+    world.addRipple(at.x, at.z, 3);
+    sound.splash(3);
+    camShake = 1;
+  }
+  if (Math.random() < dt * 6) fx.burst(m.headPos, '#ffc93c', 4, 1.5);
+  cine.on = true;
+  cine.zoom = 0.9;
+  cine.look = m.headPos.clone();
+}
+
 // ---------- Giao diện ----------
 
 function renderHud() {
@@ -962,6 +1872,7 @@ function renderHud() {
   $('coolerCount').textContent = me.fish.length;
   $('coolerCount').classList.toggle('full', me.fish.length >= me.coolerSize);
   renderBait();
+  renderQuest();
   if (!$('sheet').classList.contains('hidden') && openPanelName) openPanel(openPanelName, true);
 }
 
@@ -1045,12 +1956,17 @@ function updateControls() {
     landing: '...',
     show: 'Cất cá',
     reelin: '...',
+    walk: '🎣 Về chỗ câu',
   };
   text.textContent = labels[G.mode];
   if (G.mode === 'bite') btn.classList.add('alert');
   if (G.mode === 'fight') btn.classList.add('reel');
   if (G.mode === 'wait' || G.mode === 'flying' || G.mode === 'reelin' || G.mode === 'landing') btn.classList.add('wait');
   if (G.mode !== 'fight') $('fight').classList.remove('danger');
+  $('walkBtn').classList.toggle('hidden', G.mode !== 'idle');
+  $('joy').classList.toggle('hidden', G.mode !== 'walk' || !mobile);
+  document.body.classList.toggle('walking', G.mode === 'walk');
+  if (G.mode !== 'walk') hint('');
 }
 
 const actionBtn = $('action');
@@ -1274,8 +2190,10 @@ function renderSettings(el) {
 function travel(lakeId) {
   closePanel();
   if (G.mode !== 'idle') {
-    if (G.cast) api('POST', 'land', { castId: G.cast.id, ok: false }).catch(() => {});
+    if (G.f?.boss) endBossFight();
+    if (G.cast && !G.cast.boss) api('POST', 'land', { castId: G.cast.id, ok: false }).catch(() => {});
     G.cast = null;
+    closeTalk();
     collect();
     setMode('idle');
   }
@@ -1291,6 +2209,7 @@ function travel(lakeId) {
 
 function buildLake(lakeId) {
   world.setLake(lakeId, me.spot || 0);
+  buildQuestScene();
   spawnPlayer();
   cam.inited = false;
   cam.yaw = 0;
@@ -1356,6 +2275,7 @@ function frame(now) {
     rankTimer = now;
     pollRank();
   }
+  updateBoss(dt);
   updateGame(dt);
   updateRemotes(dt);
   updateCamera(dt);
@@ -1422,6 +2342,6 @@ async function boot() {
 }
 
 // để thử nghiệm từ console trình duyệt
-window.fishDebug = { G, world, camera, remotes, skew: (ms) => (clockSkew += ms), lake: (id) => buildLake(id), rain: (r) => (rainOverride = r), view: (v) => setView(v) };
+window.fishDebug = { G, B, npc, walker, world, camera, remotes, api, onBoss, startWalk, serverNow, skew: (ms) => (clockSkew += ms), lake: (id) => buildLake(id), rain: (r) => (rainOverride = r), view: (v) => setView(v) };
 
 boot();

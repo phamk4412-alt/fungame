@@ -45,6 +45,16 @@
     <div class="rk-head"><b id="rankNum">-</b><span>HẠNG</span></div>
     <div id="rankRows"></div>
   </div>
+  <!-- Nhiệm vụ Lão Ngư -->
+  <div id="quest" class="quest hidden"></div>
+  <!-- Thanh máu thủy quái, cả hồ đánh chung -->
+  <div id="bossBar" class="boss-bar hidden">
+    <div id="bossName" class="boss-name"></div>
+    <div class="boss-hp"><div id="bossFill"></div></div>
+    <div id="bossInfo" class="boss-info"></div>
+  </div>
+  <div id="bossWarn" class="boss-warn hidden"></div>
+  <div id="flash" class="flash"></div>
   <div id="feed" class="feed"></div>
   <div id="banner" class="banner hidden"></div>
   <div id="hint" class="hint hidden"></div>
@@ -60,10 +70,21 @@
 
   <!-- Nút hành động -->
   <div id="controls" class="controls hidden">
+    <div id="joy" class="joy hidden"><div id="joyKnob"></div></div>
+    <button id="walkBtn" class="walk-btn" title="Đi bộ dọc bờ">🚶<small>Đi dạo</small></button>
     <button id="baitBtn" class="bait-btn"></button>
     <div id="baitMenu" class="bait-menu hidden"></div>
     <div class="power hidden" id="power"><div id="powerFill"></div></div>
     <button id="action" class="action"><span id="actionText">Giữ để quăng</span></button>
+  </div>
+
+  <!-- Nói chuyện với Lão Ngư -->
+  <div id="talk" class="talk hidden">
+    <div class="talk-card">
+      <div class="talk-who">👴 Lão Ngư</div>
+      <p id="talkText"></p>
+      <div id="talkBtns" class="talk-btns"></div>
+    </div>
   </div>
 
   <!-- Thẻ khoe cá -->

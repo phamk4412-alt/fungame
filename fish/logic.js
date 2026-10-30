@@ -105,7 +105,18 @@ const FISH = {
     look: { len: 1.5, h: 0.16, back: '#5f6a72', belly: '#e4e8ea', fin: '#5f6a72', pattern: 'plates', barbel: true } },
   cuc_quang: { name: 'Cá Cực Quang', lake: 'bang', rarity: 3, w: [20, 70], price: [1200, 80], power: 1.4, times: ['night'],
     look: { len: 0.9, h: 0.3, back: '#3cffb4', belly: '#e6c8ff', fin: '#a070ff', pattern: 'aurora', spot: '#ff70d0', glow: '#7affd8' } },
+
+  // Thủy quái: chỉ trồi lên khi làm xong nhiệm vụ của Lão Ngư, không bao giờ cắn câu thường (times rỗng)
+  quai_sen: { name: 'Thủy Quái Đầm Sen', lake: 'sen', rarity: 3, boss: true, w: [600, 1100], price: [8000, 6], power: 3, times: [],
+    look: { len: 7, h: 0.3, back: '#2e4a26', belly: '#a8b878', fin: '#7a3a1a', pattern: 'scales', glow: '#9aff5a' } },
+  quai_thong: { name: 'Thủy Quái Rừng Thông', lake: 'thong', rarity: 3, boss: true, w: [700, 1300], price: [9000, 6], power: 3, times: [],
+    look: { len: 7, h: 0.3, back: '#26343e', belly: '#8a9aa0', fin: '#3a5a6a', pattern: 'scales', glow: '#5ad8ff' } },
+  quai_vinh: { name: 'Thủy Quái Vịnh Rồng', lake: 'vinh', rarity: 3, boss: true, w: [900, 1600], price: [11000, 6], power: 3, times: [],
+    look: { len: 8, h: 0.3, back: '#0e3e4a', belly: '#6ac8b0', fin: '#c83a2a', pattern: 'scales', glow: '#ff6a3a' } },
+  quai_bang: { name: 'Thủy Quái Băng Giá', lake: 'bang', rarity: 3, boss: true, w: [800, 1500], price: [12000, 6], power: 3, times: [],
+    look: { len: 7, h: 0.3, back: '#5a7088', belly: '#e8f4ff', fin: '#9ac8ff', pattern: 'scales', glow: '#b8f0ff' } },
 };
+const BOSSES = { sen: 'quai_sen', thong: 'quai_thong', vinh: 'quai_vinh', bang: 'quai_bang' };
 
 const RODS = {
   tre: { name: 'Cần tre', price: 0, strength: 1, reel: 1, luck: 0, desc: 'Cần tre ông nội để lại, dẻo nhưng yếu.' },
@@ -240,6 +251,76 @@ function land(p, castId, ok, now) {
   if (record) p.best[c.fish] = c.weight;
   const biggest = !p.biggest || c.weight > p.biggest.w;
   if (biggest) p.biggest = { s: c.fish, w: c.weight };
+  if (p.quest && p.quest.lake === f.lake) p.quest.fish = Math.min(QUEST.fish, p.quest.fish + 1);
+  return { fish, record, biggest };
+}
+
+// ---------- Nhiệm vụ của Lão Ngư và thủy quái ----------
+
+// Nhặt đủ hũ thính rơi quanh bờ và câu đủ cá ở hồ đó thì Lão Ngư chèo ra giữa hồ dụ thủy quái lên
+const QUEST = { items: 5, fish: 5 };
+
+function acceptQuest(p, lake) {
+  if (!LAKES[lake] || !p.lakes.includes(lake)) return 'Bạn chưa mở khóa hồ này.';
+  if (!p.quest || p.quest.lake !== lake) p.quest = { lake, items: [], fish: 0 };
+  return null;
+}
+
+function questItem(p, i) {
+  const q = p.quest;
+  if (!q) return 'Bạn chưa nhận nhiệm vụ.';
+  if (!Number.isInteger(i) || i < 0 || i >= QUEST.items) return 'Không có vật phẩm này.';
+  if (!q.items.includes(i)) q.items.push(i);
+  return null;
+}
+
+function questDone(q) {
+  return !!q && q.items.length >= QUEST.items && q.fish >= QUEST.fish;
+}
+
+// Một người đánh mất khoảng 4 tới 5 phút; thêm người thì thủy quái trâu thêm nửa phần mỗi người
+const BOSS_HP = 240;
+const BOSS_TTL_MS = 15 * 60 * 1000;
+const BOSS_DPS = 1.3; // sát thương tối đa mỗi giây một người được tính
+
+function newBoss(lake, by, now, rnd = Math.random) {
+  const s = BOSSES[lake];
+  const f = FISH[s];
+  const w = Math.round((f.w[0] + (f.w[1] - f.w[0]) * rnd()) * 10) / 10;
+  return { lake, s, w, hp: BOSS_HP, max: BOSS_HP, at: now, until: now + BOSS_TTL_MS, by, fighters: {}, dead: null };
+}
+
+// Trả về true nếu cú này hạ được thủy quái
+function hitBoss(b, id, dmg, now) {
+  if (b.dead || now > b.until) return false;
+  const f = b.fighters[id];
+  if (!f && Object.keys(b.fighters).length > 0) {
+    b.max += BOSS_HP * 0.5;
+    b.hp += BOSS_HP * 0.5;
+  }
+  const last = f ? f.at : now - 1000;
+  const cap = Math.min(6, ((now - last) / 1000) * BOSS_DPS + 0.2);
+  const d = Math.min(cap, Math.max(0, Number(dmg) || 0));
+  b.fighters[id] = { at: now, dmg: (f ? f.dmg : 0) + d };
+  b.hp = Math.max(0, b.hp - d);
+  return b.hp <= 0;
+}
+
+// Ai góp đủ sức kéo đều được một con thủy quái, không tính chỗ trong thùng đá
+function bossWinners(b) {
+  return Object.entries(b.fighters).filter(([, f]) => f.dmg >= 3).map(([id]) => id);
+}
+
+function bossReward(p, b, now) {
+  const fish = { s: b.s, w: b.w, v: fishValue(b.s, b.w), at: now };
+  p.fish.push(fish);
+  p.caught += 1;
+  p.score = scoreOf(p) + fish.v;
+  p.legend += 1;
+  const record = !(p.best[b.s] >= b.w);
+  if (record) p.best[b.s] = b.w;
+  const biggest = !p.biggest || b.w > p.biggest.w;
+  if (biggest) p.biggest = { s: b.s, w: b.w };
   return { fish, record, biggest };
 }
 
@@ -315,6 +396,17 @@ function buy(p, kind, id, free = false) {
 }
 
 module.exports = {
+  QUEST,
+  BOSSES,
+  BOSS_HP,
+  BOSS_TTL_MS,
+  acceptQuest,
+  questItem,
+  questDone,
+  newBoss,
+  hitBoss,
+  bossWinners,
+  bossReward,
   scoreOf,
   GAME_DAY_MS,
   PHASES,
