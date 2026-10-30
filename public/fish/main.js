@@ -158,10 +158,6 @@ const G = {
   biteAt: 0,
   nibbles: [],
   f: null, // trạng thái kéo cá
-  steer: 0, // hướng ghì cần: -1 trái, 1 phải
-  steerKeys: { l: false, r: false },
-  steerBtn: 0,
-  steerDrag: 0,
   fishPos: new THREE.Vector3(),
   show: null,
   jump: null,
@@ -291,20 +287,29 @@ function abandon(lostMsg) {
 
 function startFight() {
   const c = G.cast;
+  const rod = ROD_STATS();
+  // độ khó: cá càng to, càng khỏe và càng hiếm thì que cá chạy càng nhanh, thanh trắng càng ngắn
+  const D = clamp((c.power / rod.strength) * 0.7 + c.rarity * 0.12, 0.1, 1.2);
   G.f = {
-    T: 0.35,
-    P: 0,
-    snap: 0,
-    slack: 0,
+    D,
+    size: clamp(0.38 - D * 0.14 + (rod.strength - 1) * 0.04, 0.15, 0.42), // chiều cao thanh trắng
+    y: 0, // đáy thanh trắng (0 đáy, 1 đỉnh)
+    vy: 0,
+    m: 0.5, // vị trí que cá
+    mv: 0,
+    goal: 0.5,
+    goalT: 0.8,
+    inside: true,
+    T: 0.45,
+    P: 0.25,
     surging: false,
-    surgeT: 1.2,
-    stamina: 1,
     angle: 0,
     dist: G.bob.distanceTo(stand()),
     splashT: 0,
   };
   G.fishPos.copy(G.bob);
-  banner('DÍNH RỒI!<small>Giữ nút để kéo, thả ra khi dây căng đỏ</small>', '#7fffd4', 1500);
+  $('fight').style.setProperty('--rar', C.rarity[c.rarity].color);
+  banner(`DÍNH RỒI!<small>Giữ ${mobile ? 'nút' : 'Space hoặc chuột'} để nâng thanh trắng, giữ que cá trong thanh</small>`, '#7fffd4', 1600);
   fx.splashAt(G.bob, 0.8 + c.power * 0.6);
   sound.splash(1);
   navigator.vibrate?.(60);
@@ -316,9 +321,9 @@ function loseFight(kind) {
   if (kind === 'snap') {
     sound.snap();
     navigator.vibrate?.([80, 40, 80]);
-    abandon(['ĐỨT DÂY!', 'Thả nút khi kim chạy vào vùng đỏ']);
+    abandon(['ĐỨT DÂY!', 'Que cá ra ngoài thanh trắng quá lâu']);
   } else {
-    abandon(['Cá sổng mất!', 'Dây chùng quá lâu, nhớ giữ để kéo']);
+    abandon(['Cá sổng mất!', 'Giữ que cá luôn nằm trong thanh trắng']);
   }
 }
 
@@ -488,7 +493,7 @@ function updateGame(dt) {
       pull = G.fishPos;
       bend = clamp(G.f.T, 0, 1.1) * 0.85;
       targetPitch = 0.7 + G.f.T * 0.25;
-      targetYaw = clamp(aimAt(G.fishPos) + G.steer * 0.75, -1.1, 1.1);
+      targetYaw = clamp(aimAt(G.fishPos), -1.1, 1.1);
       a.reeling = G.held;
       lineEnd = G.fishPos;
       lineLen = player.angler.rod.tip.distanceTo(G.fishPos) * (G.f.T < 0.15 ? 1.06 : 0.995);
@@ -547,7 +552,7 @@ function updateGame(dt) {
 
   if (G.mode !== 'flying' || G.t > 0.12) a.pitch = lerp(a.pitch, targetPitch, Math.min(1, dt * (G.mode === 'charge' ? 9 : 4)));
   a.aimYaw = lerp(a.aimYaw, targetYaw, Math.min(1, dt * 4));
-  a.lean = G.mode === 'fight' ? G.steer : 0;
+  a.lean = G.mode === 'fight' ? clamp(G.f.angle * 1.3, -1, 1) : 0;
   a.update(dt, pull, bend);
   player.line.length = lineLen;
   player.line.step(dt, a.rod.tip, lineEnd, waterY);
@@ -563,37 +568,45 @@ function fight(dt) {
   const f = G.f;
   const c = G.cast;
   const rod = ROD_STATS();
-  const F = c.power / rod.strength;
-  f.surgeT -= dt;
-  if (f.surgeT <= 0) {
-    f.surging = !f.surging;
-    if (f.surging) {
-      f.surgeT = 0.6 + Math.random() * 1.1;
-      f.dir = Math.random() < 0.5 ? -1 : 1;
-      if (Math.random() < 0.35 + c.rarity * 0.1) startJump();
-    } else {
-      f.surgeT = (1.4 + Math.random() * 2.8) / (0.6 + F * 0.4);
-    }
-  }
-  // cá lao về một phía: ghì cần ngược lại thì đỡ căng và cá mau đuối, ghì cùng phía thì dây căng gấp đôi
-  const align = f.surging ? -G.steer * f.dir : 0;
-  f.stamina = Math.max(0.3, f.stamina - dt * (0.035 + (f.surging ? 0.06 * Math.max(0, align) : 0)));
-  const surge = f.surging ? f.stamina * (0.25 + 0.55 * (1 - align)) : 0;
-  const pullF = F * (0.42 + 0.12 * Math.sin(time.value * 3.1) + surge);
-  const target = G.held ? 0.28 + pullF * 0.78 : pullF * 0.42;
-  f.T += (target - f.T) * Math.min(1, dt * 3.2);
-  if (f.T > 0.95) f.snap += dt * (f.T - 0.9) * 9;
-  else f.snap = Math.max(0, f.snap - dt * 0.8);
-  if (f.T < 0.12) f.slack += dt;
-  else f.slack = Math.max(0, f.slack - dt * 2);
-  const reelRate = (0.12 * rod.reel) / (0.55 + c.power * 0.55);
-  if (G.held) f.P += dt * reelRate * (f.T < 0.92 ? 1 : 0.35) * (f.surging ? 0.4 : 1);
-  else f.P -= dt * 0.025 * F * (f.surging ? 2.5 : 0.6);
-  f.P = clamp(f.P, 0, 1);
+  const D = f.D;
 
-  // con cá vùng vẫy dưới nước
-  f.angle += dt * (f.surging ? 0.55 * f.dir * (1 - 0.75 * Math.max(0, align)) : Math.sin(time.value * 0.7) * 0.15);
-  f.angle = clamp(f.angle, -0.7, 0.7);
+  // thanh trắng: giữ Space/chuột thì bay lên, thả ra thì rơi xuống
+  f.vy += (G.held ? 2.8 : -2.4) * dt;
+  f.vy = clamp(f.vy, -1.5, 1.5);
+  f.y += f.vy * dt;
+  if (f.y < 0) {
+    f.y = 0;
+    f.vy = -f.vy * 0.35;
+  }
+  if (f.y > 1 - f.size) {
+    f.y = 1 - f.size;
+    f.vy = Math.min(0, f.vy);
+  }
+
+  // que cá: chọn chỗ mới để bơi tới, cá khó thì đổi chỗ nhanh và hay lao xa đột ngột
+  f.goalT -= dt;
+  if (f.goalT <= 0) {
+    const dart = Math.random() < 0.12 + D * 0.25;
+    f.surging = dart;
+    const span = dart ? 0.5 + D * 0.4 : 0.15 + D * 0.3;
+    f.goal = clamp(f.m + (Math.random() * 2 - 1) * span, 0.03, 0.97);
+    if (dart && Math.abs(f.goal - f.m) < 0.25) f.goal = f.m < 0.5 ? clamp(f.m + 0.4, 0, 0.97) : clamp(f.m - 0.4, 0.03, 1);
+    f.goalT = (dart ? 0.5 : 0.6 + Math.random() * 1.3) / (0.7 + D * 0.5);
+    if (dart && Math.random() < 0.3 + c.rarity * 0.1) startJump();
+  }
+  const pull = (f.surging ? 16 : 8) * (0.6 + D * 0.5);
+  f.mv += ((f.goal - f.m) * pull - f.mv * (f.surging ? 5 : 6)) * dt;
+  f.m = clamp(f.m + f.mv * dt + Math.sin(time.value * (5 + D * 6)) * 0.004 * D, 0.01, 0.99);
+
+  // que trong thanh trắng thì kéo được cá vào, ra ngoài thì cá kéo ngược ra
+  f.inside = f.m >= f.y && f.m <= f.y + f.size;
+  const fill = (0.17 * Math.sqrt(rod.reel)) / (0.7 + D * 0.4);
+  const drain = 0.09 * (0.6 + D * 0.5);
+  f.P = clamp(f.P + (f.inside ? fill : -drain) * dt, 0, 1);
+  f.T += ((f.inside ? 0.45 + 0.08 * Math.sin(time.value * 4) : 0.95) - f.T) * Math.min(1, dt * 4);
+
+  // con cá dưới nước bơi ngang theo que cá
+  f.angle += ((f.m - 0.5) * 1.3 - f.angle) * Math.min(1, dt * 3);
   const d = lerp(f.dist, 2.2, f.P);
   const fc = face();
   const dir = new THREE.Vector3(fc.x * Math.cos(f.angle) - fc.z * Math.sin(f.angle), 0, fc.x * Math.sin(f.angle) + fc.z * Math.cos(f.angle));
@@ -608,34 +621,23 @@ function fight(dt) {
     if (f.surging && Math.random() < 0.3) sound.splash(0.4 + c.power * 0.3);
   }
 
-  // giao diện thanh căng dây
-  $('needle').style.left = `${clamp(f.T, 0, 1) * 100}%`;
-  $('progress').style.width = `${f.P * 100}%`;
-  $('fishIcon').style.left = `${f.P * 100}%`;
-  $('fight').classList.toggle('danger', f.T > 0.92);
-  const side = f.dir < 0 ? 'TRÁI' : 'PHẢI';
-  const other = f.dir < 0 ? 'PHẢI' : 'TRÁI';
-  const dirEl = $('fishDir');
-  dirEl.className = 'fish-dir' + (f.surging ? (align > 0.5 ? ' good' : ' bad') : '');
-  dirEl.textContent = f.surging
-    ? `${f.dir < 0 ? '⬅' : '➡'} Cá lao sang ${side} · ghì cần sang ${other}${align > 0.5 ? ' ✓' : '!'}`
-    : 'Cá đang vờn mồi · giữ để kéo';
-  $('steerL').classList.toggle('want', f.surging && f.dir > 0);
-  $('steerR').classList.toggle('want', f.surging && f.dir < 0);
-  $('steerL').classList.toggle('on', G.steer < 0);
-  $('steerR').classList.toggle('on', G.steer > 0);
+  // giao diện thanh kéo cá
+  $('zone').style.bottom = `${f.y * 100}%`;
+  $('zone').style.height = `${f.size * 100}%`;
+  $('zone').classList.toggle('in', f.inside);
+  $('mark').style.bottom = `${f.m * 100}%`;
+  $('progress').style.height = `${f.P * 100}%`;
+  $('progress').classList.toggle('low', f.P < 0.2);
+  $('fight').classList.toggle('danger', !f.inside && f.P < 0.2);
   hint(
-    f.T > 0.92
-      ? '⚠️ Dây sắp đứt, THẢ NÚT RA!'
-      : f.surging && align <= 0.5
-        ? `Cá lao sang ${side}! Ghì cần sang ${other} (${mobile ? `nút ${f.dir < 0 ? '▶' : '◀'}` : `phím ${f.dir < 0 ? 'D / →' : 'A / ←'}`})`
-        : f.T < 0.15
-          ? 'Dây đang chùng, giữ nút để kéo!'
-          : `Còn ${Math.max(0, d - 2.2).toFixed(1)} m nữa`,
+    f.inside
+      ? `Giỏi lắm! Còn ${Math.max(0, d - 2.2).toFixed(1)} m nữa`
+      : f.m > f.y + f.size
+        ? `Que cá ở trên, ${mobile ? 'giữ nút' : 'giữ Space hoặc chuột'} để nâng thanh trắng lên!`
+        : 'Que cá ở dưới, thả ra cho thanh trắng rơi xuống!',
   );
-  camShake = Math.max(camShake, f.surging ? 0.04 * F : 0.01);
-  if (f.snap >= 1) loseFight('snap');
-  else if (f.slack > 2.6) loseFight('slack');
+  camShake = Math.max(camShake, f.surging ? 0.03 + 0.03 * D : 0.008);
+  if (f.P <= 0) loseFight('slack');
   else if (f.P >= 1) winFight();
 }
 
@@ -686,8 +688,16 @@ function updateJump(dt) {
 const cam = { yaw: 0, pitch: 0.18, dist: 5.2, look: new THREE.Vector3(), pos: new THREE.Vector3(), inited: false };
 let camShake = 0;
 let drag = null;
+let canvasHold = false;
 canvas.addEventListener('pointerdown', (e) => {
   sound.start();
+  // lúc kéo cá, bấm giữ chuột ở đâu cũng là nâng thanh trắng
+  if (G.mode === 'fight') {
+    canvas.setPointerCapture(e.pointerId);
+    canvasHold = true;
+    press();
+    return;
+  }
   drag = { x: e.clientX, y: e.clientY, yaw: cam.yaw, pitch: cam.pitch };
   canvas.setPointerCapture(e.pointerId);
   $('baitMenu').classList.add('hidden');
@@ -697,7 +707,11 @@ canvas.addEventListener('pointermove', (e) => {
   cam.yaw = clamp(drag.yaw - ((e.clientX - drag.x) / innerWidth) * 2.4, -1.4, 1.4);
   cam.pitch = clamp(drag.pitch + ((e.clientY - drag.y) / innerHeight) * 1.2, -0.05, 0.75);
 });
-canvas.addEventListener('pointerup', () => (drag = null));
+canvas.addEventListener('pointerup', () => {
+  drag = null;
+  if (canvasHold) release();
+  canvasHold = false;
+});
 canvas.addEventListener('wheel', (e) => (cam.dist = clamp(cam.dist + e.deltaY * 0.004, 2.8, 9)), { passive: true });
 
 function updateCamera(dt) {
@@ -939,13 +953,6 @@ function updateControls() {
   btn.className = 'action';
   $('power').classList.toggle('hidden', G.mode !== 'charge');
   $('fight').classList.toggle('hidden', G.mode !== 'fight');
-  $('steerL').classList.toggle('hidden', G.mode !== 'fight');
-  $('steerR').classList.toggle('hidden', G.mode !== 'fight');
-  if (G.mode !== 'fight') {
-    G.steerBtn = 0;
-    G.steerDrag = 0;
-    updateSteer();
-  }
   $('baitBtn').classList.toggle('hidden', G.mode !== 'idle' && G.mode !== 'charge');
   const labels = {
     idle: 'Giữ để quăng',
@@ -971,53 +978,8 @@ actionBtn.addEventListener('pointerdown', (e) => {
   actionBtn.setPointerCapture(e.pointerId);
   press();
 });
-actionBtn.addEventListener('pointerup', () => {
-  G.steerDrag = 0;
-  updateSteer();
-  release();
-});
+actionBtn.addEventListener('pointerup', release);
 actionBtn.addEventListener('pointercancel', release);
-// giữ nút kéo rồi vuốt sang trái/phải cũng là ghì cần
-actionBtn.addEventListener('pointermove', (e) => {
-  if (G.mode !== 'fight' || !G.held) return;
-  const r = actionBtn.getBoundingClientRect();
-  const dx = e.clientX - (r.left + r.width / 2);
-  G.steerDrag = Math.abs(dx) > r.width * 0.35 ? Math.sign(dx) : 0;
-  updateSteer();
-});
-
-function updateSteer() {
-  const k = (G.steerKeys.r ? 1 : 0) - (G.steerKeys.l ? 1 : 0);
-  G.steer = clamp(k || G.steerBtn || G.steerDrag, -1, 1);
-}
-for (const [id, v] of [['steerL', -1], ['steerR', 1]]) {
-  const b = $(id);
-  b.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    b.setPointerCapture(e.pointerId);
-    G.steerBtn = v;
-    updateSteer();
-  });
-  const up = () => {
-    if (G.steerBtn === v) G.steerBtn = 0;
-    updateSteer();
-  };
-  b.addEventListener('pointerup', up);
-  b.addEventListener('pointercancel', up);
-}
-const STEER_KEYS = { KeyA: 'l', ArrowLeft: 'l', KeyD: 'r', ArrowRight: 'r' };
-addEventListener('keydown', (e) => {
-  const k = STEER_KEYS[e.code];
-  if (!k || document.activeElement?.tagName === 'INPUT') return;
-  G.steerKeys[k] = true;
-  updateSteer();
-});
-addEventListener('keyup', (e) => {
-  const k = STEER_KEYS[e.code];
-  if (!k) return;
-  G.steerKeys[k] = false;
-  updateSteer();
-});
 addEventListener('keydown', (e) => {
   if (e.code !== 'Space' || e.repeat || document.activeElement?.tagName === 'INPUT') return;
   e.preventDefault();
@@ -1199,7 +1161,7 @@ function renderSettings(el) {
     <p>Đang chơi với tên <b>${esc(me.name)}</b> · đã câu ${me.caught} con.</p>
     <button class="btn" id="logoutBtn">Đăng xuất</button>
     <div class="sec">Cách chơi</div>
-    <p class="muted">Giữ nút để lấy đà rồi thả để quăng. Kéo màn hình sang trái phải để chọn hướng. Chờ phao chìm hẳn thì bấm giật cần. Khi kéo cá: giữ nút để cuộn dây, thả ra khi kim chạy vào vùng đỏ để dây khỏi đứt, nhưng đừng thả quá lâu kẻo cá sổng. Cá lao sang bên nào thì ghì cần sang bên ngược lại (phím A/D hoặc mũi tên, trên điện thoại bấm nút ◀ ▶ hay vuốt nút kéo sang ngang), ghì sai hoặc đứng yên thì dây căng rất nhanh. Mỗi hồ, mỗi giờ trong ngày có loài cá riêng, xem Sổ tay cá. Một ngày trong game dài 24 phút.</p>`;
+    <p class="muted">Giữ nút để lấy đà rồi thả để quăng. Kéo màn hình sang trái phải để chọn hướng. Chờ phao chìm hẳn thì bấm giật cần. Khi kéo cá: giữ Space, giữ chuột hoặc giữ nút để nâng thanh trắng, thả ra thì thanh rơi xuống. Giữ cho que cá màu xám luôn nằm trong thanh trắng thì thanh tiến trình bên cạnh đầy dần, que ra ngoài thì tiến trình tụt, tụt hết là cá sổng. Cá càng to, càng hiếm thì que chạy càng nhanh và thanh trắng càng ngắn. Mỗi hồ, mỗi giờ trong ngày có loài cá riêng, xem Sổ tay cá. Một ngày trong game dài 24 phút.</p>`;
   el.querySelectorAll('[data-q]').forEach((b) =>
     b.addEventListener('click', () => {
       localStorage.setItem('fish.quality', b.dataset.q);

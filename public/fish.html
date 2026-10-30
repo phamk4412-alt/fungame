@@ -43,22 +43,13 @@
   <div id="banner" class="banner hidden"></div>
   <div id="hint" class="hint hidden"></div>
 
-  <!-- Thanh kéo cá -->
+  <!-- Thanh kéo cá: giữ que cá trong thanh trắng -->
   <div id="fight" class="fight hidden">
-    <div class="fight-row">
-      <span class="fight-label">Độ căng dây</span>
-      <div class="tension">
-        <div class="zone ok"></div>
-        <div class="zone warn"></div>
-        <div class="zone bad"></div>
-        <div id="needle" class="needle"></div>
-      </div>
+    <div class="meter">
+      <div id="zone" class="zone"></div>
+      <div id="mark" class="mark"></div>
     </div>
-    <div id="fishDir" class="fish-dir">Cá đang vờn mồi · giữ để kéo</div>
-    <div class="fight-row">
-      <span class="fight-label">Kéo vào bờ</span>
-      <div class="progress"><div id="progress" class="progress-fill"></div><span id="fishIcon" class="fish-icon">🐟</span></div>
-    </div>
+    <div class="meter-prog"><div id="progress" class="prog-fill"></div></div>
   </div>
 
   <!-- Nút hành động -->
@@ -66,9 +57,7 @@
     <button id="baitBtn" class="bait-btn"></button>
     <div id="baitMenu" class="bait-menu hidden"></div>
     <div class="power hidden" id="power"><div id="powerFill"></div></div>
-    <button id="steerL" class="steer hidden" title="Ghì cần sang trái (A / ←)">◀</button>
     <button id="action" class="action"><span id="actionText">Giữ để quăng</span></button>
-    <button id="steerR" class="steer hidden" title="Ghì cần sang phải (D / →)">▶</button>
   </div>
 
   <!-- Thẻ khoe cá -->

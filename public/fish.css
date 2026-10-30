@@ -61,24 +61,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .power { position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); width: min(70vw, 320px); height: 14px; border-radius: 7px; background: rgba(0,0,0,0.5); border: 1px solid var(--line); overflow: hidden; }
 #powerFill { height: 100%; width: 0; background: linear-gradient(90deg, #39d0a0, #ffe066, #ff5a4a); }
 
-.fight { position: fixed; left: 50%; bottom: 130px; transform: translateX(-50%); width: min(92vw, 460px); background: var(--glass); border: 1px solid var(--line); border-radius: 16px; padding: 10px 14px; backdrop-filter: blur(8px); display: flex; flex-direction: column; gap: 8px; }
-.fight.danger { animation: shake 0.08s infinite; border-color: var(--danger); box-shadow: 0 0 24px rgba(255,80,60,0.5); }
 @keyframes shake { 50% { transform: translateX(calc(-50% + 3px)); } }
-.fight-row { display: flex; align-items: center; gap: 10px; }
-.fight-label { width: 92px; font-size: 12px; color: var(--muted); }
-.tension { position: relative; flex: 1; height: 16px; border-radius: 8px; overflow: hidden; display: flex; background: #1a2430; }
-.zone.ok { position: absolute; left: 22%; width: 56%; top: 0; bottom: 0; background: linear-gradient(90deg, #2a9a6a, #39d0a0, #2a9a6a); }
-.zone.warn { position: absolute; left: 78%; width: 14%; top: 0; bottom: 0; background: #d8a020; }
-.zone.bad { position: absolute; left: 92%; width: 8%; top: 0; bottom: 0; background: var(--danger); }
-.needle { position: absolute; top: -3px; bottom: -3px; width: 5px; margin-left: -2px; border-radius: 3px; background: #fff; box-shadow: 0 0 8px #fff; left: 0; }
-.progress { position: relative; flex: 1; height: 12px; border-radius: 6px; background: #1a2430; }
-.progress-fill { height: 100%; width: 0; border-radius: 6px; background: linear-gradient(90deg, #1a5fb0, #5ab8ff); }
-.fish-dir { text-align: center; font-size: 14px; font-weight: 700; padding: 4px 8px; border-radius: 8px; color: var(--muted); }
-.fish-dir.bad { color: #fff; background: rgba(255,90,74,0.55); }
-.fish-dir.good { color: #00261b; background: rgba(57,208,160,0.85); }
-.steer { width: 64px; height: 64px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5); background: var(--glass); backdrop-filter: blur(8px); font-size: 24px; margin-bottom: 16px; touch-action: none; }
-.steer.want { border-color: #ffe066; box-shadow: 0 0 22px rgba(255,224,102,0.8); animation: pulse 0.3s infinite alternate; }
-.steer.on { background: rgba(57,208,160,0.6); }
+@keyframes shakev { 50% { transform: translate(3px, -50%); } }
 .fish-icon { position: absolute; top: 50%; transform: translate(-50%, -55%) scaleX(-1); font-size: 20px; left: 0; filter: drop-shadow(0 2px 3px #000); }
 
 .catch { position: fixed; inset: auto 0 0 0; display: flex; justify-content: center; padding: 0 12px max(16px, env(safe-area-inset-bottom)); pointer-events: none; }
@@ -140,6 +124,18 @@ table.board tr.me td { color: var(--accent); font-weight: 700; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .toast { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); background: var(--glass-strong); border: 1px solid var(--line); padding: 10px 16px; border-radius: 12px; font-size: 14px; z-index: 5; max-width: 92vw; text-align: center; }
 
+/* Thanh kéo cá dọc: thanh trắng người chơi điều khiển, que xám là con cá */
+.fight { --rar: #d8e2ea; position: fixed; right: max(16px, env(safe-area-inset-right)); top: 50%; transform: translateY(-50%); height: min(56vh, 380px); display: flex; gap: 8px; padding: 10px; background: var(--glass); border: 2px solid var(--rar); border-radius: 18px; backdrop-filter: blur(8px); box-shadow: 0 0 18px color-mix(in srgb, var(--rar) 45%, transparent); pointer-events: none; }
+.fight.danger { animation: shakev 0.08s infinite; border-color: var(--danger); box-shadow: 0 0 24px rgba(255,80,60,0.5); }
+.meter { position: relative; width: 46px; height: 100%; border-radius: 10px; background: linear-gradient(180deg, #0c2a3c, #10405a 60%, #1a5a4a); overflow: hidden; box-shadow: inset 0 0 10px rgba(0,0,0,0.6); }
+.zone { position: absolute; left: 3px; right: 3px; bottom: 0; height: 30%; border-radius: 7px; background: rgba(255,255,255,0.55); border: 2px solid rgba(255,255,255,0.9); transition: background 0.15s; }
+.zone.in { background: rgba(255,255,255,0.85); box-shadow: 0 0 14px rgba(255,255,255,0.8); }
+.mark { position: absolute; left: -2px; right: -2px; bottom: 50%; height: 0; }
+.mark::before { content: ''; position: absolute; left: 6px; right: 6px; top: -5px; height: 10px; border-radius: 5px; background: linear-gradient(180deg, #6a7078, #2e3238); border: 1px solid #c8d0d8; box-shadow: 0 1px 4px rgba(0,0,0,0.7); }
+.meter-prog { position: relative; width: 12px; height: 100%; border-radius: 6px; background: #1a2430; overflow: hidden; }
+.prog-fill { position: absolute; left: 0; right: 0; bottom: 0; height: 25%; background: linear-gradient(0deg, #1a8a5a, #5affb0); transition: background 0.2s; }
+.prog-fill.low { background: linear-gradient(0deg, #a02a1a, #ff7a5a); }
+
 @media (max-width: 640px) {
   .icon-btn { width: 38px; height: 38px; font-size: 18px; }
   .chip { font-size: 12px; padding: 5px 10px; }
@@ -147,4 +143,5 @@ table.board tr.me td { color: var(--accent); font-weight: 700; }
   .lake-chip, .online { display: none; }
   .action { width: 88px; height: 88px; font-size: 13px; }
   .feed { bottom: 128px; font-size: 12px; }
+  .fight { height: min(46vh, 320px); top: 46%; }
 }
