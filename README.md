@@ -36,7 +36,7 @@ Ngoài ra có **🎣 Câu Cá 3D** (mở ở `/fish.html` hoặc bấm link ở 
 - Lần lượt từng nhà con (20 giây mỗi lượt) chọn **Rút bài** hoặc **Dằn bài**, tối đa 5 lá. Dưới **16 điểm là non**, phải rút tiếp.
 - **Ngũ linh:** đủ 5 lá mà không quá 21 điểm, ăn gấp 2, chỉ thua xì bàn và xì dách. Hai bên cùng ngũ linh thì ai ít điểm hơn thắng.
 - **Quắc:** quá 21 điểm. Bài quắc vẫn giấu tới lúc bị lật. Người quắc thì thua, nhưng nếu **nhà cái cũng quắc thì hòa**.
-- **Lượt nhà cái** (30 giây mỗi bước): nhà cái tự quyết **rút thêm** hay dừng. Đủ **15 điểm** trở lên thì được **lật từng nhà** (tính tiền riêng nhà đó ngay với bài hiện tại), rồi rút tiếp hay lật nhà khác tùy ý, hoặc bấm **Lật hết**. Nhà cái quắc hoặc đủ 5 lá thì phải lật hết.
+- **Lượt nhà cái** (45 giây mỗi bước): nhà cái tự quyết **rút thêm** hay dừng. Đủ **15 điểm** trở lên thì được **lật từng nhà** (bấm vào ghế nhà đó hoặc nút Lật tên người) (tính tiền riêng nhà đó ngay với bài hiện tại), rồi rút tiếp hay lật nhà khác tùy ý, hoặc bấm **Lật hết**. Nhà cái quắc hoặc đủ 5 lá thì phải lật hết.
 - Hết giờ mà chưa chọn: nhà con non thì tự rút, đủ điểm thì tự dằn; nhà cái non thì tự rút, đủ điểm thì tự lật hết.
 - Nhà cái chỉ đền được số chip đang có. Nhà cái rời bàn giữa ván thì ván đó hủy và trả lại tiền cược.
 - Hết chip phải chờ 3 phút rồi mới mua lại được, như bên Poker.
