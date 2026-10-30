@@ -444,73 +444,384 @@ export function fishLength(look, weight, wmax) {
 // ---------- Cần câu ----------
 
 export const ROD_LOOK = {
-  tre: { length: 3.4, r0: 0.024, r1: 0.006, color: '#c9a45a', alt: '#a8853f', grip: '#6a4a2a', metal: 0, rough: 0.6 },
-  carbon: { length: 3.8, r0: 0.02, r1: 0.004, color: '#1c1e24', alt: '#b81e2a', grip: '#2a2a2a', metal: 0.4, rough: 0.25 },
-  titan: { length: 4.0, r0: 0.021, r1: 0.004, color: '#aab4c0', alt: '#5a6472', grip: '#202428', metal: 0.85, rough: 0.2 },
-  long: { length: 4.3, r0: 0.024, r1: 0.005, color: '#e4b23a', alt: '#c0261e', grip: '#5a1010', metal: 0.9, rough: 0.18, glow: '#ff6a00' },
+  tre: { length: 3.4, r0: 0.013, r1: 0.003, blank: '#b8913e', weave: false, wrap: '#7a1e14', trim: '#d8c070', grip: 'cork', seat: '#2a2a2a', reel: '#6a7078', reelTrim: '#c8a050', metal: 0.2, rough: 0.45, guides: 8 },
+  carbon: { length: 3.8, r0: 0.012, r1: 0.0025, blank: '#16181d', weave: true, wrap: '#b81e2a', trim: '#e8e8e8', grip: 'eva', seat: '#1a1a1a', reel: '#2a2e36', reelTrim: '#d02a2a', metal: 0.3, rough: 0.3, guides: 9 },
+  titan: { length: 4.0, r0: 0.0125, r1: 0.0025, blank: '#7d8894', weave: true, wrap: '#1f3c6a', trim: '#c0c8d0', grip: 'cork', seat: '#3a4048', reel: '#b8c0c8', reelTrim: '#2a6ad0', metal: 0.7, rough: 0.22, guides: 10 },
+  long: { length: 4.3, r0: 0.0135, r1: 0.003, blank: '#c89a2a', weave: true, wrap: '#8a0e0e', trim: '#ffd060', grip: 'eva', seat: '#3a0a0a', reel: '#d8a838', reelTrim: '#a01010', metal: 0.85, rough: 0.2, guides: 10, glow: '#ff6a00' },
 };
 
+// ---------- Kết cấu vật liệu cần câu ----------
+
+function canvasTex(w, h, draw, repeat = [1, 1]) {
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(...repeat);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+
+const rodTex = new Map();
+function cached(key, make) {
+  if (!rodTex.has(key)) rodTex.set(key, make());
+  return rodTex.get(key);
+}
+
+// bần (cork): nền vàng nâu lốm đốm hạt sẫm và vân ngang giữa các khoanh
+function corkTexture() {
+  return cached('cork', () =>
+    canvasTex(256, 256, (g, w, h) => {
+      g.fillStyle = '#c49a64';
+      g.fillRect(0, 0, w, h);
+      const r = rng(77);
+      for (let i = 0; i < 2600; i++) {
+        const x = r() * w;
+        const y = r() * h;
+        const s = 0.6 + r() * 2.4;
+        g.fillStyle = r() < 0.6 ? `rgba(110,70,35,${0.25 + r() * 0.45})` : `rgba(235,200,150,${0.2 + r() * 0.3})`;
+        g.beginPath();
+        g.ellipse(x, y, s, s * (0.5 + r()), r() * 3, 0, Math.PI * 2);
+        g.fill();
+      }
+      for (let y = 0; y < h; y += 32) {
+        g.fillStyle = 'rgba(90,55,25,0.35)';
+        g.fillRect(0, y, w, 1.5);
+      }
+    }, [2, 3]),
+  );
+}
+
+// EVA: xốp đen mịn có lỗ li ti
+function evaTexture() {
+  return cached('eva', () =>
+    canvasTex(128, 128, (g, w, h) => {
+      g.fillStyle = '#1c1d20';
+      g.fillRect(0, 0, w, h);
+      const r = rng(31);
+      for (let i = 0; i < 900; i++) {
+        g.fillStyle = r() < 0.5 ? 'rgba(0,0,0,0.5)' : 'rgba(70,72,78,0.35)';
+        g.fillRect(r() * w, r() * h, 1 + r(), 1 + r());
+      }
+    }, [2, 4]),
+  );
+}
+
+// sợi carbon đan chéo dưới lớp sơn bóng
+function weaveTexture(color) {
+  return cached('weave' + color, () =>
+    canvasTex(64, 64, (g, w, h) => {
+      const base = new THREE.Color(color);
+      const a = base.clone().multiplyScalar(0.7);
+      const b = base.clone().lerp(new THREE.Color('#ffffff'), 0.18);
+      const n = 8;
+      for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
+          g.fillStyle = `#${((i + j) % 2 ? a : b).getHexString()}`;
+          g.fillRect((i * w) / n, (j * h) / n, w / n, h / n);
+        }
+      }
+    }, [2, 30]),
+  );
+}
+
+// ren bệ máy
+function threadTexture() {
+  return cached('thread', () =>
+    canvasTex(16, 64, (g, w, h) => {
+      for (let y = 0; y < h; y += 4) {
+        g.fillStyle = '#8a8e94';
+        g.fillRect(0, y, w, 2);
+        g.fillStyle = '#2a2c30';
+        g.fillRect(0, y + 2, w, 2);
+      }
+    }, [1, 6]),
+  );
+}
+
+// dây cước quấn trên lồng máy: sọc mảnh chéo
+function spoolLineTexture() {
+  return cached('spoolLine', () =>
+    canvasTex(64, 64, (g, w, h) => {
+      g.fillStyle = '#d8e4d4';
+      g.fillRect(0, 0, w, h);
+      for (let i = -h; i < w + h; i += 3) {
+        g.strokeStyle = 'rgba(80,110,90,0.35)';
+        g.lineWidth = 1;
+        g.beginPath();
+        g.moveTo(i, 0);
+        g.lineTo(i + h * 0.35, h);
+        g.stroke();
+      }
+    }, [6, 1]),
+  );
+}
+
+// hình ngôi sao cho núm hãm (drag star)
+function starShape(n, r0, r1) {
+  const s = new THREE.Shape();
+  for (let i = 0; i <= n * 2; i++) {
+    const a = (i / (n * 2)) * Math.PI * 2;
+    const r = i % 2 ? r1 : r0;
+    const x = Math.cos(a) * r;
+    const y = Math.sin(a) * r;
+    if (i === 0) s.moveTo(x, y);
+    else s.lineTo(x, y);
+  }
+  return s;
+}
+
+// hình má máy câu ngang: bầu dục lệch, phía trước thon lại
+function sidePlateShape() {
+  const s = new THREE.Shape();
+  s.moveTo(-0.04, -0.024);
+  s.bezierCurveTo(-0.054, -0.024, -0.056, 0.026, -0.036, 0.03);
+  s.bezierCurveTo(-0.01, 0.036, 0.03, 0.03, 0.044, 0.012);
+  s.bezierCurveTo(0.052, 0.0, 0.046, -0.024, 0.024, -0.026);
+  s.lineTo(-0.04, -0.024);
+  return s;
+}
+
+// Máy câu ngang (baitcaster). Gốc toạ độ đặt trên bệ máy; trục X là trục lồng dây (sang phải),
+// trục Y hướng lên khỏi cần, trục -Z hướng về ngọn cần.
+class Reel {
+  constructor(L) {
+    this.group = new THREE.Group();
+    const body = new THREE.MeshPhysicalMaterial({ color: L.reel, metalness: 0.75, roughness: 0.28, clearcoat: 1, clearcoatRoughness: 0.12 });
+    const trim = new THREE.MeshPhysicalMaterial({ color: L.reelTrim, metalness: 0.9, roughness: 0.25, clearcoat: 0.6 });
+    const chrome = new THREE.MeshStandardMaterial({ color: '#e4e8ec', metalness: 1, roughness: 0.12 });
+    const dark = new THREE.MeshStandardMaterial({ color: '#141518', metalness: 0.4, roughness: 0.45 });
+    const rubber = new THREE.MeshStandardMaterial({ map: evaTexture(), roughness: 0.85 });
+    const add = (m, p, r) => {
+      if (p) m.position.set(...p);
+      if (r) m.rotation.set(...r);
+      m.castShadow = true;
+      this.group.add(m);
+      return m;
+    };
+    const plateGeo = new THREE.ExtrudeGeometry(sidePlateShape(), { depth: 0.012, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.003, bevelSegments: 3, curveSegments: 18 });
+    plateGeo.center();
+    // hai má: bên phải có tay quay, bên trái có núm phanh từ
+    for (const k of [-1, 1]) {
+      const plate = add(new THREE.Mesh(plateGeo, body), [k * 0.031, 0.035, 0], [0, -Math.PI / 2, 0]);
+      plate.rotation.z = 0;
+      const ring = add(new THREE.Mesh(new THREE.TorusGeometry(0.021, 0.0022, 8, 32), trim), [k * 0.039, 0.035, 0.004], [0, Math.PI / 2, 0]);
+      ring.scale.set(1, 1, 1);
+    }
+    // núm phanh bên trái có vạch chia
+    const dial = add(new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.013, 0.006, 24), dark), [-0.042, 0.04, 0.006], [0, 0, Math.PI / 2]);
+    for (let i = 0; i < 10; i++) {
+      const tick = new THREE.Mesh(new THREE.BoxGeometry(0.0008, 0.004, 0.0015), chrome);
+      const a = (i / 10) * Math.PI * 2;
+      tick.position.set(Math.cos(a) * 0.009, 0.0035, Math.sin(a) * 0.009);
+      tick.rotation.y = -a;
+      dial.add(tick);
+    }
+    // lồng dây giữa hai má, có dây quấn; quay khi cuộn
+    this.spool = new THREE.Group();
+    this.spool.position.set(0, 0.036, 0.004);
+    const line = new THREE.Mesh(new THREE.CylinderGeometry(0.0185, 0.0185, 0.046, 32, 1, true), new THREE.MeshStandardMaterial({ map: spoolLineTexture(), roughness: 0.45 }));
+    line.rotation.z = Math.PI / 2;
+    const lips = [-1, 1].map((k) => {
+      const lip = new THREE.Mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.003, 32), chrome);
+      lip.rotation.z = Math.PI / 2;
+      lip.position.x = k * 0.0245;
+      return lip;
+    });
+    this.spool.add(line, ...lips);
+    this.group.add(this.spool);
+    // thanh ngón cái phía sau lồng dây
+    add(new THREE.Mesh(new THREE.CapsuleGeometry(0.006, 0.05, 4, 10), dark), [0, 0.058, 0.018], [0, 0, Math.PI / 2]);
+    // hộp dẫn dây chạy qua lại phía trước
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.062, 0.008, 0.008), body), [0, 0.024, -0.03]);
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.0025, 0.0025, 0.062, 8), chrome), [0, 0.033, -0.033], [0, 0, Math.PI / 2]);
+    this.guide = add(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.014, 0.008), dark), [0, 0.032, -0.032]);
+    const eye = new THREE.Mesh(new THREE.TorusGeometry(0.003, 0.0012, 6, 12), chrome);
+    eye.position.y = 0.002;
+    this.guide.add(eye);
+    // chân máy ôm bệ cần
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.016, 0.07), body), [0, 0.009, 0]);
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.003, 0.08), chrome), [0, 0.0015, 0]);
+    // núm hãm hình sao và tay quay bên phải
+    const star = add(new THREE.Mesh(new THREE.ExtrudeGeometry(starShape(6, 0.017, 0.011), { depth: 0.004, bevelEnabled: true, bevelThickness: 0.001, bevelSize: 0.001, bevelSegments: 1 }), trim), [0.046, 0.036, 0.004], [0, Math.PI / 2, 0]);
+    star.castShadow = true;
+    this.crank = new THREE.Group();
+    this.crank.position.set(0.054, 0.036, 0.004);
+    this.group.add(this.crank);
+    const nut = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.008, 6), chrome);
+    nut.rotation.z = Math.PI / 2;
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.012, 0.11), body);
+    arm.position.x = 0.004;
+    const armTrim = new THREE.Mesh(new THREE.BoxGeometry(0.0045, 0.004, 0.09), trim);
+    armTrim.position.x = 0.004;
+    this.crank.add(nut, arm, armTrim);
+    this.knobs = [-1, 1].map((k) => {
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.002, 0.002, 0.012, 8), chrome);
+      stem.rotation.z = Math.PI / 2;
+      stem.position.set(0.01, 0, k * 0.05);
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(0.011, 18, 12), rubber);
+      knob.scale.set(1.5, 0.75, 0.95);
+      knob.position.set(0.024, 0, k * 0.05);
+      const cap = new THREE.Mesh(new THREE.CircleGeometry(0.006, 16), chrome);
+      cap.position.set(0.0405, 0, k * 0.05);
+      cap.rotation.y = Math.PI / 2;
+      this.crank.add(stem, knob, cap);
+      return knob;
+    });
+    this.crank.traverse((m) => (m.castShadow = true));
+    this.spin = 0;
+    this.knobWorld = new THREE.Vector3();
+    this.spoolWorld = new THREE.Vector3();
+  }
+
+  update(reeling, dt) {
+    if (reeling) this.spin += dt * 11;
+    this.crank.rotation.x = this.spin;
+    this.spool.rotation.x = this.spin * 4.5;
+    this.guide.position.x = Math.sin(this.spin * 0.6) * 0.02;
+    this.group.updateMatrixWorld(true);
+    this.knobs[1].getWorldPosition(this.knobWorld);
+    this.guide.getWorldPosition(this.spoolWorld);
+  }
+}
+
+// Cần máy: cán bần/EVA, bệ máy có ren, thân carbon bóng chia khúc, khoen dẫn dây có quấn chỉ
 export class Rod {
   constructor(kind) {
     this.group = new THREE.Group();
     this.look = ROD_LOOK[kind] || ROD_LOOK.tre;
     const L = this.look;
-    this.N = 18;
-    this.segs = [];
-    const mainMat = new THREE.MeshStandardMaterial({ color: L.color, metalness: L.metal, roughness: L.rough, emissive: L.glow || '#000', emissiveIntensity: L.glow ? 0.15 : 0 });
-    const altMat = new THREE.MeshStandardMaterial({ color: L.alt, metalness: L.metal, roughness: L.rough });
-    const gripMat = new THREE.MeshStandardMaterial({ color: L.grip, roughness: 0.9 });
-    const tipMat = new THREE.MeshStandardMaterial({ color: '#ff3b2f', emissive: '#ff2010', emissiveIntensity: 0.4 });
-    for (let i = 0; i < this.N; i++) {
-      const t0 = i / this.N;
-      const t1 = (i + 1) / this.N;
-      const grip = i < 2;
-      const r0 = grip ? L.r0 * 1.6 : THREE.MathUtils.lerp(L.r0, L.r1, t0);
-      const r1 = grip ? L.r0 * 1.5 : THREE.MathUtils.lerp(L.r0, L.r1, t1);
-      const g = new THREE.CylinderGeometry(r1, r0, 1, 8, 1);
-      g.translate(0, 0.5, 0);
-      const mat = grip ? gripMat : i === this.N - 1 ? tipMat : i % 4 === 3 ? altMat : mainMat;
-      const m = new THREE.Mesh(g, mat);
-      m.castShadow = true;
-      this.segs.push(m);
-      this.group.add(m);
-    }
-    // máy câu: lồng cuộn có dây, hai má kim loại, chân gắn cần, tay quay hai núm
-    this.reel = new THREE.Group();
-    const metal = new THREE.MeshStandardMaterial({ color: '#c8ccd2', metalness: 0.9, roughness: 0.25 });
-    const dark = new THREE.MeshStandardMaterial({ color: '#2a2e34', metalness: 0.6, roughness: 0.35 });
-    const lineMat = new THREE.MeshStandardMaterial({ color: '#dfe8e0', roughness: 0.5 });
-    const spool = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.046, 24), lineMat);
-    spool.rotation.z = Math.PI / 2;
-    const plates = [-1, 1].map((k) => {
-      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.046, 0.046, 0.01, 28), k < 0 ? dark : metal);
-      p.rotation.z = Math.PI / 2;
-      p.position.x = k * 0.029;
-      return p;
-    });
-    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.03, 0.012, 20), metal);
-    cap.rotation.z = Math.PI / 2;
-    cap.position.x = 0.039;
-    const stem = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.05, 0.03), dark);
-    stem.position.y = 0.045;
-    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.006, 0.07), metal);
-    foot.position.y = 0.07;
-    this.crank = new THREE.Group();
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.11, 0.014), metal);
-    const knobMat = new THREE.MeshStandardMaterial({ color: '#141414', roughness: 0.6 });
-    for (const k of [-1, 1]) {
-      const knob = new THREE.Mesh(new THREE.CapsuleGeometry(0.009, 0.016, 4, 10), knobMat);
-      knob.rotation.z = Math.PI / 2;
-      knob.position.set(0.016, k * 0.05, 0);
-      this.crank.add(knob);
-    }
-    this.crank.add(arm);
-    this.crank.position.x = 0.05;
-    this.reel.add(spool, ...plates, cap, stem, foot, this.crank);
-    this.group.add(this.reel);
-    this.tip = new THREE.Vector3();
+    const len = L.length;
+    this.N = 30;
     this.points = Array.from({ length: this.N + 1 }, () => new THREE.Vector3());
-    this.spin = 0;
+    this.frames = Array.from({ length: this.N + 1 }, () => ({ t: new THREE.Vector3(), u: new THREE.Vector3(), v: new THREE.Vector3() }));
+    this.tip = new THREE.Vector3();
+
+    const blankMat = new THREE.MeshPhysicalMaterial({
+      color: L.weave ? '#ffffff' : L.blank, map: L.weave ? weaveTexture(L.blank) : null, metalness: L.metal, roughness: L.rough,
+      clearcoat: 1, clearcoatRoughness: 0.06, emissive: L.glow || '#000', emissiveIntensity: L.glow ? 0.08 : 0,
+    });
+    const gripMat = new THREE.MeshStandardMaterial({ map: L.grip === 'cork' ? corkTexture() : evaTexture(), roughness: 0.92 });
+    const seatMat = new THREE.MeshStandardMaterial({ map: threadTexture(), color: new THREE.Color(L.seat).lerp(new THREE.Color('#ffffff'), 0.55), metalness: 0.8, roughness: 0.35 });
+    const hoodMat = new THREE.MeshStandardMaterial({ color: '#c8ccd2', metalness: 1, roughness: 0.18 });
+    const wrapMat = new THREE.MeshPhysicalMaterial({ color: L.wrap, roughness: 0.35, clearcoat: 1, clearcoatRoughness: 0.05 });
+    const trimMat = new THREE.MeshPhysicalMaterial({ color: L.trim, metalness: 0.9, roughness: 0.2, clearcoat: 1 });
+    const tipMat = new THREE.MeshStandardMaterial({ color: '#ff3b2f', emissive: '#ff2010', emissiveIntensity: 0.4 });
+
+    // các khúc dọc thân: [từ mét, tới mét, bán kính đầu, bán kính cuối, vật liệu]
+    const m = (x) => x / len;
+    const parts = [
+      [0, 0.012, 0.0185, 0.0185, hoodMat], // nắp đuôi cán
+      [0.012, 0.25, 0.0175, 0.016, gripMat], // cán sau
+      [0.25, 0.262, 0.0165, 0.0165, trimMat],
+      [0.262, 0.29, 0.0145, 0.0145, hoodMat], // nắp bệ máy
+      [0.29, 0.39, 0.0128, 0.0128, seatMat], // bệ máy có ren
+      [0.39, 0.405, 0.0145, 0.0145, hoodMat],
+      [0.405, 0.415, 0.015, 0.015, trimMat],
+      [0.415, 0.56, 0.0152, 0.0118, gripMat], // cán trước
+      [0.56, 0.575, 0.0112, 0.0105, trimMat], // khoanh viền
+    ];
+    // thân cần thuôn từ 0.575 m tới ngọn, chia nhiều khúc nhỏ để uốn cong mượt
+    const blankStart = 0.575;
+    const nb = 26;
+    for (let i = 0; i < nb; i++) {
+      const a = blankStart + ((len - blankStart) * i) / nb;
+      const b = blankStart + ((len - blankStart) * (i + 1)) / nb;
+      const ra = THREE.MathUtils.lerp(L.r0, L.r1, (a - blankStart) / (len - blankStart));
+      const rb = THREE.MathUtils.lerp(L.r0, L.r1, (b - blankStart) / (len - blankStart));
+      parts.push([a, b, ra, rb, i === nb - 1 ? tipMat : blankMat]);
+    }
+    // khớp nối giữa hai khúc cần
+    const ferrule = len * 0.55;
+    const rf = THREE.MathUtils.lerp(L.r0, L.r1, (ferrule - blankStart) / (len - blankStart));
+    parts.push([ferrule - 0.02, ferrule + 0.03, rf * 1.25, rf * 1.12, wrapMat]);
+    parts.push([ferrule + 0.03, ferrule + 0.035, rf * 1.2, rf * 1.2, trimMat]);
+    // chỉ quấn trang trí trên thân, phía trên cán trước
+    parts.push([0.575, 0.66, L.r0 * 1.08, L.r0 * 1.05, wrapMat]);
+    parts.push([0.66, 0.665, L.r0 * 1.12, L.r0 * 1.12, trimMat]);
+
+    this.parts = parts.map(([a, b, ra, rb, mat]) => {
+      const g = new THREE.CylinderGeometry(rb, ra, 1, mat === blankMat || mat === tipMat ? 12 : 20, 1, false);
+      g.translate(0, 0.5, 0);
+      const mesh = new THREE.Mesh(g, mat);
+      mesh.castShadow = true;
+      this.group.add(mesh);
+      return { s0: m(a), s1: m(b), mesh };
+    });
+
+    // khoen dẫn dây: khoen to gần máy, nhỏ dần về ngọn; mỗi khoen có chân, vòng sứ và chỉ quấn chân
+    const ringMat = new THREE.MeshStandardMaterial({ color: '#d8dce2', metalness: 1, roughness: 0.15 });
+    const insertMat = new THREE.MeshPhysicalMaterial({ color: '#1a1c22', metalness: 0.2, roughness: 0.1, clearcoat: 1 });
+    this.guides = [];
+    const ng = L.guides;
+    for (let i = 0; i < ng; i++) {
+      const f = i / (ng - 1);
+      const at = 0.78 + Math.pow(f, 1.25) * (len - 0.86);
+      const size = THREE.MathUtils.lerp(0.012, 0.0032, Math.pow(f, 0.7));
+      const height = THREE.MathUtils.lerp(0.024, 0.007, Math.pow(f, 0.7));
+      const rBlank = THREE.MathUtils.lerp(L.r0, L.r1, (at - blankStart) / (len - blankStart));
+      const g = new THREE.Group();
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(size, size * 0.2, 8, 24), ringMat);
+      const insert = new THREE.Mesh(new THREE.TorusGeometry(size * 0.86, size * 0.09, 6, 24), insertMat);
+      ring.position.y = rBlank + height;
+      insert.position.y = rBlank + height;
+      g.add(ring, insert);
+      // hai chân chéo từ vòng xuống thân
+      for (const k of [-1, 1]) {
+        const strut = new THREE.Mesh(new THREE.CylinderGeometry(0.0009, 0.0011, 1, 6), ringMat);
+        const p0 = new THREE.Vector3(0, rBlank + height - size * 0.9, 0);
+        const p1 = new THREE.Vector3(0, 0.001, k * height * 0.9);
+        p1.y = rBlank;
+        strut.position.copy(p0).add(p1).multiplyScalar(0.5);
+        strut.quaternion.setFromUnitVectors(UP, p1.clone().sub(p0).normalize());
+        strut.scale.y = p0.distanceTo(p1);
+        // chỉ quấn ôm thân cần đè lên chân khoen, viền kim tuyến hai đầu
+        const wrap = new THREE.Mesh(new THREE.CylinderGeometry(rBlank * 1.18, rBlank * 1.18, height * 0.75, 14), wrapMat);
+        wrap.rotation.x = Math.PI / 2;
+        wrap.position.set(0, 0, k * height * 1.05);
+        const edge = new THREE.Mesh(new THREE.CylinderGeometry(rBlank * 1.24, rBlank * 1.24, 0.0012, 14), trimMat);
+        edge.rotation.x = Math.PI / 2;
+        edge.position.set(0, 0, k * height * (1.05 + 0.375 * k * k));
+        g.add(strut, wrap, edge);
+      }
+      g.traverse((o) => (o.castShadow = true));
+      this.group.add(g);
+      this.guides.push({ s: m(at), g, height: rBlank + height, eye: new THREE.Vector3() });
+    }
+
+    // máy câu ngồi trên bệ
+    this.reel = new Reel(L);
+    this.reelAt = m(0.34);
+    this.group.add(this.reel.group);
+
+    // dây chạy từ lồng máy qua các khoen lên ngọn
+    const n = this.guides.length + 2;
+    this.lineArr = new Float32Array(n * 3);
+    const lg = new THREE.BufferGeometry();
+    lg.setAttribute('position', new THREE.BufferAttribute(this.lineArr, 3));
+    this.threadLine = new THREE.Line(lg, new THREE.LineBasicMaterial({ color: '#eef6ff', transparent: true, opacity: 0.8 }));
+    this.threadLine.frustumCulled = false;
+    this.group.add(this.threadLine);
+    this.knobWorld = this.reel.knobWorld;
+  }
+
+  // điểm và hệ trục tại vị trí s (0 gốc, 1 ngọn) dọc thân
+  sample(s, out, frame) {
+    const x = s * this.N;
+    const i = Math.min(this.N - 1, Math.floor(x));
+    const k = x - i;
+    out.copy(this.points[i]).lerp(this.points[i + 1], k);
+    if (frame) {
+      const a = this.frames[i];
+      const b = this.frames[i + 1];
+      frame.t.copy(a.t).lerp(b.t, k).normalize();
+      frame.u.copy(a.u).lerp(b.u, k).normalize();
+      frame.v.crossVectors(frame.t, frame.u).normalize();
+    }
+    return out;
   }
 
   // base, dir: gốc và hướng cần (toạ độ thế giới); pull: điểm dây kéo về, bend: độ cong 0..1
@@ -525,38 +836,61 @@ export class Rod {
       rest.y -= L * 0.03; // ngọn hơi rủ xuống vì trọng lượng
     }
     const end = rest.sub(base).normalize().multiplyScalar(L * (1 - bend * 0.08)).add(base);
-    const ctrl = base.clone().addScaledVector(dir, L * 0.5);
+    // đoạn cán thẳng, phần thân mới cong: điểm điều khiển nằm xa trên hướng cần
+    const ctrl = base.clone().addScaledVector(dir, L * 0.58);
     for (let i = 0; i <= this.N; i++) {
       const s = i / this.N;
       const a = (1 - s) * (1 - s);
       const b = 2 * (1 - s) * s;
       const c = s * s;
-      this.points[i].set(
-        a * base.x + b * ctrl.x + c * end.x,
-        a * base.y + b * ctrl.y + c * end.y,
-        a * base.z + b * ctrl.z + c * end.z,
-      );
+      this.points[i].set(a * base.x + b * ctrl.x + c * end.x, a * base.y + b * ctrl.y + c * end.y, a * base.z + b * ctrl.z + c * end.z);
     }
-    for (let i = 0; i < this.N; i++) {
-      const p0 = this.points[i];
-      const p1 = this.points[i + 1];
-      const m = this.segs[i];
-      m.position.copy(p0);
-      tmp2.copy(p1).sub(p0);
+    // hệ trục dọc thân: t tiếp tuyến, u hướng lên (phía lắp máy và khoen), v sang phải
+    for (let i = 0; i <= this.N; i++) {
+      const f = this.frames[i];
+      const p0 = this.points[Math.max(0, i - 1)];
+      const p1 = this.points[Math.min(this.N, i + 1)];
+      f.t.copy(p1).sub(p0).normalize();
+      f.u.set(0, 1, 0).addScaledVector(f.t, -f.t.y);
+      if (f.u.lengthSq() < 1e-6) f.u.set(0, 0, 1);
+      f.u.normalize();
+      f.v.crossVectors(f.t, f.u);
+    }
+    const pa = new THREE.Vector3();
+    const pb = new THREE.Vector3();
+    for (const part of this.parts) {
+      this.sample(part.s0, pa);
+      this.sample(part.s1, pb);
+      const mesh = part.mesh;
+      mesh.position.copy(pa);
+      tmp2.copy(pb).sub(pa);
       const len = tmp2.length();
-      m.quaternion.setFromUnitVectors(UP, tmp2.normalize());
-      m.scale.set(1, len, 1);
+      mesh.quaternion.setFromUnitVectors(UP, tmp2.normalize());
+      mesh.scale.set(1, len + 1e-5, 1);
     }
     this.tip.copy(this.points[this.N]);
-    // ống cuộn dưới cần, gần tay cầm
-    const rp = this.points[2];
-    const rd = tmp2.copy(this.points[3]).sub(rp).normalize();
-    this.reel.position.copy(rp);
-    this.reel.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), rd);
-    this.reel.rotateZ(Math.PI);
-    this.reel.translateY(0.03);
-    if (reeling) this.spin += dt * 14;
-    this.crank.rotation.x = this.spin;
+
+    const fr = { t: new THREE.Vector3(), u: new THREE.Vector3(), v: new THREE.Vector3() };
+    const basis = new THREE.Matrix4();
+    // khoen: trục Y của khoen theo u, trục Z theo thân cần
+    for (const gd of this.guides) {
+      this.sample(gd.s, pa, fr);
+      basis.makeBasis(fr.v, fr.u, fr.t.clone().negate());
+      gd.g.position.copy(pa);
+      gd.g.quaternion.setFromRotationMatrix(basis);
+      gd.eye.copy(pa).addScaledVector(fr.u, gd.height);
+    }
+    // máy câu: trục -Z của máy hướng về ngọn
+    this.sample(this.reelAt, pa, fr);
+    basis.makeBasis(fr.v, fr.u, fr.t.clone().negate());
+    this.reel.group.position.copy(pa).addScaledVector(fr.u, 0.0128);
+    this.reel.group.quaternion.setFromRotationMatrix(basis);
+    this.reel.update(reeling, dt);
+
+    // dây trong khoen
+    const pts = [this.reel.spoolWorld, ...this.guides.map((g) => g.eye), this.tip];
+    pts.forEach((p, i) => this.lineArr.set([p.x, p.y, p.z], i * 3));
+    this.threadLine.geometry.attributes.position.needsUpdate = true;
   }
 }
 
@@ -1026,10 +1360,11 @@ export class Angler {
     const { base, dir } = this.localRod();
     // tay phải cầm sau ống cuộn, tay trái cầm phía trước
     const right = base.clone().addScaledVector(dir, 0.1);
-    if (this.reeling) {
-      right.x += 0.05;
-      right.y += Math.sin(this.breath * 14) * 0.035;
-      right.z += Math.cos(this.breath * 14) * 0.035;
+    // đang cuộn dây thì tay phải nắm núm tay quay của máy (vị trí khung trước)
+    this.crankBlend = THREE.MathUtils.lerp(this.crankBlend || 0, this.reeling ? 1 : 0, Math.min(1, dt * 8));
+    if (this.crankBlend > 0.01 && this.rod.knobWorld.lengthSq() > 0) {
+      const knob = this.body.worldToLocal(this.rod.knobWorld.clone());
+      right.lerp(knob, this.crankBlend);
     }
     const left = base.clone().addScaledVector(dir, this.fp ? 0.3 : 0.42);
     for (const arm of this.arms) {
