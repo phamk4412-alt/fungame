@@ -35,10 +35,16 @@
       <button class="icon-btn" data-panel="map" title="Các hồ">🗺️</button>
       <button class="icon-btn" data-panel="book" title="Sổ tay cá">📖</button>
       <button class="icon-btn" data-panel="board" title="Xếp hạng">🏆</button>
+      <button class="icon-btn" id="viewBtn" title="Đổi góc nhìn">🎥</button>
       <button class="icon-btn" data-panel="settings" title="Cài đặt">⚙️</button>
     </nav>
   </header>
 
+  <!-- Bảng hạng nhỏ: hạng của mình và người sát bên -->
+  <div id="rank" class="rank hidden">
+    <div class="rk-head"><b id="rankNum">-</b><span>HẠNG</span></div>
+    <div id="rankRows"></div>
+  </div>
   <div id="feed" class="feed"></div>
   <div id="banner" class="banner hidden"></div>
   <div id="hint" class="hint hidden"></div>

@@ -18,6 +18,7 @@ export const THEMES = {
     snowLine: null, rockLine: 40,
     water: { color: '#1f4a36', shallow: '#4f7a44', foam: '#e4ecd8', distortion: 1.1, size: 3.5, waves: 1 },
     trees: [['bamboo', 110], ['broad', 170], ['palm', 70]],
+    swamp: 34, // cây bụt mọc rủ rêu đứng trong nước
     grass: ['#3f6e22', '#a6c457'], lotus: true, reeds: true, fireflies: true, flowers: ['#ff8fb8', '#fff3a0', '#ffffff'],
     hut: 'choi', hat: 'nonla', fog: 0.0015, mist: 0.004, sky: { turbidity: 2.4, rayleigh: 2 },
   },
@@ -27,6 +28,7 @@ export const THEMES = {
     snowLine: 120, rockLine: 30,
     water: { color: '#123c44', shallow: '#4c6e58', foam: '#e8f0ee', distortion: 0.9, size: 3.2, waves: 0.8 },
     trees: [['pine', 520], ['broad', 40]],
+    swamp: 16,
     grass: ['#2f4f1e', '#86a650'], reeds: true, fireflies: true, flowers: ['#ffe066', '#b0a0ff'],
     hut: 'cabin', hat: 'cap', fog: 0.0017, mist: 0.007, sky: { turbidity: 2.6, rayleigh: 1.8 },
   },
@@ -163,6 +165,69 @@ function broadGeo(rand) {
     const d = i === 0 ? 0 : 0.1 + rand() * 0.08;
     b.translate(Math.cos(a) * d, 0.62 + rand() * 0.18 - (i === 0 ? -0.06 : 0), Math.sin(a) * d);
     parts.push(paint(b, col('#2f5a22').lerp(col('#5e8a34'), rand())));
+  }
+  return mergeGeometries(parts);
+}
+
+// Cây bụt mọc (bách đầm lầy): gốc xòe đứng trong nước, tán dẹt nhiều tầng, rêu rủ thành sợi
+function cypressGeo(rand) {
+  const parts = [];
+  const prof = [];
+  for (let i = 0; i <= 10; i++) {
+    const t = i / 10;
+    prof.push(new THREE.Vector2(0.022 + 0.07 * Math.pow(1 - t, 3.2) + (t > 0.85 ? (t - 0.85) * 0.05 : 0), t * 0.78));
+  }
+  const trunk = clean(new THREE.LatheGeometry(prof, 9));
+  const tp = trunk.attributes.position;
+  for (let i = 0; i < tp.count; i++) {
+    tmpV.fromBufferAttribute(tp, i);
+    // gốc có múi như rễ bạnh
+    const ang = Math.atan2(tmpV.z, tmpV.x);
+    const k = 1 + Math.max(0, 0.25 - tmpV.y) * 1.6 * Math.max(0, Math.cos(ang * 5));
+    tp.setXYZ(i, tmpV.x * k, tmpV.y, tmpV.z * k);
+  }
+  trunk.computeVertexNormals();
+  parts.push(paint(trunk, '#5c5246'));
+  const layers = 4 + Math.floor(rand() * 3);
+  const pads = [];
+  for (let i = 0; i < layers; i++) {
+    const r = 0.13 + rand() * 0.1;
+    const b = blob(r, 1, rand, 0.35);
+    b.scale(1, 0.38, 1);
+    const a = rand() * Math.PI * 2;
+    const d = i === 0 ? 0 : 0.08 + rand() * 0.14;
+    const x = Math.cos(a) * d;
+    const z = Math.sin(a) * d;
+    const y = 0.62 + rand() * 0.32;
+    b.translate(x, y, z);
+    pads.push([x, y, z, r]);
+    parts.push(paint(b, col('#3a5a2c').lerp(col('#6a8a48'), rand())));
+    // cành ngang đỡ tầng lá
+    const br = clean(new THREE.CylinderGeometry(0.008, 0.014, d + 0.02, 5));
+    br.rotateZ(Math.PI / 2);
+    br.rotateY(-a);
+    br.translate(x / 2, y - 0.03, z / 2);
+    parts.push(paint(br, '#4e463c'));
+  }
+  // rêu rủ: dải mỏng treo dưới mép các tầng lá
+  for (const [x, y, z, r] of pads) {
+    const n = 7 + Math.floor(rand() * 6);
+    for (let k = 0; k < n; k++) {
+      const len = 0.12 + rand() * 0.24;
+      const w = 0.012 + rand() * 0.016;
+      const strand = clean(new THREE.PlaneGeometry(w, len, 1, 3));
+      const sp = strand.attributes.position;
+      for (let i = 0; i < sp.count; i++) {
+        tmpV.fromBufferAttribute(sp, i);
+        const v = 0.5 - tmpV.y / len; // 0 đỉnh .. 1 đuôi
+        sp.setXYZ(i, tmpV.x * (1 - v * 0.7), tmpV.y, tmpV.z + v * v * 0.02);
+      }
+      const a = rand() * Math.PI * 2;
+      const rr = r * (0.55 + rand() * 0.5);
+      strand.rotateY(rand() * Math.PI);
+      strand.translate(x + Math.cos(a) * rr, y - 0.03 - len / 2, z + Math.sin(a) * rr);
+      parts.push(paint(strand, col('#8a9a78').lerp(col('#5e6e4e'), rand())));
+    }
   }
   return mergeGeometries(parts);
 }
@@ -404,9 +469,49 @@ export class World {
     this.lakeGroup = null;
     this.sunDir = new THREE.Vector3(0, 1, 0);
     this.night = 0;
+    this.rain = 0;
     this.ripples = Array.from({ length: 10 }, () => new THREE.Vector4(0, 0, -100, 0));
     this.rippleIdx = 0;
     this.buildGlobal();
+    this.buildRain();
+  }
+
+  // Mưa: các vệt nước rơi quanh camera, độ dày theo this.rain (0..1)
+  buildRain() {
+    const n = 3200;
+    const pos = new Float32Array(n * 6);
+    const seed = new Float32Array(n * 2);
+    for (let i = 0; i < n; i++) {
+      const x = (Math.random() - 0.5) * 50;
+      const y = Math.random() * 24;
+      const z = (Math.random() - 0.5) * 50;
+      pos.set([x, y, z, x, y, z], i * 6);
+      seed.set([0, 1], i * 2);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('tail', new THREE.BufferAttribute(seed, 1));
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { uTime: time, uCenter: { value: new THREE.Vector3() }, uRain: { value: 0 }, uLight: { value: 1 } },
+      vertexShader: `uniform float uTime; uniform vec3 uCenter; uniform float uRain; attribute float tail; varying float vA;
+        void main(){ vec3 p = position; float sp = 16.0 + fract(position.x * 7.13) * 6.0;
+        p.y = mod(p.y - uTime * sp, 24.0) - 4.0 + uCenter.y; p.y += tail * 0.55; p.x += tail * 0.06;
+        p.xz = mod(p.xz - uCenter.xz + 25.0, 50.0) - 25.0 + uCenter.xz;
+        vA = step(fract(position.z * 3.7), uRain) * (1.0 - tail * 0.7);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }`,
+      fragmentShader: `uniform float uLight; varying float vA; void main(){ if (vA < 0.01) discard; gl_FragColor = vec4(vec3(0.78, 0.84, 0.9) * uLight, vA * 0.38); }`,
+      transparent: true,
+      depthWrite: false,
+    });
+    const lines = new THREE.LineSegments(geo, mat);
+    lines.frustumCulled = false;
+    lines.visible = false;
+    this.scene.add(lines);
+    this.rainLines = lines;
+  }
+
+  setRain(r) {
+    this.rain = this.theme && this.theme.snow ? 0 : r;
   }
 
   buildGlobal() {
@@ -616,6 +721,7 @@ export class World {
     this.scatterTrees(g);
     this.scatterRocks(g);
     if (T.karst) this.buildKarsts(g);
+    if (T.swamp) this.scatterSwamp(g);
     if (T.reeds) this.scatterReeds(g);
     if (T.lotus) this.buildLotus(g);
     if (T.grass && this.q.grass) this.buildGrass(g, me);
@@ -1063,6 +1169,39 @@ export class World {
     return grp;
   }
 
+  // cây bụt mọc mọc trong nước nông ven hồ, chừa khoảng trống trước chỗ đứng để còn quăng câu
+  scatterSwamp(g) {
+    const r = this.rand;
+    const T = this.theme;
+    const variants = [0, 1, 2].map(() => cypressGeo(r));
+    const lists = variants.map(() => []);
+    const n = Math.floor(T.swamp * Math.max(0.5, this.q.veg));
+    let placed = 0;
+    for (let tries = 0; placed < n && tries < n * 60; tries++) {
+      const a = r() * Math.PI * 2;
+      const s = 0.78 + r() * 0.26;
+      const x = T.center[0] + Math.cos(a) * T.R[0] * s;
+      const z = T.center[1] + Math.sin(a) * T.R[1] * s;
+      const h = this.heightAt(x, z);
+      if (h > 0.4 || h < -2.6) continue;
+      if (this.spots.some((sp) => Math.hypot(x - sp.stand.x, z - sp.stand.z) < 16)) continue;
+      const size = 11 + r() * 9;
+      lists[placed % 3].push({
+        pos: new THREE.Vector3(x, h - 0.4, z),
+        rot: r() * Math.PI * 2,
+        tilt: (r() - 0.5) * 0.06,
+        scale: new THREE.Vector3(size * (0.85 + r() * 0.3), size, size * (0.85 + r() * 0.3)),
+        color: new THREE.Color().setHSL(0, 0, 0.85 + r() * 0.3),
+      });
+      placed++;
+    }
+    variants.forEach((geo, i) => {
+      if (!lists[i].length) return;
+      const mat = windy(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, side: THREE.DoubleSide }), 0.02);
+      g.add(this.instanced(geo, mat, lists[i], this.q.shadows));
+    });
+  }
+
   scatterReeds(g) {
     const r = this.rand;
     const T = this.theme;
@@ -1375,6 +1514,30 @@ export class World {
     if (this.fireflies) this.fireflies.uniforms.uNight.value = this.night;
     if (this.aurora) this.aurora.uniforms.uNight.value = this.night;
     this.renderer.toneMappingExposure = 0.42 + day * 0.12 + this.night * 0.25;
+
+    // trời mưa: mây xám dày, sương mù, nắng yếu, mặt nước gợn nhiều
+    const rain = this.rain;
+    if (rain > 0) {
+      const grey = new THREE.Color('#8e9aa4').multiplyScalar(0.25 + 0.75 * day);
+      this.scene.fog.color.lerp(grey, rain * 0.7);
+      this.scene.fog.density += rain * 0.009;
+      su.skyGain.value *= 1 - rain * 0.35;
+      su.turbidity.value += rain * 8;
+      this.sun.intensity *= 1 - rain * 0.7;
+      this.hemi.intensity *= 1 - rain * 0.15;
+      this.hemi.color.lerp(new THREE.Color('#b8c4cc'), rain * 0.5 * day);
+      w.sunColor.value.multiplyScalar(1 - rain * 0.8);
+      for (const m of this.clouds.children) {
+        m.material.color.lerp(new THREE.Color('#6a747c').multiplyScalar(0.3 + 0.7 * day), rain * 0.8);
+        m.material.opacity = Math.min(1, m.material.opacity + rain * 0.35);
+      }
+    }
+    w.distortionScale.value = this.theme.water.distortion * (1 + rain * 1.4);
+    if (this.rainLines) {
+      this.rainLines.visible = rain > 0.01;
+      this.rainLines.material.uniforms.uRain.value = rain;
+      this.rainLines.material.uniforms.uLight.value = 0.35 + 0.65 * day;
+    }
   }
 
   update(dt, camera) {
@@ -1387,6 +1550,13 @@ export class World {
     this.nightDome.position.copy(camera.position);
     this.water.material.uniforms.time.value = time.value;
     if (this.snow) this.snow.uniforms.uCenter.value.copy(camera.position);
+    if (this.rainLines) this.rainLines.material.uniforms.uCenter.value.copy(camera.position);
+    // hạt mưa lốm đốm trên mặt nước gần chỗ đứng
+    if (this.rain > 0.2 && Math.random() < this.rain * dt * 2) {
+      const a = Math.random() * Math.PI * 2;
+      const d = 4 + Math.random() * 14;
+      this.addRipple(camera.position.x + Math.cos(a) * d, camera.position.z + Math.sin(a) * d, 0.25);
+    }
     for (const b of this.boats || []) b.position.y = Math.sin(time.value * 0.8 + b.userData.bob) * 0.25;
   }
 }
