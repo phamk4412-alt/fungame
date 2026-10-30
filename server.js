@@ -35,12 +35,13 @@ const server = http.createServer((req, res) => {
     if (err) {
       // Mọi đường dẫn khác trả về trang chính
       fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (e, html) => {
-        res.writeHead(e ? 404 : 200, { 'Content-Type': MIME['.html'] });
+        res.writeHead(e ? 404 : 200, { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-cache' });
         res.end(e ? 'Not found' : html);
       });
       return;
     }
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
+    // no-cache: trình duyệt luôn hỏi lại server, cập nhật game xong là người chơi thấy ngay
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
     res.end(data);
   });
 });
