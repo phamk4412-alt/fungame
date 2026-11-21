@@ -4,6 +4,28 @@
 //  - bad : trời âm u, mọi người nhìn lên bảng, chỗ ngồi của Minh Anh bỏ trống.
 // Lớp học ở tầng trệt của một trường ven biển: ngoài cửa sổ là sân, đường ray, bãi cát và biển. Cửa sổ luôn đóng.
 import * as THREE from './vendor/three.module.min.js';
+import { EffectComposer } from './vendor/three-addons/EffectComposer.js';
+import { RenderPass } from './vendor/three-addons/RenderPass.js';
+import { ShaderPass } from './vendor/three-addons/ShaderPass.js';
+import { UnrealBloomPass } from './vendor/three-addons/UnrealBloomPass.js';
+import { OutputPass } from './vendor/three-addons/OutputPass.js';
+import { RoomEnvironment } from './vendor/three-addons/RoomEnvironment.js';
+
+/** Chỉnh màu cuối: ấm (có hậu) hoặc lạnh (buồn), tăng bão hòa nhẹ, viền tối quanh khung hình. */
+const GradeShader = {
+  uniforms: { tDiffuse: { value: null }, tint: { value: new THREE.Vector3(1, 1, 1) }, sat: { value: 1.1 }, vig: { value: 0.35 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: `uniform sampler2D tDiffuse; uniform vec3 tint; uniform float sat; uniform float vig; varying vec2 vUv;
+    void main(){
+      vec4 c = texture2D(tDiffuse, vUv);
+      float l = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+      vec3 col = mix(vec3(l), c.rgb, sat) * tint;
+      col = (col - 0.5) * 1.1 + 0.5;
+      vec2 d = vUv - 0.5;
+      col *= 1.0 - vig * smoothstep(0.25, 0.85, length(d * vec2(1.25, 1.0)));
+      gl_FragColor = vec4(col, c.a);
+    }`,
+};
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
@@ -134,6 +156,17 @@ function makePerson(o) {
   collar.rotation.x = Math.PI / 2;
   collar.position.set(0, 0.97, 0);
   g.add(collar);
+  if (o.girl) {
+    // Nơ đỏ trên cổ áo
+    const bowM = new THREE.MeshStandardMaterial({ color: '#d8344f', roughness: 0.5 });
+    [-1, 1].forEach((sd) => {
+      const wing = mesh(new THREE.ConeGeometry(0.03, 0.06, 4), bowM, false, false);
+      wing.rotation.z = sd * Math.PI / 2;
+      wing.position.set(sd * 0.03, 0.935, 0.085);
+      g.add(wing);
+    });
+    g.add(box(0.02, 0.02, 0.02, bowM, 0, 0.935, 0.09));
+  }
   if (!o.girl) {
     const badge = box(0.04, 0.05, 0.01, new THREE.MeshStandardMaterial({ color: '#2c5bd6' }), -0.08, 0.85, 0.1);
     g.add(badge);
@@ -287,16 +320,30 @@ function makePerson(o) {
 }
 
 // ---------- Bàn ghế ----------
-function makeDesk(M, withBook) {
+function makeDesk(M, withBook, plain) {
   const g = new THREE.Group();
   g.add(box(1.2, 0.04, 0.5, M.desk, 0, 0.74, 0));
   g.add(box(1.16, 0.3, 0.02, M.desk, 0, 0.58, -0.24)); // tấm chắn phía bảng, chân để dưới gầm
   [[-0.56, -0.22], [0.56, -0.22], [-0.56, 0.22], [0.56, 0.22]].forEach(([x, z]) => g.add(box(0.035, 0.72, 0.035, M.metal, x, 0.36, z)));
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  if (!plain && Math.random() < 0.6) {
+    // hộp bút
+    const pc = mesh(new THREE.CapsuleGeometry(0.03, 0.14, 4, 10), new THREE.MeshStandardMaterial({ color: pick(['#ff9eb5', '#7ec8ff', '#ffd36e', '#9be3a7', '#c7a6ff']), roughness: 0.6 }));
+    pc.rotation.set(0, Math.random() - 0.5, Math.PI / 2);
+    pc.position.set(Math.random() < 0.5 ? -0.05 : 0.45, 0.79, -0.15);
+    g.add(pc);
+  }
+  if (!plain && Math.random() < 0.35) {
+    // chai nước
+    const bt = mesh(new THREE.CylinderGeometry(0.028, 0.03, 0.18, 14), new THREE.MeshPhysicalMaterial({ color: pick(['#bfe8ff', '#ffe0ef', '#e2ffe0']), roughness: 0.1, transmission: 0.6, transparent: true, opacity: 0.85 }));
+    bt.position.set(Math.random() < 0.5 ? -0.5 : 0.52, 0.85, -0.18);
+    g.add(bt);
+  }
   if (withBook) {
     const book = box(0.22, 0.015, 0.3, M.paper, -0.25, 0.768, -0.02);
     book.rotation.y = 0.15;
     g.add(book);
-    const cover = box(0.22, 0.012, 0.3, new THREE.MeshStandardMaterial({ color: '#3c7be0' }), 0.27, 0.766, 0.0);
+    const cover = box(0.22, 0.012, 0.3, new THREE.MeshStandardMaterial({ color: pick(['#3c7be0', '#e5566b', '#2fae8a', '#f0a83a', '#8a63d2']), roughness: 0.5 }), 0.27, 0.766, 0.0);
     cover.rotation.y = -0.1;
     g.add(cover);
   }
@@ -398,6 +445,7 @@ function buildRoom(scene, M, good, board) {
       for (let f = 0; f < 4; f++) {
         const fold = mesh(new THREE.CylinderGeometry(0.045, 0.06 + (f % 2) * 0.015, wy1 - wy0 + 0.5, 10, 1, true), M.curtain, true, true);
         fold.position.set(x0 + 0.14 + (f % 2) * 0.03, (wy0 + wy1) / 2 + 0.1, cz + (f - 1.5) * 0.06);
+        fold.userData.sway = Math.random() * 6.28;
         scene.add(fold);
       }
       const tie = mesh(new THREE.TorusGeometry(0.12, 0.015, 6, 16), new THREE.MeshStandardMaterial({ color: good ? '#e9b8b8' : '#999' }));
@@ -421,6 +469,53 @@ function buildRoom(scene, M, good, board) {
   // Thanh treo rèm
   scene.add(box(0.04, 0.04, z1 - z0, M.frame, x0 + 0.16, wy1 + 0.25, 0));
   scene.add(box(0.15, wy1 - wy0, z1 - zPrev, M.wall, x0, (wy0 + wy1) / 2, (z1 + zPrev) / 2));
+  // Quạt trần
+  const fanM = new THREE.MeshStandardMaterial({ color: '#f2f2ee', roughness: 0.4, metalness: 0.2 });
+  [[-1.6, -1.0], [1.6, -1.0], [-1.6, 2.2], [1.6, 2.2]].forEach(([fx, fz]) => {
+    scene.add(box(0.03, 0.4, 0.03, M.metal, fx, h - 0.2, fz));
+    const hub = new THREE.Group();
+    hub.position.set(fx, h - 0.42, fz);
+    hub.add(mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.1, 16), fanM));
+    for (let b = 0; b < 3; b++) {
+      const blade = box(0.62, 0.012, 0.11, fanM, 0.36, 0, 0);
+      const arm = new THREE.Group();
+      arm.rotation.y = (b * Math.PI * 2) / 3;
+      arm.add(blade);
+      hub.add(arm);
+    }
+    hub.userData.spin = good ? 6 : 2.5;
+    scene.add(hub);
+  });
+  // Đồng hồ treo tường giữa hai cửa sổ
+  const clockTex = canvasTex(256, 256, (g2, w) => {
+    g2.fillStyle = '#fff'; g2.beginPath(); g2.arc(w / 2, w / 2, w / 2 - 6, 0, Math.PI * 2); g2.fill();
+    g2.lineWidth = 10; g2.strokeStyle = '#3a3a3a'; g2.stroke();
+    g2.fillStyle = '#333';
+    for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; g2.fillRect(w / 2 + Math.sin(a) * 100 - 4, w / 2 - Math.cos(a) * 100 - 4, 8, 8); }
+    g2.lineCap = 'round'; g2.lineWidth = 9;
+    g2.beginPath(); g2.moveTo(w / 2, w / 2); g2.lineTo(w / 2 + 40, w / 2 - 40); g2.stroke();
+    g2.lineWidth = 6; g2.beginPath(); g2.moveTo(w / 2, w / 2); g2.lineTo(w / 2, w / 2 - 85); g2.stroke();
+  });
+  const clk = mesh(new THREE.CircleGeometry(0.2, 32), new THREE.MeshStandardMaterial({ map: clockTex, roughness: 0.4 }), false, false);
+  clk.rotation.y = Math.PI / 2;
+  clk.position.set(x0 + 0.09, 2.15, -1.2);
+  scene.add(clk);
+  // Chậu cây trên bậu cửa sổ
+  const potM = new THREE.MeshStandardMaterial({ color: '#c8734a', roughness: 0.8 });
+  const leafPot = new THREE.MeshStandardMaterial({ color: good ? '#4fae5a' : '#4a6b50', roughness: 0.7 });
+  [wins[0] + 0.55, wins[1] - 0.6, wins[2] + 0.4].forEach((pz) => {
+    const pot = mesh(new THREE.CylinderGeometry(0.08, 0.06, 0.13, 14), potM);
+    pot.position.set(x0 + 0.13, wy0 + 0.075, pz);
+    scene.add(pot);
+    for (let i = 0; i < 7; i++) {
+      const leaf = mesh(new THREE.SphereGeometry(0.05, 8, 6), leafPot);
+      leaf.scale.set(0.5, 1.4, 0.3);
+      const a = (i / 7) * Math.PI * 2;
+      leaf.position.set(x0 + 0.13 + Math.cos(a) * 0.05, wy0 + 0.2 + Math.random() * 0.05, pz + Math.sin(a) * 0.05);
+      leaf.rotation.set(Math.sin(a) * 0.6, 0, -Math.cos(a) * 0.6);
+      scene.add(leaf);
+    }
+  });
   return wins;
 }
 
@@ -460,6 +555,7 @@ function buildOutside(scene, good) {
       for (let i = 0; i < 10; i++) cloud(Math.random() * w, 120 + Math.random() * 300, 90, 12);
     }
   });
+  sky.wrapS = THREE.RepeatWrapping;
   const skyM = new THREE.Mesh(new THREE.PlaneGeometry(420, 120), new THREE.MeshBasicMaterial({ map: sky, fog: false }));
   skyM.position.set(-150, 38, -20);
   skyM.rotation.y = Math.PI / 2;
@@ -478,6 +574,7 @@ function buildOutside(scene, good) {
       g.fillRect(x, Math.random() * h, 1, 2 + (x / w) * 12);
     }
   });
+  seaTex.wrapS = seaTex.wrapT = THREE.RepeatWrapping;
   const sea = mesh(new THREE.PlaneGeometry(260, 400), new THREE.MeshStandardMaterial({ map: seaTex, roughness: 0.25, metalness: 0.1 }), false, false);
   sea.rotation.set(-Math.PI / 2, 0, -Math.PI / 2);
   sea.position.set(-145, -0.6, -20);
@@ -569,6 +666,7 @@ function buildOutside(scene, good) {
   cape.scale.set(1.2, 0.3, 2.2);
   cape.position.set(-70, -0.6, 80);
   scene.add(cape);
+  return { sky, seaTex };
 }
 
 /**
@@ -601,10 +699,14 @@ function mount(container, o) {
   scene.fog = new THREE.Fog(good ? '#d9efff' : '#b0b7bd', 30, 260);
   const M = materials(good);
   const wins = buildRoom(scene, M, good, o.board);
-  buildOutside(scene, good);
+  const outside = buildOutside(scene, good);
 
   // Ánh sáng
-  scene.add(new THREE.HemisphereLight(good ? '#fff4dc' : '#dfe6ee', good ? '#8a6a4a' : '#4c4f55', good ? 1.3 : 1.0));
+  // Ánh sáng môi trường mềm cho phản chiếu trên bàn gỗ, sàn, chai nước
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const envTex = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+  scene.environment = envTex;
+  scene.add(new THREE.HemisphereLight(good ? '#fff4dc' : '#dfe6ee', good ? '#8a6a4a' : '#4c4f55', good ? 0.9 : 0.7));
   scene.add(new THREE.AmbientLight(good ? '#fff3e0' : '#d5dbe3', good ? 0.35 : 0.3));
   // Ánh sáng dịu từ cửa sổ rọi vào chỗ ngồi của Minh Anh
   const winLight = new THREE.SpotLight(good ? '#ffe4b0' : '#dfe7f0', good ? 14 : 8, 8, 0.5, 0.8, 1.2);
@@ -648,7 +750,7 @@ function mount(container, o) {
   ROWS.forEach((z, ri) => {
     COLS.forEach((x, ci) => {
       const deskBook = Math.random() < 0.7;
-      const desk = makeDesk(M, deskBook);
+      const desk = makeDesk(M, deskBook, ci === ME.col && ri === ME.row);
       desk.position.set(x, 0, z - 0.45);
       scene.add(desk);
       [-1, 1].forEach((side) => {
@@ -722,10 +824,63 @@ function mount(container, o) {
 
   const tracked = [];
   const tmp = new THREE.Vector3();
+  // Bụi lấp lánh trôi trong vệt nắng (cảnh có hậu)
+  let dust = null;
+  if (good) {
+    const n = 260;
+    const pos = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      pos[i * 3] = -3.8 + Math.random() * 2.6;
+      pos[i * 3 + 1] = 0.6 + Math.random() * 2.0;
+      pos[i * 3 + 2] = -3.6 + Math.random() * 7.4;
+    }
+    const dg = new THREE.BufferGeometry();
+    dg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const dotTex = canvasTex(32, 32, (g2, w) => {
+      const gr = g2.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2);
+      gr.addColorStop(0, 'rgba(255,250,230,1)');
+      gr.addColorStop(1, 'rgba(255,250,230,0)');
+      g2.fillStyle = gr;
+      g2.fillRect(0, 0, w, w);
+    });
+    dust = new THREE.Points(dg, new THREE.PointsMaterial({ size: 0.025, map: dotTex, transparent: true, opacity: 0.75, depthWrite: false, blending: THREE.AdditiveBlending }));
+    scene.add(dust);
+  }
+  // Vật chuyển động: quạt trần, rèm
+  const spinners = [];
+  const swayers = [];
+  scene.traverse((m) => {
+    // phản chiếu môi trường nhẹ thôi để không cháy sáng
+    if (m.material && m.material.envMapIntensity != null) m.material.envMapIntensity = 0.3;
+    if (m.userData.spin) spinners.push(m);
+    if (m.userData.sway != null) swayers.push(m);
+  });
+
+  // Hậu kỳ: lóa sáng nhẹ + chỉnh màu + viền tối
+  let composer = null;
+  let grade = null;
+  try {
+    composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(960, 540), good ? 0.14 : 0.05, 0.4, 0.92));
+    composer.addPass(new OutputPass());
+    grade = new ShaderPass(GradeShader);
+    grade.uniforms.tint.value.set(...(good ? [1.04, 1.0, 0.94] : [0.93, 0.97, 1.04]));
+    grade.uniforms.sat.value = good ? 1.12 : 0.72;
+    grade.uniforms.vig.value = good ? 0.28 : 0.5;
+    composer.addPass(grade);
+  } catch (e) {
+    composer = null;
+  }
+
   function size() {
     const w = container.clientWidth || 960;
     const h = container.clientHeight || 540;
     renderer.setSize(w, h, false);
+    if (composer) {
+      composer.setPixelRatio(renderer.getPixelRatio());
+      composer.setSize(w, h);
+    }
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   }
@@ -739,16 +894,43 @@ function mount(container, o) {
   // Máy yếu (laptop trường học): nếu khung hình quá chậm thì giảm độ phân giải
   let slow = 0;
   let lastT = 0;
-  let lowered = false;
+  let lowered = 0;
+  const forceHigh = window.__lc3dQuality === 'high'; // cho ảnh chụp kiểm thử
   function frame() {
     if (!alive) return;
     const t = clock.getElapsedTime();
-    if (!lowered && lastT && t - lastT > 0.08 && ++slow > 12) {
-      lowered = true;
-      renderer.setPixelRatio(0.75);
+    const dt = lastT ? Math.min(0.1, t - lastT) : 0.016;
+    // Máy yếu: bước 1 tắt hậu kỳ, bước 2 giảm độ phân giải
+    if (!forceHigh && lowered < 2 && lastT && t - lastT > 0.07 && ++slow > 12) {
+      lowered++;
+      slow = 0;
+      if (lowered === 1 && composer) {
+        composer = null;
+        renderer.toneMappingExposure *= 1.05;
+      } else {
+        lowered = 2;
+        renderer.setPixelRatio(0.75);
+        renderer.shadowMap.autoUpdate = false;
+      }
       size();
     }
     lastT = t;
+    // Biển lấp lánh, mây trôi, quạt quay, rèm lay nhẹ, bụi bay
+    outside.seaTex.offset.y = (outside.seaTex.offset.y + dt * 0.004) % 1;
+    outside.seaTex.offset.x = Math.sin(t * 0.4) * 0.002;
+    outside.sky.offset.x = (outside.sky.offset.x + dt * 0.0015) % 1;
+    spinners.forEach((m) => { m.rotation.y += dt * m.userData.spin; });
+    swayers.forEach((m) => { m.rotation.x = Math.sin(t * 0.9 + m.userData.sway) * 0.025; });
+    if (dust) {
+      const a = dust.geometry.attributes.position;
+      for (let i = 0; i < a.count; i++) {
+        let y = a.getY(i) + dt * 0.03 * (0.5 + ((i * 7) % 5) / 5);
+        if (y > 2.7) y = 0.6;
+        a.setY(i, y);
+        a.setX(i, a.getX(i) + Math.sin(t * 0.7 + i) * dt * 0.02);
+      }
+      a.needsUpdate = true;
+    }
     // Máy quay chậm rãi tiến lại gần, hướng dần về chỗ của Minh Anh
     const k2 = Math.min(1, t / 9);
     const e = k2 * k2 * (3 - 2 * k2);
@@ -761,7 +943,7 @@ function mount(container, o) {
       const u = p.userData;
       u.torso.scale.y = 1 + Math.sin(t * 1.6 + u.phase) * 0.012;
       if (u.laughing) {
-        u.head.position.y = 1.15 + Math.abs(Math.sin(t * 5 + u.phase)) * 0.008;
+        u.head.position.y = 1.17 + Math.abs(Math.sin(t * 5 + u.phase)) * 0.008;
         u.head.rotation.z = Math.sin(t * 2 + u.phase) * 0.05;
       }
     });
@@ -772,7 +954,8 @@ function mount(container, o) {
       tr.el.style.top = Math.min(80, Math.max(10, ((1 - tmp.y) / 2) * 100)) + '%';
       tr.el.style.visibility = tmp.z < 1 ? 'visible' : 'hidden';
     });
-    renderer.render(scene, camera);
+    if (composer) composer.render(dt);
+    else renderer.render(scene, camera);
     window.__lc3dFrames = (window.__lc3dFrames || 0) + 1;
     raf = requestAnimationFrame(frame);
   }
@@ -793,6 +976,9 @@ function mount(container, o) {
     dispose() {
       alive = false;
       cancelAnimationFrame(raf);
+      if (composer) composer.dispose();
+      envTex.dispose();
+      pmrem.dispose();
       window.removeEventListener('resize', size);
       scene.traverse((m) => {
         if (m.geometry) m.geometry.dispose();
