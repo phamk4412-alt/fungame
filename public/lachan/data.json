@@ -39,7 +39,17 @@
       "timeoutHp": -10,
       "scorePerHp": 10
     },
-    "failReviveHp": 15
+    "failReviveHp": 15,
+    "arena": {
+      "secondsPerQuestion": 20,
+      "stormCount": 5,
+      "maxPoints": 1000,
+      "minPoints": 500,
+      "hitHp": 4,
+      "missHp": -16,
+      "timeoutHp": -10,
+      "maxPlayers": 200
+    }
   },
 
   "teams": ["Đội Xanh", "Đội Đỏ", "Đội Vàng", "Đội Tím"],
@@ -256,6 +266,39 @@
         "Hãy kiểm chứng trước khi tin, suy nghĩ trước khi gửi.",
         "Lần sau, hãy là người đầu tiên lên tiếng bảo vệ."
       ]
+    },
+    "scene": {
+      "chatTitle": "Nhóm chat: K22 TRUYỀN THÔNG 🐧",
+      "lastMessages": ["Mọi người ơi…", "Mình không làm chuyện đó. Thật mà.", "Có ai tin mình không?"],
+      "seen": "Đã xem bởi 47 người",
+      "noReply": "Không ai trả lời.",
+      "morning": "Sáng hôm sau",
+      "classTitle": "Lớp K22 Truyền thông · Tiết 1",
+      "rollCall": "Cô giáo điểm danh: \"Minh Anh?\"",
+      "silence": "…",
+      "emptySeat": "Chỗ ngồi cạnh cửa sổ bỏ trống.",
+      "after": ["Ngày hôm sau cũng vậy.", "Những bình luận vẫn còn đó. Người viết đã quên từ lâu, nhưng Minh Anh thì không."],
+      "question": "Nếu có một người lên tiếng sớm hơn…"
+    },
+    "consequences": {
+      "title": "Hậu quả của bạo lực mạng",
+      "victimTitle": "Với người bị bắt nạt",
+      "victim": [
+        "Lo âu, mất ngủ, sợ mở điện thoại mỗi khi có thông báo.",
+        "Tự cô lập, bỏ học, xa lánh bạn bè và gia đình.",
+        "Trầm cảm, tổn thương tinh thần kéo dài nhiều năm."
+      ],
+      "bullyTitle": "Với người bắt nạt và người hùa theo",
+      "bully": [
+        "Vu khống, làm nhục người khác có thể bị xử phạt hành chính hoặc truy cứu trách nhiệm hình sự (Bộ luật Hình sự, Điều 155 và 156).",
+        "Tung địa chỉ, số điện thoại của người khác là vi phạm quy định bảo vệ dữ liệu cá nhân.",
+        "Bình luận đã gửi có thể bị chụp lại và tồn tại mãi trên mạng."
+      ],
+      "helpTitle": "Bạn không một mình",
+      "help": "Nếu bạn đang thấy mệt mỏi như Minh Anh, hãy nói với một người bạn tin tưởng, thầy cô hoặc gia đình. Thấy bạn mình bị bắt nạt, hãy lên tiếng và ở bên bạn ấy.",
+      "hotline": "111",
+      "hotlineLabel": "Tổng đài quốc gia bảo vệ trẻ em · miễn phí · 24/7",
+      "police": "Bị đe dọa an toàn: gọi công an 113"
     }
   }
 }

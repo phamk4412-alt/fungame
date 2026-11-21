@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1022" />
+  <title>Vào chơi · Lá Chắn Ngôn Từ</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+  <link rel="stylesheet" href="play.css" />
+</head>
+<body>
+  <header class="bar">
+    <span>🛡️ <b>Lá Chắn Ngôn Từ</b></span>
+    <span class="me" id="me"></span>
+  </header>
+  <div class="conn" id="conn">Mất kết nối, đang nối lại…</div>
+
+  <!-- Nhập tên -->
+  <section class="view on" id="vJoin">
+    <h1>Vào Đấu Trường</h1>
+    <p class="muted">Nhập tên và mã phòng trên màn hình lớn.</p>
+    <form id="joinForm" autocomplete="off">
+      <label>Mã phòng<input id="code" maxlength="6" inputmode="text" autocapitalize="characters" placeholder="VD: K7QM" required /></label>
+      <label>Tên của bạn<input id="name" maxlength="16" placeholder="Tên hiện trên màn hình" required /></label>
+      <div class="lbl">Chọn đội</div>
+      <div class="teams" id="teamPick"></div>
+      <button class="go" type="submit">Vào chơi ▶</button>
+      <p class="err" id="joinErr"></p>
+    </form>
+    <p class="note">Hãy đặt tên lịch sự nhé: tên của bạn sẽ hiện lên màn hình lớn.</p>
+  </section>
+
+  <!-- Chờ MC -->
+  <section class="view" id="vWait">
+    <div class="big-ic">⏳</div>
+    <h2 id="waitTitle">Đã vào phòng!</h2>
+    <p id="waitText" class="muted">Chờ MC bắt đầu…</p>
+    <div class="teams small" id="teamSwitch"></div>
+  </section>
+
+  <!-- Câu hỏi -->
+  <section class="view" id="vQ">
+    <div class="q-top"><span id="qBadge"></span><b id="qTime"></b></div>
+    <p class="q-prompt" id="qPrompt"></p>
+    <p class="q-quote" id="qQuote"></p>
+    <div class="answers" id="answers"></div>
+  </section>
+
+  <!-- Đã trả lời / kết quả câu -->
+  <section class="view" id="vRes">
+    <div class="big-ic" id="resIc">✅</div>
+    <h2 id="resTitle"></h2>
+    <p id="resText"></p>
+    <div class="res-stats"><div><b id="resScore">0</b><small>điểm</small></div><div><b id="resRank">-</b><small>hạng</small></div><div><b id="resHp">100%</b><small>Tinh thần Minh Anh</small></div></div>
+  </section>
+
+  <!-- Kết thúc -->
+  <section class="view" id="vEnd">
+    <div class="big-ic" id="endIc">🏆</div>
+    <h2 id="endTitle"></h2>
+    <p id="endText"></p>
+    <div class="res-stats"><div><b id="endScore">0</b><small>điểm của bạn</small></div><div><b id="endRank">-</b><small>hạng cá nhân</small></div><div><b id="endTeam">-</b><small>hạng đội</small></div></div>
+    <div class="help" id="endHelp"></div>
+  </section>
+
+  <script src="play.js"></script>
+</body>
+</html>

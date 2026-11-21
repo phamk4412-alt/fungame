@@ -131,6 +131,13 @@
       tone(233, 0.05, 1.4, { type: 'sawtooth', vol: 0.08, slideTo: 87 });
       noise(0, 1.2, { freq: 200, filter: 'lowpass', vol: 0.2, attack: 0.3 });
     },
+    /** Vài nốt piano buồn, chậm, đi xuống cho cảnh kết thúc. */
+    sorrow() {
+      [[659, 0], [587, 0.9], [523, 1.8], [494, 2.7], [440, 3.9]].forEach(([f, s]) => {
+        tone(f, s, 1.6, { type: 'sine', vol: 0.12 });
+        tone(f / 2, s, 1.8, { type: 'triangle', vol: 0.05 });
+      });
+    },
     start() {
       [392, 523, 659, 784].forEach((f, i) => tone(f, i * 0.09, 0.3, { type: 'triangle', vol: 0.16 }));
     },

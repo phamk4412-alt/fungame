@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Đấu Trường · Lá Chắn Ngôn Từ</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="arena.css" />
+  <link rel="stylesheet" href="ending.css" />
+</head>
+<body>
+  <div class="bg-blobs" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div id="flash" class="flash" aria-hidden="true"></div>
+
+  <header class="a-top">
+    <div class="brand"><span class="shield">🛡️</span><b>LÁ CHẮN NGÔN TỪ</b><small>Đấu Trường · cả lớp cùng chơi</small></div>
+    <div class="code-chip">Mã phòng <b id="topCode">····</b></div>
+    <div class="people"><b id="topPeople">0</b> người chơi</div>
+    <div class="tools">
+      <button id="muteBtn" class="tool" title="Bật/tắt âm thanh (M)">🔊</button>
+      <button id="fsBtn" class="tool" title="Toàn màn hình (F)">⛶</button>
+      <a class="tool" href="./" title="Chế độ một đội">⌂</a>
+    </div>
+  </header>
+  <div class="conn" id="conn">Mất kết nối, đang nối lại…</div>
+
+  <!-- Phòng chờ: QR + đội -->
+  <main class="a-screen lobby" id="lobby">
+    <section class="panel join-card">
+      <h2>📱 Quét mã để vào chơi</h2>
+      <div class="qr" id="qr"></div>
+      <div class="join-url" id="joinUrl"></div>
+      <div class="muted">hoặc nhập mã phòng</div>
+      <div class="big-code" id="bigCode">····</div>
+    </section>
+    <section class="lobby-right">
+      <div class="panel lobby-hero">
+        <div class="avatar" id="heroAvatar"></div>
+        <div>
+          <h1>Cả lớp cùng giữ Tinh thần cho Minh Anh</h1>
+          <p id="heroText"></p>
+        </div>
+      </div>
+      <div class="team-cols" id="teamCols"></div>
+      <div class="lobby-foot">
+        <p>Bấm vào tên một người 2 lần để mời ra khỏi phòng.</p>
+        <button class="big-btn" id="startBtn">▶ BẮT ĐẦU <kbd>Space</kbd></button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Đang chơi: câu hỏi + công bố -->
+  <main class="a-screen play" id="play">
+    <aside class="col">
+      <section class="panel mini-profile">
+        <div class="avatar" id="victimAvatar"></div>
+        <h2 id="victimName"></h2>
+        <p id="victimHandle"></p>
+      </section>
+      <section class="panel hp-panel hp-big" id="hpPanel">
+        <div class="hp-head"><span>TINH THẦN MINH ANH</span><b id="hpValue">100%</b></div>
+        <div class="hp-bar"><div id="hpFill" class="hp-fill"></div><div id="hpGhost" class="hp-ghost"></div><div class="hp-ticks"><i></i><i></i><i></i><i></i></div></div>
+        <div class="hp-mood"><span id="hpMoodIcon">😊</span><span id="hpMood">Ổn định</span></div>
+        <div class="hp-delta-big" id="hpDelta"></div>
+      </section>
+      <section class="panel together">Mọi đội <b>cùng</b> giữ thanh này. Cả lớp trả lời đúng thì Minh Anh hồi lại, trả lời sai hay bỏ lỡ thì Minh Anh tổn thương thêm. Tinh thần phải trên <b id="winHp">50</b>% khi kết thúc.</section>
+    </aside>
+    <section class="col" id="qCol">
+      <div class="q-head"><span class="q-badge" id="qBadge"></span><span class="q-count" id="qCount"></span></div>
+      <h2 class="q-prompt" id="qPrompt"></h2>
+      <div class="q-body" id="qBody"></div>
+      <div class="opts" id="opts"></div>
+      <div class="panel explain" id="explain"></div>
+    </section>
+    <aside class="col">
+      <section class="panel timer-box">
+        <div class="timer" id="timer">
+          <svg viewBox="0 0 120 120" class="ring"><circle cx="60" cy="60" r="52" class="ring-bg" /><circle cx="60" cy="60" r="52" class="ring-fg" id="ringFg" /></svg>
+          <div class="timer-num"><b id="timerNum">--</b><small>giây</small></div>
+        </div>
+        <div class="answered"><b id="answered">0/0</b>đã trả lời</div>
+      </section>
+      <button class="big-btn next-btn" id="nextBtn">Công bố đáp án <kbd>Space</kbd></button>
+      <section class="panel standings">
+        <div class="panel-title">BẢNG XẾP HẠNG ĐỘI <small>điểm TB / người</small></div>
+        <div id="standings"></div>
+        <div class="top-players" id="topPlayers"></div>
+      </section>
+    </aside>
+  </main>
+
+  <!-- Kết thúc khi thắng -->
+  <main class="a-screen final" id="final">
+    <section class="panel final-card" id="finalCard"></section>
+  </main>
+
+  <!-- Kết thúc khi thua (ending.js) -->
+  <div class="lce-root" id="lceRoot"></div>
+  <canvas id="confetti" class="confetti"></canvas>
+
+  <script src="data.js"></script>
+  <script src="rules.js"></script>
+  <script src="audio.js"></script>
+  <script src="avatar.js"></script>
+  <script src="vendor/qrcode.js"></script>
+  <script src="ending.js"></script>
+  <script src="arena-host.js"></script>
+</body>
+</html>
