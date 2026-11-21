@@ -64,7 +64,9 @@ Mở `/lachan/arena.html` trên máy chiếu (hoặc bấm **👥 ĐẤU TRƯỜ
 
 - 13 câu: 5 câu Màn 1, 5 bình luận Màn 2 (chọn kỹ năng), 3 tình huống Màn 3. Mỗi câu 20 giây, trả lời càng nhanh càng nhiều điểm (1000 → 500). Màn 3 chấm theo mức phương án giúp Minh Anh hồi phục.
 - Đội xếp hạng theo **điểm trung bình mỗi người**, nên đội đông hay ít người đều công bằng. Màn chiếu hiện số người đã trả lời, số người chọn từng đáp án, giải thích và top 5 cá nhân.
-- **Tinh thần của Minh Anh là của chung:** cả lớp đúng nhiều thì hồi, sai hoặc bỏ lỡ thì tụt. Về 0 là kết thúc ngay. Cuối game trên 50% thì thắng (phát kết thúc có hậu rồi bảng xếp hạng), còn lại phát cảnh kết thúc và màn hậu quả kèm bảng xếp hạng; điện thoại hiện số 111 (bấm để gọi).
+- **Mỗi đội giữ một thanh Tinh thần riêng** (hiện cạnh tên đội), tính theo câu trả lời của thành viên đội đó; thanh lớn ở giữa là của cả lớp. Kết thúc khi hết câu hoặc khi mọi đội đều về 0. Đội trên 50% thì thắng.
+- **Mỗi đội một cái kết trên điện thoại:** đội thắng xem kết có hậu, đội thua xem cảnh kết thúc buồn và màn hậu quả (có số 111, bấm để gọi). Xem xong bấm "Xem kết quả của bạn" để thấy điểm và hạng.
+- **Máy chiếu luôn chiếu kết có hậu** kèm bảng xếp hạng ghi rõ đội nào giữ được, đội nào chưa. MC bấm **🌧️ Chiếu kết buồn** để cả lớp cùng xem kết buồn và hậu quả (bấm lại để về kết có hậu).
 - MC: Space để bắt đầu / công bố đáp án / sang câu sau. Bấm 2 lần vào tên một người trong phòng chờ để mời ra (ví dụ tên không phù hợp). Mất mạng thì tự nối lại, điểm vẫn giữ.
 - Chỉnh thời gian, điểm, mức tăng giảm Tinh thần ở `settings.arena` trong `data.json`.
 

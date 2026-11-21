@@ -7,6 +7,7 @@
   <title>Vào chơi · Lá Chắn Ngôn Từ</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
   <link rel="stylesheet" href="play.css" />
+  <link rel="stylesheet" href="ending.css" />
 </head>
 <body>
   <header class="bar">
@@ -51,7 +52,7 @@
     <div class="big-ic" id="resIc">✅</div>
     <h2 id="resTitle"></h2>
     <p id="resText"></p>
-    <div class="res-stats"><div><b id="resScore">0</b><small>điểm</small></div><div><b id="resRank">-</b><small>hạng</small></div><div><b id="resHp">100%</b><small>Tinh thần Minh Anh</small></div></div>
+    <div class="res-stats"><div><b id="resScore">0</b><small>điểm</small></div><div><b id="resRank">-</b><small>hạng</small></div><div><b id="resHp">100%</b><small>Tinh thần (đội)</small></div></div>
   </section>
 
   <!-- Kết thúc -->
@@ -63,6 +64,12 @@
     <div class="help" id="endHelp"></div>
   </section>
 
+  <!-- Cảnh kết thúc của đội mình (có hậu nếu đội giữ được Tinh thần, buồn nếu không) -->
+  <div class="lce-root" id="lceRoot"></div>
+
+  <script src="avatar.js"></script>
+  <script src="ending.js"></script>
+  <script type="module" src="ending3d.js"></script>
   <script src="play.js"></script>
 </body>
 </html>

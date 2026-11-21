@@ -155,30 +155,42 @@
 
   function renderStandings(s) {
     const max = Math.max(1, ...s.teams.map((t) => t.avg));
-    $('standings').innerHTML = s.teams.map((t, r) => `<div class="st-row" style="--tc:${TEAM_COLORS[t.team]}"><span class="rk">${r + 1}</span><span class="nm">${esc(t.name)} <small>${t.count} người</small></span><span class="val">${t.avg.toLocaleString('vi-VN')}</span><span class="bar"><i style="width:${(100 * t.avg) / max}%"></i></span></div>`).join('');
+    $('standings').innerHTML = s.teams.map((t, r) => `<div class="st-row" style="--tc:${TEAM_COLORS[t.team]}"><span class="rk">${r + 1}</span><span class="nm">${esc(t.name)} <small>${t.count} người${t.count ? ` · 💗 ${t.hp}%` : ''}</small></span><span class="val">${t.avg.toLocaleString('vi-VN')}</span><span class="bar"><i style="width:${(100 * t.avg) / max}%"></i></span></div>`).join('');
     $('topPlayers').innerHTML = '<div class="panel-title">CÁ NHÂN XUẤT SẮC</div>' + s.players.slice(0, 5).map((p) => `<div class="tp" style="--tc:${TEAM_COLORS[p.team]}"><span><i></i>${esc(p.name)}</span><b>${p.score.toLocaleString('vi-VN')}${s.phase === 'reveal' && p.lastPoints ? `<em>+${p.lastPoints}</em>` : ''}</b></div>`).join('');
   }
 
   function podiumHtml(s) {
-    const order = [1, 0, 2, 3].filter((i) => i < s.teams.length);
-    return `<div class="podium">${order.map((r) => { const t = s.teams[r]; return `<div class="pod p${r + 1}" style="--tc:${TEAM_COLORS[t.team]}"><b>${esc(t.name)}</b><small>${t.avg.toLocaleString('vi-VN')} điểm TB · ${t.count} người</small><div class="blk">${r + 1}</div></div>`; }).join('')}</div>
+    const teams = s.teams.filter((t) => t.count > 0); // bỏ đội không có ai
+    const order = [1, 0, 2, 3].filter((i) => i < teams.length);
+    return `<div class="podium">${order.map((r) => { const t = teams[r]; return `<div class="pod p${r + 1}" style="--tc:${TEAM_COLORS[t.team]}"><b>${esc(t.name)}</b><small>${t.avg.toLocaleString('vi-VN')} điểm TB · ${t.count} người</small>${t.outcome ? `<em class="pod-res ${t.outcome}">${t.outcome === 'win' ? '💚 Giữ được Minh Anh' : '💔 Chưa giữ được'} · ${t.hp}%</em>` : ''}<div class="blk">${r + 1}</div></div>`; }).join('')}</div>
       <div class="mvp">${s.players.slice(0, 3).map((p, i) => `<span>${['🥇', '🥈', '🥉'][i]} ${esc(p.name)} · ${p.score.toLocaleString('vi-VN')}</span>`).join('')}</div>`;
   }
 
-  function renderEnd(s) {
-    // Thắng: Minh Anh đi học lại, cười nói với cả lớp. Thua: cảnh kết thúc an toàn rồi tới màn hậu quả.
-    // Cả hai đều kết bằng bảng xếp hạng đội.
-    const win = s.outcome === 'win';
+  /**
+   * Kết thúc: máy chiếu luôn chiếu kết có hậu; mỗi điện thoại xem kết của đội mình.
+   * MC có nút chiếu kết buồn cho cả lớp xem (khi có đội thua, hoặc để bàn luận).
+   * @param {object} s trạng thái từ server
+   * @param {'good'|'bad'} kind
+   */
+  function renderEnd(s, kind) {
+    const win = kind !== 'bad';
+    if (ending) { ending.stop(); ending = null; }
+    stopConfetti();
     screen('play');
     if (!win) S.doom();
+    const losers = s.teams.filter((t) => t.outcome === 'lose');
+    const note = losers.length
+      ? `<p class="end-note">${losers.map((t) => esc(t.name)).join(', ')} chưa giữ được Tinh thần cho Minh Anh: điện thoại của các bạn đang chiếu kết buồn.</p>`
+      : '';
     ending = window.LCEnding.play($('lceRoot'), D, {
       kind: win ? 'good' : 'bad',
       sound: S,
-      stats: win ? `<div><b>${s.hp}%</b><small>Tinh thần cuối</small></div><div><b>${s.players.length}</b><small>người cùng bảo vệ</small></div>` : '',
-      extra: `<div class="podium-wrap"><h3>BẢNG XẾP HẠNG ĐỘI${win ? '' : ' · Tinh thần cuối của Minh Anh: ' + s.hp + '%'}</h3>${podiumHtml(s)}</div>`,
+      stats: win ? `<div><b>${s.teams.filter((t) => t.outcome === 'win').length}/${s.teams.filter((t) => t.outcome).length}</b><small>đội giữ được Minh Anh</small></div><div><b>${s.players.length}</b><small>người cùng bảo vệ</small></div>` : '',
+      extra: `<div class="podium-wrap"><h3>BẢNG XẾP HẠNG ĐỘI</h3>${podiumHtml(s)}${win ? note : ''}</div>`,
       onDone(btns) {
-        btns.innerHTML = `<button id="lceAgain">${win ? '↻ Chơi lại' : '↻ Chơi lại, lần này hãy lên tiếng'}</button>`;
+        btns.innerHTML = `<button id="lceAgain">↻ Chơi lại</button><button id="lceOther" class="${win ? 'sad' : ''}">${win ? '🌧️ Chiếu kết buồn' : '🌤️ Chiếu kết có hậu'}</button>`;
         btns.querySelector('#lceAgain').onclick = () => cmd('reset');
+        btns.querySelector('#lceOther').onclick = () => renderEnd(st, win ? 'bad' : 'good');
         if (win) confetti();
       },
     });
@@ -219,7 +231,7 @@
       renderStandings(s);
     } else if (s.phase === 'end' && changed) {
       deadline = 0;
-      renderEnd(s);
+      renderEnd(s, 'good');
     }
     prev = { phase: s.phase, qIndex: s.qIndex };
   }
