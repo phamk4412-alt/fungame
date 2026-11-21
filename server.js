@@ -7,6 +7,7 @@ const { WebSocketServer } = require('ws');
 const { Table } = require('./game');
 const { XiDachTable } = require('./xidach');
 const fishApi = require('./fish/api');
+const lachanArena = require('./lachan/server');
 
 const GAMES = { poker: Table, xidach: XiDachTable };
 
@@ -91,6 +92,12 @@ wss.on('connection', (ws) => {
       return;
     }
 
+    // Đấu Trường Lá Chắn Ngôn Từ có giao thức riêng (lc:*)
+    if (typeof msg.type === 'string' && msg.type.startsWith('lc:')) {
+      lachanArena.handle(ws, msg);
+      return;
+    }
+
     if (msg.type === 'join') {
       const code = cleanCode(msg.room) || crypto.randomBytes(3).toString('hex').toUpperCase();
       const room = getRoom(code, msg.game);
@@ -142,6 +149,7 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('close', () => {
+    lachanArena.close(ws);
     const room = ws.room;
     if (!room) return;
     room.clients.delete(ws);

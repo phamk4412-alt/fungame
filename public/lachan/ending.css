@@ -1,0 +1,69 @@
+/* Cảnh kết thúc khi thua (ending.js) — dùng chung cho chế độ một đội và Đấu Trường */
+.lce-root { position: fixed; inset: 0; z-index: 60; background: #000; display: none; color: #e9ecf8; font-family: "Segoe UI", "Be Vietnam Pro", Roboto, Arial, sans-serif; }
+.lce-root.show { display: block; animation: lceFade 1.6s ease both; }
+@keyframes lceFade { from { opacity: 0; } }
+.lce { position: absolute; inset: 0; overflow: hidden; }
+.lce-step { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 1.4s ease; padding: 2rem; }
+.lce-step.on { opacity: 1; pointer-events: auto; }
+.lce-caption { font-size: 1.6rem; margin: 1.2rem 0 0; opacity: 0; transition: opacity 1.2s; text-align: center; }
+.lce-caption.on { opacity: 1; }
+.lce-caption.soft { color: #8890ad; letter-spacing: 0.4em; }
+
+/* 1) điện thoại */
+.lce-phone { width: min(30rem, 86vw); background: #111522; border: 1px solid #2a3150; border-radius: 1.6rem; padding: 1rem 1rem 1.2rem; box-shadow: 0 0 6rem rgba(60, 80, 160, 0.25); filter: saturate(0.6); }
+.lce-phone-head { font-size: 0.95rem; color: #9aa3c7; padding-bottom: 0.7rem; border-bottom: 1px solid #222840; margin-bottom: 0.8rem; }
+.lce-msgs { display: flex; flex-direction: column; gap: 0.6rem; min-height: 12rem; }
+.lce-msg { display: flex; gap: 0.6rem; align-items: flex-end; animation: lceIn .6s ease both; }
+.lce-msg p { margin: 0; background: #262c44; padding: 0.6rem 0.9rem; border-radius: 1rem 1rem 1rem 0.2rem; font-size: 1.2rem; }
+.lce-msg .avatar { width: 2.2rem; height: 2.2rem; border-radius: 50%; overflow: hidden; flex: none; }
+.lce-msg .avatar svg { width: 100%; height: 100%; display: block; }
+@keyframes lceIn { from { opacity: 0; transform: translateY(0.6rem); } }
+.lce-seen { text-align: right; font-size: 0.85rem; color: #6d7596; margin-top: 0.8rem; opacity: 0; transition: opacity 1s; }
+.lce-seen.on { opacity: 1; }
+
+/* 2) chữ giữa màn hình */
+.lce-title span { font-size: 2.6rem; letter-spacing: 0.3em; color: #c9cee6; font-weight: 300; }
+.lce-after p { font-size: 1.9rem; max-width: 52rem; text-align: center; margin: 0.6rem 0; opacity: 0; animation: lceIn 1.4s ease both; animation-delay: var(--d); animation-play-state: paused; font-weight: 300; }
+.lce-after.on p { animation-play-state: running; }
+.lce-after p.q { margin-top: 2rem; color: #ffd98a; font-weight: 600; }
+
+/* 3) lớp học */
+.lce-class-label { font-size: 1rem; letter-spacing: 0.2em; color: #8890ad; margin-bottom: 0.8rem; }
+.classroom { width: min(64rem, 92vw); max-height: 62vh; border-radius: 1rem; filter: saturate(0.55) brightness(0.9); }
+.classroom .board { fill: #e9f2ea; font: 600 30px "Segoe UI", sans-serif; opacity: 0.85; }
+.classroom .board.small { font-size: 22px; font-weight: 400; }
+.classroom .desk-top { fill: #8b6a48; }
+.classroom .desk-front { fill: #5c4630; }
+.classroom .chair-back { fill: #3c3f52; }
+.classroom .mate { opacity: 0.72; }
+.classroom .beam { animation: lceBeam 6s ease-in-out infinite alternate; }
+@keyframes lceBeam { to { opacity: 0.6; } }
+.classroom .seat.empty .desk-top, .classroom .seat.empty .chair-back { transition: fill 2s, filter 2s; }
+.classroom .seat.empty.lit .desk-top { fill: #c9a578; filter: drop-shadow(0 0 12px rgba(255, 220, 150, 0.8)); }
+.classroom .seat.empty.lit .chair-back { fill: #5b6080; }
+
+/* 5) hậu quả */
+.lce-cons { justify-content: flex-start; overflow-y: auto; padding: 3vh 4vw; background: radial-gradient(900px 600px at 50% 0%, #1b2347 0%, #05060c 70%); }
+.lce-cons h1 { font-size: 2.8rem; margin: 0.4rem 0 1.4rem; text-align: center; }
+.lce-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; width: min(80rem, 100%); }
+.lce-cols section { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1rem; padding: 1rem 1.4rem; }
+.lce-cols h3 { margin: 0 0 0.6rem; font-size: 1.3rem; }
+.lce-cols li { font-size: 1.15rem; line-height: 1.45; margin: 0.4rem 0; }
+.lce-help { display: flex; gap: 1.6rem; align-items: center; width: min(80rem, 100%); margin-top: 1.4rem; background: linear-gradient(90deg, rgba(62, 227, 155, 0.16), rgba(79, 140, 255, 0.12)); border: 1px solid rgba(62, 227, 155, 0.4); border-radius: 1rem; padding: 1rem 1.4rem; }
+.lce-help h3 { margin: 0 0 0.3rem; font-size: 1.3rem; }
+.lce-help p { margin: 0.2rem 0; font-size: 1.1rem; line-height: 1.45; }
+.lce-help .police { color: #b8c2e8; }
+.lce-hotline { flex: none; text-align: center; background: #3ee39b; color: #04281a; border-radius: 1rem; padding: 0.6rem 1.4rem; }
+.lce-hotline b { display: block; font-size: 4rem; line-height: 1; }
+.lce-hotline small { display: block; font-size: 0.85rem; font-weight: 600; max-width: 12rem; }
+.lce-final { font-size: 1.3rem; color: #ffd98a; text-align: center; max-width: 60rem; margin: 1.2rem 0 0.6rem; }
+.lce-btns { display: flex; gap: 1rem; margin: 0.8rem 0 1rem; flex-wrap: wrap; justify-content: center; }
+.lce-btns button { font: inherit; font-size: 1.1rem; font-weight: 700; padding: 0.8rem 1.6rem; border-radius: 999px; border: 0; cursor: pointer; background: linear-gradient(90deg, #3d6bff, #b24dff); color: #fff; }
+.lce-btns button.ghost { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); }
+.lce-skip { position: absolute; right: 1.2rem; bottom: 1.2rem; font: inherit; background: rgba(255, 255, 255, 0.08); color: #9aa3c7; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 999px; padding: 0.4rem 1rem; cursor: pointer; }
+@media (max-width: 760px) {
+  .lce-cols { grid-template-columns: 1fr; }
+  .lce-help { flex-direction: column; }
+  .lce-cons h1 { font-size: 1.9rem; }
+  .lce-after p { font-size: 1.3rem; }
+}

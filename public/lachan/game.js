@@ -236,6 +236,7 @@
 
   // ---------- Điều hướng vòng chơi ----------
   function goRound(n, opts) {
+    stopEnding();
     stopConfetti();
     clearStage();
     G.round = n;
@@ -720,10 +721,30 @@
       if (revive) goRound(3, { hp: CFG.failReviveHp });
       else { setHp(CFG.hpStart, true); G.notif = 0; $('notifCount').textContent = '0'; goRound(1); }
     };
-    showOverlay('endScreen');
     stopConfetti();
+    if (kind === 'fail' && window.LCEnding) {
+      // Tinh thần về 0: phát cảnh kết thúc (tin nhắn không ai trả lời, chỗ ngồi bỏ trống) rồi tới màn hậu quả
+      showOverlay(null);
+      S.doom();
+      ending = window.LCEnding.play($('lceRoot'), D, {
+        sound: S,
+        onDone(btns) {
+          btns.innerHTML = `<button id="lceCta">${esc($('endCta').textContent)}</button><button class="ghost" id="lceHome">Về màn hình chính</button>`;
+          btns.querySelector('#lceCta').onclick = () => { stopEnding(); $('endCta').click(); };
+          btns.querySelector('#lceHome').onclick = () => { stopEnding(); goHome(); };
+        },
+      });
+      return;
+    }
+    showOverlay('endScreen');
     if (kind === 'win') { S.applause(4); confetti(); }
     else { S.doom(); }
+  }
+
+  let ending = null;
+  function stopEnding() {
+    if (ending) ending.stop();
+    ending = null;
   }
 
   // ---------- Pháo giấy ----------
@@ -794,6 +815,7 @@
   }
 
   function goHome() {
+    stopEnding();
     stopConfetti();
     clearStage();
     G.round = 0;
@@ -867,7 +889,11 @@
         else if (G.phase === 'reveal' && !G.paused) {
           if (G.round === 1) nextR1();
           else if (G.round === 3) nextR3();
-        } else if (G.phase === 'end') $('endCta').click();
+        } else if (G.phase === 'end') {
+          if (ending && !$('lceRoot').querySelector('#lceCta')) ending.skip();
+          else if (ending) $('lceRoot').querySelector('#lceCta').click();
+          else $('endCta').click();
+        }
         return;
       }
       if (G.paused) return;

@@ -6,6 +6,7 @@
   <title>Lá Chắn Ngôn Từ · 5 giây trước nút Gửi</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="ending.css" />
 </head>
 <body>
   <div class="bg-blobs" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -116,7 +117,7 @@
       <p class="intro-tag" id="introTag"></p>
       <div class="intro-rounds" id="introRounds"></div>
       <div class="intro-team">Đội bắt đầu: <select id="introTeam"></select></div>
-      <button class="big-btn" id="startBtn">▶ BẮT ĐẦU</button>
+      <div class="intro-btns"><button class="big-btn" id="startBtn">▶ BẮT ĐẦU</button><a class="big-btn arena-btn" href="arena.html">👥 ĐẤU TRƯỜNG<small>Cả lớp chơi bằng điện thoại</small></a></div>
       <p class="keys">Phím tắt MC: <kbd>Space</kbd> tiếp tục · <kbd>A</kbd>/<kbd>B</kbd> Màn 1 · <kbd>1</kbd>–<kbd>4</kbd> Màn 2 · <kbd>1</kbd>–<kbd>3</kbd> Màn 3 · <kbd>P</kbd> dừng · <kbd>F</kbd> toàn màn hình · <kbd>M</kbd> âm thanh</p>
     </div>
   </section>
@@ -147,6 +148,9 @@
     </div>
   </section>
 
+  <!-- Cảnh kết thúc khi Tinh thần về 0 (ending.js) -->
+  <div class="lce-root" id="lceRoot"></div>
+
   <div class="paused-tag" id="pausedTag">⏸ TẠM DỪNG · bấm P để tiếp tục</div>
   <div class="toasts" id="toasts"></div>
   <canvas id="confetti" class="confetti"></canvas>
@@ -156,6 +160,7 @@
   <script src="rules.js"></script>
   <script src="audio.js"></script>
   <script src="avatar.js"></script>
+  <script src="ending.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

@@ -56,7 +56,17 @@ Gameshow chống bạo lực mạng cho sân khấu: laptop nối máy chiếu, 
 - **Màn 1 · Soi Bóng Tối:** 5 bình luận, phân loại Góp ý xây dựng (phím A) hay Bạo lực mạng (phím B), có giải thích sau mỗi câu.
 - **Màn 2 · Cơn Bão Bình Luận:** 60 giây, bình luận ác ý trôi lên ngày càng nhanh; chọn đúng kỹ năng cho bình luận MỤC TIÊU: 1 Chụp bằng chứng, 2 Chặn & Báo cáo, 3 Khóa bình luận, 4 Cầu cứu hỗ trợ. Bình luận chạm đỉnh làm Tinh thần giảm.
 - **Màn 3 · 5 Giây Đảo Ngược:** vào vai bạn cùng lớp, 3 tình huống trong nhóm chat, chọn 1 trong 3 cách phản hồi (phím 1–3) để hồi Tinh thần cho Minh Anh.
-- HP về 0 thì hiện màn hình hậu quả tâm lý; hết game với HP trên 50% thì thắng (vỗ tay, pháo giấy).
+- HP về 0 thì phát cảnh kết thúc: tin nhắn cuối của Minh Anh không ai trả lời, sáng hôm sau chỗ ngồi của bạn ấy trong lớp bỏ trống, rồi tới màn **Hậu quả của bạo lực mạng** (với người bị bắt nạt, với người bắt nạt) kèm Tổng đài 111. Cảnh này cố ý không mô tả chuyện gì đã xảy ra. Hết game với HP trên 50% thì thắng (vỗ tay, pháo giấy).
+
+### Đấu Trường (cả lớp chơi bằng điện thoại)
+
+Mở `/lachan/arena.html` trên máy chiếu (hoặc bấm **👥 ĐẤU TRƯỜNG** ở màn hình chính). Màn hình hiện mã QR và mã phòng 4 ký tự; khán giả quét QR hoặc vào `/lachan/play.html` trên điện thoại, nhập tên, chọn đội (hoặc để tự xếp cho đều). Cần server đang chạy (bản trên Render) và điện thoại có mạng.
+
+- 13 câu: 5 câu Màn 1, 5 bình luận Màn 2 (chọn kỹ năng), 3 tình huống Màn 3. Mỗi câu 20 giây, trả lời càng nhanh càng nhiều điểm (1000 → 500). Màn 3 chấm theo mức phương án giúp Minh Anh hồi phục.
+- Đội xếp hạng theo **điểm trung bình mỗi người**, nên đội đông hay ít người đều công bằng. Màn chiếu hiện số người đã trả lời, số người chọn từng đáp án, giải thích và top 5 cá nhân.
+- **Tinh thần của Minh Anh là của chung:** cả lớp đúng nhiều thì hồi, sai hoặc bỏ lỡ thì tụt. Về 0 là kết thúc ngay. Cuối game trên 50% thì thắng, còn lại phát cảnh kết thúc và màn hậu quả kèm bảng xếp hạng; điện thoại hiện số 111 (bấm để gọi).
+- MC: Space để bắt đầu / công bố đáp án / sang câu sau. Bấm 2 lần vào tên một người trong phòng chờ để mời ra (ví dụ tên không phù hợp). Mất mạng thì tự nối lại, điểm vẫn giữ.
+- Chỉnh thời gian, điểm, mức tăng giảm Tinh thần ở `settings.arena` trong `data.json`.
 
 Phím MC: Space tiếp tục, P tạm dừng, F toàn màn hình, M âm thanh, H về màn hình chính. Chọn đội đang chơi ở góc trên; bảng điểm 4 đội lưu trong trình duyệt. Âm thanh tổng hợp bằng Web Audio, avatar vẽ bằng SVG, không tải gì từ mạng.
 

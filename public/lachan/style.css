@@ -433,3 +433,8 @@ body.paused .layout { filter: grayscale(0.6) brightness(0.7); }
 .score-panel { padding: 0.8rem 1rem; }
 .teams li { padding: 0.35rem 0.8rem; }
 .r1-card.is-bully ~ .r1-question, .r1-card.is-good ~ .r1-question { display: none; }
+
+/* Nút sang chế độ Đấu Trường */
+.intro-btns { display: flex; gap: 1.2rem; justify-content: center; align-items: center; flex-wrap: wrap; }
+.arena-btn { display: inline-flex; flex-direction: column; align-items: center; text-decoration: none; color: #fff; background: linear-gradient(90deg, #12b88a, #2f8cff, #12b88a); background-size: 200% 100%; box-shadow: 0 0.8rem 2.4rem rgba(30, 200, 160, 0.4); padding: 0.7rem 2.4rem; }
+.arena-btn small { font-size: 0.8rem; letter-spacing: 0; font-weight: 600; opacity: 0.9; }
