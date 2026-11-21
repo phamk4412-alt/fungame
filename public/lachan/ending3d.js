@@ -262,11 +262,6 @@ function makePerson(o) {
     fall.scale.set(1.25, 1, 0.45);
     fall.position.set(0, -0.13, -0.075);
     head.add(fall);
-    [0.08, -0.08].forEach((x) => {
-      const side = mesh(new THREE.CapsuleGeometry(0.022, 0.12, 6, 10), hairM);
-      side.position.set(x * 1.02, -0.06, 0.0);
-      head.add(side);
-    });
   } else if (o.style === 'bun') {
     const bun = mesh(new THREE.SphereGeometry(0.045, 16, 12), hairM);
     bun.position.set(0, 0.1, -0.07);
