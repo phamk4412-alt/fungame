@@ -1,0 +1,1694 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Patrol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#f7e6cc;--dim:#cdb6c8;--deep:#1b1530;--plum:#3a2a52;--gold:#f8c060;--ember:#f08a3a}
+html,body{margin:0;height:100%;background:var(--deep);overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+canvas{position:fixed;left:0;top:0;image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+#ov{pointer-events:none}
+body.flying,body.flying canvas{cursor:none}
+.mono{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace}
+#title{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;transition:opacity .6s steps(6);z-index:5}
+#title.gone{opacity:0;pointer-events:none}
+#card{background:rgba(27,21,48,.82);padding:34px 40px 28px;max-width:min(520px,86vw);text-align:center;color:var(--ink);
+  box-shadow:0 0 0 4px #2a1f44,0 0 0 8px #f0b060,0 0 0 12px #2a1f44,12px 12px 0 12px rgba(10,6,20,.55)}
+#card h1{font-family:'Press Start 2P',monospace;font-weight:400;font-size:clamp(34px,8vw,64px);margin:4px 0 14px;letter-spacing:4px;color:#ffd890;
+  text-shadow:4px 4px 0 #b8343a,8px 8px 0 #3a2a52}
+#card .tag{font-size:12px;color:var(--dim);letter-spacing:1px;margin:0 0 22px}
+#bar{height:14px;background:#2a1f44;box-shadow:0 0 0 2px #6a5a8a;margin:0 auto 10px;width:100%;position:relative}
+#bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:repeating-linear-gradient(90deg,#f8c060 0 6px,#f08a3a 6px 8px)}
+#status{font-size:11px;color:var(--dim);min-height:14px;margin:0 0 18px}
+#go{font-family:'Press Start 2P',monospace;font-size:14px;color:#1b1530;background:#ffd890;border:0;padding:14px 20px;cursor:pointer;
+  box-shadow:0 0 0 3px #1b1530,0 0 0 6px #ffd890,6px 6px 0 6px #b8343a;visibility:hidden}
+#go.ready{visibility:visible;animation:blink 1.2s steps(2) infinite}
+@keyframes blink{50%{background:#fff0c8}}
+#card .keys{margin:22px 0 0;font-size:11px;line-height:1.9;color:#bfaed0}
+#card .keys b{color:var(--ink);font-weight:700}
+#hints{position:fixed;left:50%;bottom:6px;transform:translateX(-50%);z-index:4;padding:5px 12px;background:rgba(22,16,38,.62);color:#e9d8c6;
+  font-size:11px;letter-spacing:.3px;white-space:nowrap;display:none;gap:14px;align-items:center;max-width:96vw;overflow:hidden}
+#hints span{opacity:.82}
+#hints b{color:#ffd890;font-weight:700}
+#msl{letter-spacing:2px;color:#ffd890}
+#msl i{font-style:normal;color:#5a4a6a}
+#view{color:#9ef08a}
+#snd{position:fixed;right:10px;top:10px;z-index:6;font-family:'JetBrains Mono',monospace;font-size:11px;color:#e9d8c6;background:rgba(22,16,38,.62);
+  border:0;padding:6px 10px;cursor:pointer;box-shadow:0 0 0 2px #4a3a6a}
+#snd.on{color:#1b1530;background:#ffd890}
+#touch{display:none}
+body.touch #touch{display:block}
+body.touch #hints .mouse{display:none}
+.tb{position:fixed;z-index:6;width:68px;height:68px;font-family:'Press Start 2P',monospace;font-size:10px;color:#f7e6cc;background:rgba(22,16,38,.55);
+  border:0;box-shadow:0 0 0 3px #f0b060;display:flex;align-items:center;justify-content:center;touch-action:none}
+.tb.down{background:#f0b060;color:#1b1530}
+#tFire{right:22px;bottom:96px}#tRoll{right:104px;bottom:40px}#tBurn{left:22px;bottom:40px;height:110px}#tView{right:22px;top:52px;width:58px;height:40px}
+#err{position:fixed;inset:auto 0 40% 0;text-align:center;color:#ffd890;font-family:'JetBrains Mono',monospace;display:none;z-index:9}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<canvas id="ov"></canvas>
+<div id="title"><div id="card">
+  <h1>PATROL</h1>
+  <p class="tag mono">LAKE COUNTRY &middot; AUTUMN &middot; LAST LIGHT</p>
+  <div id="bar"><i></i></div>
+  <p id="status" class="mono">Starting&hellip;</p>
+  <button id="go">CLICK TO FLY</button>
+  <p class="keys mono"><b>Mouse</b> steer &middot; <b>Click</b> barrel roll &middot; <b>Hold</b> afterburner<br><b>Right click / F</b> missile &middot; <b>Space</b> change view</p>
+</div></div>
+<div id="hints" class="mono"><span class="mouse"><b>MOUSE</b> steer</span><span class="mouse"><b>CLICK</b> roll</span><span class="mouse"><b>HOLD</b> burner</span><span class="mouse"><b>RMB/F</b> missile</span><span><b>SPACE</b> view <span id="view">CHASE</span></span><span>MSL <span id="msl"></span></span></div>
+<button id="snd" class="mono">SOUND OFF</button>
+<div id="touch"><button class="tb" id="tFire">FIRE</button><button class="tb" id="tRoll">ROLL</button><button class="tb" id="tBurn">BURN</button><button class="tb" id="tView">VIEW</button></div>
+<div id="err"></div>
+<script type="text/plain" id="wsrc">
+// ---- terrain worker (embedded into patrol.html) ----
+const GX = new Float32Array(16), GY = new Float32Array(16);
+for (let i = 0; i < 16; i++) { GX[i] = Math.cos(i * Math.PI / 8 + 0.2); GY[i] = Math.sin(i * Math.PI / 8 + 0.2); }
+function hsh(x, y, s) {
+  let h = Math.imul(x, 374761393) ^ Math.imul(y, 668265263) ^ Math.imul(s, 1442695041);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return (h ^ (h >>> 16)) >>> 0;
+}
+function noise(x, y, P, s) {
+  const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0;
+  const u = fx * fx * fx * (fx * (fx * 6 - 15) + 10), v = fy * fy * fy * (fy * (fy * 6 - 15) + 10);
+  const ax = ((x0 % P) + P) % P, ay = ((y0 % P) + P) % P, bx = (ax + 1) % P, by = (ay + 1) % P;
+  let h;
+  h = hsh(ax, ay, s) & 15; const n00 = GX[h] * fx + GY[h] * fy;
+  h = hsh(bx, ay, s) & 15; const n10 = GX[h] * (fx - 1) + GY[h] * fy;
+  h = hsh(ax, by, s) & 15; const n01 = GX[h] * fx + GY[h] * (fy - 1);
+  h = hsh(bx, by, s) & 15; const n11 = GX[h] * (fx - 1) + GY[h] * (fy - 1);
+  return (n00 + (n10 - n00) * u + (n01 - n00) * v + (n00 - n10 - n01 + n11) * u * v) * 1.45;
+}
+function fbm(u, v, f, oct, s, gain) {
+  gain = gain || 0.5; let a = 1, sum = 0, nrm = 0;
+  for (let i = 0; i < oct; i++) { sum += a * noise(u * f, v * f, f, s + i * 17); nrm += a; a *= gain; f *= 2; }
+  return sum / nrm;
+}
+function billow(u, v, f, oct, s) {
+  let a = 1, sum = 0, nrm = 0;
+  for (let i = 0; i < oct; i++) { sum += a * (1 - 2 * Math.abs(noise(u * f, v * f, f, s + i * 29))); nrm += a; a *= 0.5; f *= 2; }
+  return sum / nrm;
+}
+function ridged(u, v, f, oct, s) {
+  let a = 1, sum = 0, nrm = 0, w = 1;
+  for (let i = 0; i < oct; i++) {
+    let n = 1 - Math.abs(noise(u * f, v * f, f, s + i * 31)); n *= n; n *= w; w = Math.min(1, n * 1.8);
+    sum += a * n; nrm += a; a *= 0.5; f *= 2;
+  }
+  return sum / nrm;
+}
+const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+function heightAt(u, v, S) {
+  const wx = fbm(u, v, 3, 4, S + 11) * 0.09, wy = fbm(u, v, 3, 4, S + 23) * 0.09;
+  const uu = u + wx, vv = v + wy;
+  const e = fbm(uu, vv, 4, 7, S + 1, 0.52);
+  let h = e * 240 + 14;
+  const mm = sstep(0.02, 0.32, fbm(u, v, 2, 3, S + 5) + 0.06);
+  const r = ridged(uu, vv, 5, 6, S + 7);
+  h += mm * (r * r * 780 + 40) * sstep(-25, 30, h);
+  if (h < 0) h = Math.max(h * 0.75, -70);
+  else if (h < 26) h = h * h / 26;      // gentle beaches
+  return h;
+}
+
+function cloudAt(u, v, S) {
+  return fbm(u, v, 10, 4, S + 101) * 0.8 + fbm(u, v, 3, 2, S + 131) * 0.32 + billow(u, v, 40, 2, S + 151) * 0.1;
+}
+
+let HF = null;
+function wrapIdx(i, N) { return ((i % N) + N) % N; }
+
+self.onmessage = (ev) => {
+  const m = ev.data;
+  if (m.t === 'setH') { HF = m.H; return; }
+  if (m.t === 'height') {
+    const N = m.N, out = new Float32Array((m.j1 - m.j0) * N);
+    for (let j = m.j0; j < m.j1; j++) for (let i = 0; i < N; i++) out[(j - m.j0) * N + i] = heightAt(i / N, j / N, m.seed);
+    self.postMessage({ t: m.t, j0: m.j0, j1: m.j1, d: out }, [out.buffer]);
+  } else if (m.t === 'cloud') {
+    const N = m.N, out = new Float32Array(N * N);
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) out[j * N + i] = cloudAt(i / N, j / N, m.seed);
+    self.postMessage({ t: m.t, d: out }, [out.buffer]);
+  } else if (m.t === 'mask') {
+    // forest density, hue, conifer; also returns height with forest canopy added
+    const N = m.N, n = (m.j1 - m.j0) * N, cell = m.tile / N;
+    const forest = new Uint8Array(n), hue = new Uint8Array(n), con = new Uint8Array(n), hc = new Float32Array(n);
+    for (let j = m.j0; j < m.j1; j++) for (let i = 0; i < N; i++) {
+      const k = (j - m.j0) * N + i, h = HF[j * N + i];
+      const hx = HF[j * N + wrapIdx(i + 1, N)] - HF[j * N + wrapIdx(i - 1, N)];
+      const hz = HF[wrapIdx(j + 1, N) * N + i] - HF[wrapIdx(j - 1, N) * N + i];
+      const slope = Math.sqrt(hx * hx + hz * hz) / (2 * cell);
+      const u = i / N, v = j / N;
+      let f = sstep(-0.06, 0.16, fbm(u, v, 9, 4, m.seed + 41)) * sstep(4, 12, h) * (1 - sstep(0.55, 0.9, slope)) * (1 - sstep(380, 470, h));
+      const hu = Math.min(1, Math.max(0, fbm(u, v, 14, 3, m.seed + 53) * 1.6 + 0.5));
+      const c = Math.min(1, Math.max(0, sstep(150, 420, h) * 0.85 + fbm(u, v, 20, 2, m.seed + 67) * 0.8 + 0.05)) * (h > 6 ? 1 : 0);
+      if (c > 0.5) f = Math.max(f, c * 0.9 * (1 - sstep(0.6, 0.95, slope)) * (1 - sstep(440, 500, h)));
+      const tn = noise(u * 420, v * 420, 420, m.seed + 77) * 0.5 + 0.5;
+      forest[k] = f * 255; hue[k] = hu * 255; con[k] = c * 255;
+      hc[k] = h + (f > 0.3 ? (f - 0.3) / 0.7 * (5 + 7 * tn) : 0);
+    }
+    self.postMessage({ t: m.t, j0: m.j0, j1: m.j1, forest, hue, con, hc }, [forest.buffer, hue.buffer, con.buffer, hc.buffer]);
+  } else if (m.t === 'shadow') {
+    const N = m.N, n = (m.j1 - m.j0) * N, cell = m.tile / N, sx = m.sun[0], sz = m.sun[2];
+    const len = Math.hypot(sx, sz), dx = sx / len, dz = sz / len, rise = m.sun[1] / len * cell;
+    const out = new Uint8Array(n);
+    for (let j = m.j0; j < m.j1; j++) for (let i = 0; i < N; i++) {
+      const h0 = Math.max(HF[j * N + i], 0) + 0.8;
+      let d = 0.7, minc = 1e9;
+      for (let s = 0; s < 90 && d < 700; s++) {
+        const x = i + dx * d, z = j + dz * d;
+        const xi = Math.floor(x), zi = Math.floor(z), fx = x - xi, fz = z - zi;
+        const a = wrapIdx(xi, N), b = wrapIdx(xi + 1, N), c = wrapIdx(zi, N), e = wrapIdx(zi + 1, N);
+        const hh = (HF[c * N + a] * (1 - fx) + HF[c * N + b] * fx) * (1 - fz) + (HF[e * N + a] * (1 - fx) + HF[e * N + b] * fx) * fz;
+        const clr = (h0 + d * rise - hh) / (1.5 + d * 0.12);
+        if (clr < minc) minc = clr;
+        if (minc < -1) break;
+        d += 0.6 + d * 0.045;
+      }
+      out[(j - m.j0) * N + i] = Math.max(0, Math.min(1, minc * 0.5 + 0.5)) * 255;
+    }
+    self.postMessage({ t: m.t, j0: m.j0, j1: m.j1, d: out }, [out.buffer]);
+  }
+};
+
+</script>
+<script>
+// ================= SHADERS =================
+const GLSL_COMMON = `#version 300 es
+precision highp float;
+precision highp int;
+float bayer(vec2 p){ ivec2 q=ivec2(mod(p,4.)); int i=q.x+q.y*4;
+  const float B[16]=float[16](0.,8.,2.,10.,12.,4.,14.,6.,3.,11.,1.,9.,15.,7.,13.,5.); return (B[i]+.5)/16.; }
+float hash12(vec2 p){ vec3 p3=fract(vec3(p.xyx)*.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }
+float vnoise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+  return mix(mix(hash12(i),hash12(i+vec2(1,0)),f.x),mix(hash12(i+vec2(0,1)),hash12(i+vec2(1,1)),f.x),f.y); }
+`;
+
+const VS_FULL = `#version 300 es
+void main(){ vec2 p=vec2((gl_VertexID<<1)&2, gl_VertexID&2); gl_Position=vec4(p*2.-1.,0.,1.); }`;
+
+const FS_WORLD = GLSL_COMMON + `
+uniform sampler2D uH, uM, uC;
+uniform mat4 uInvVP, uVP;
+uniform vec3 uCamW, uSun;
+uniform vec2 uRes, uCloudOff;
+uniform float uTime, uThr, uCMax;
+uniform vec3 uJP, uJF, uJR, uJU;
+uniform vec4 uMk[8];
+uniform vec4 uMk2[8];
+out vec4 o;
+const float TILE=10240., CT=5120., CB=400., CK=120., HMAX=860., TMAX=15000.;
+float H(vec2 p){ return texture(uH,p/TILE).r; }
+float cov(vec2 p){ return texture(uC,(p+uCloudOff)/CT).r; }
+float cloudS(vec2 p){ return clamp((cov(p)-uThr)/(uCMax-uThr),0.,1.); }
+float ctop(vec2 p, float s){ float d=texture(uC,(p+uCloudOff*.7)/(CT*.16)).r; float r=sqrt(s); return CB+CK*r*(.78+.7*(d-.2)); }
+
+vec3 sky(vec3 d){
+  float e=d.y;
+  vec2 dh=normalize(d.xz+vec2(1e-5)), sh=normalize(uSun.xz);
+  float az=dot(dh,sh)*.5+.5;
+  float sd=dot(d,uSun);
+  vec3 hor=mix(vec3(.80,.66,.82), vec3(1.,.76,.45), pow(az,2.2));
+  vec3 mid=mix(vec3(.58,.54,.79), vec3(.95,.66,.60), pow(az,3.));
+  vec3 zen=vec3(.25,.25,.52);
+  float ee=max(e,0.);
+  vec3 c=mix(hor,mid,smoothstep(0.,.13,ee));
+  c=mix(c,zen,smoothstep(.12,.75,ee));
+  c=mix(c,vec3(1.,.88,.6),smoothstep(.965,.997,sd)*.85);
+  if(e>.015){
+    vec2 uv=d.xz/(e+.06);
+    vec2 r=vec2(uv.x*.8+uv.y*.6, -uv.x*.6+uv.y*.8);
+    float n=vnoise(vec2(r.x*.7,r.y*16.)+vec2(uTime*.004,0.))*.6+vnoise(vec2(r.x*2.,r.y*40.))*.4;
+    float band=smoothstep(.68,.98,vnoise(r*vec2(.22,.4)+3.));
+    float s=smoothstep(.66,.72,n)*band*smoothstep(.02,.1,e)*(1.-smoothstep(.25,.5,e));
+    vec3 sc=mix(vec3(.93,.74,.82),vec3(1.,.86,.66),pow(az,2.));
+    c=mix(c,sc,s*.7);
+  }
+  if(sd>.99875) c=vec3(1.,.97,.84);
+  else if(sd>.9984) c=vec3(1.,.86,.52);
+  return c;
+}
+vec3 fogc(vec3 d){ return sky(normalize(vec3(d.x,0.0005,d.z))); }
+float fogAmt(float t,float y){
+  float f=1.-exp(-max(t-1400.,0.)*(.00014+.00008*exp(-max(y,0.)/300.)));
+  return mix(f,1.,smoothstep(9000.,TMAX,t));
+}
+
+bool marchT(vec3 ro, vec3 rd, out float t){
+  t=.5;
+  if(ro.y>HMAX){ if(rd.y>=0.) return false; t=(ro.y-HMAX)/(-rd.y); }
+  float lt=t;
+  for(int i=0;i<220;i++){
+    if(t>TMAX) return false;
+    vec3 p=ro+rd*t;
+    float d=p.y-max(H(p.xz),0.);
+    if(d<.0015*t){
+      float a=lt,b=t;
+      for(int k=0;k<6;k++){ float m=(a+b)*.5; vec3 q=ro+rd*m; if(q.y-max(H(q.xz),0.)<0.) b=m; else a=m; }
+      t=b; return true;
+    }
+    if(p.y>HMAX && rd.y>0.) return false;
+    lt=t;
+    t+=max(d*.42,.4+t*.0032);
+  }
+  return false;
+}
+
+bool marchC(vec3 ro, vec3 rd, float tEnd, out float tc){
+  float y0=CB-CK*.23, y1=CB+CK*1.55;
+  float ta,tb;
+  if(abs(rd.y)<1e-4){ if(ro.y<y0||ro.y>y1) return false; ta=0.; tb=tEnd; }
+  else { float t0=(y0-ro.y)/rd.y, t1=(y1-ro.y)/rd.y; ta=max(min(t0,t1),0.); tb=min(max(t0,t1),tEnd); }
+  tb=min(tb,ta+11000.);
+  if(ta>=tb) return false;
+  float t=ta, lt=ta;
+  for(int i=0;i<72;i++){
+    vec3 p=ro+rd*t;
+    float s=cloudS(p.xz);
+    float rs=sqrt(s);
+    float top=ctop(p.xz,s), bot=CB-CK*.22*rs;
+    float d= s<=0. ? max(p.y-CB,10.) : (p.y>top ? p.y-top : (p.y<bot ? bot-p.y : -1.));
+    if(d<0.){
+      float a=lt,b=t;
+      for(int k=0;k<5;k++){ float m=(a+b)*.5; vec3 q=ro+rd*m; float ss=cloudS(q.xz); float r2=sqrt(ss);
+        float tp=ctop(q.xz,ss), bt=CB-CK*.22*r2; if(ss>0. && q.y<tp && q.y>bt) b=m; else a=m; }
+      tc=b; return true;
+    }
+    lt=t;
+    t+=clamp(d*.7/max(abs(rd.y),.18), 7.+t*.004, 55.+t*.02);
+    if(t>tb) return false;
+  }
+  return false;
+}
+
+float jetShadow(vec3 rel){
+  float den=dot(uSun,uJU);
+  if(abs(den)<.04) return 1.;
+  float s=dot(uJP-rel,uJU)/den;
+  if(s<0.) return 1.;
+  vec3 q=rel+uSun*s-uJP;
+  float a=dot(q,uJF), b=abs(dot(q,uJR));
+  bool fus = b<.95 && a>-8.3 && a<8.8-b*2.4;
+  bool wing = b<5.6 && a>-5.8 && a<2.4-(b-1.3)*1.44;
+  bool stab = b<3.6 && a>-7.95 && a< -5.6-(b-1.4)*.65;
+  return (fus||wing||stab) ? .42 : 1.;
+}
+float cloudShadow(vec3 pw){
+  vec3 q=pw+uSun*((CB+60.-pw.y)/uSun.y);
+  float s=cloudS(q.xz);
+  return s>.02 ? .5 : 1.;
+}
+vec3 shadeTone(vec3 base, float L, float bay){
+  float l=L+(bay-.5)*.09;
+  vec3 lit=base*vec3(1.13,1.,.84);
+  vec3 mid=base*vec3(.86,.78,.80);
+  vec3 shd=base*vec3(.44,.40,.62)+vec3(.035,.03,.075);
+  return l>.64 ? lit : (l>.24 ? mid : shd);
+}
+vec3 marks(vec3 col, vec3 rel, bool water, float bay){
+  for(int i=0;i<8;i++){
+    vec4 m=uMk[i], m2=uMk2[i];
+    if(m.z<=0.) continue;
+    vec2 dd=rel.xz-m.xy; float d=length(dd);
+    if(d>m.z*1.6+40.) continue;
+    float nn=vnoise(dd*.09+float(i)*7.3);
+    if(m2.x<1.5 && !water){
+      float r=m.z*(.7+.5*nn);
+      if(d<r){
+        float k=d/r;
+        vec3 ch=mix(vec3(.10,.08,.10),vec3(.28,.20,.18),k*k);
+        col=mix(col,ch,step(bay*.6+.35,m.w*(1.25-k*.5)));
+        vec2 ec=floor(dd/2.2);
+        float h=hash12(ec+float(i)*13.1);
+        float fl=sin(uTime*(3.+h*5.)+h*40.);
+        if(h>.93 && fl>.2 && m2.y<40. && k<.85) col=mix(vec3(1.,.42,.12),vec3(1.,.82,.3),step(.7,fl));
+      }
+    } else if(m2.x>1.5 && water){
+      float r=m.z, w=3.+r*.07;
+      float ring=abs(d-r*(.92+.12*nn));
+      if(ring<w && m.w>bay*.9) col=mix(col,vec3(.96,.97,.95),.9);
+      else if(d<r && hash12(floor(dd/3.))>.72 && m.w*.8>bay) col=mix(col,vec3(.9,.96,.95),.75);
+    }
+  }
+  return col;
+}
+
+vec3 land(vec3 pw, vec3 rel, vec3 rd, float t, float bay){
+  float h=H(pw.xz);
+  float e=10.;
+  float hx=H(pw.xz+vec2(e,0))-H(pw.xz-vec2(e,0));
+  float hz=H(pw.xz+vec2(0,e))-H(pw.xz-vec2(0,e));
+  vec3 n=normalize(vec3(-hx,2.*e,-hz));
+  vec4 m=texture(uM,pw.xz/TILE);
+  float slope=1.-n.y;
+  float nz=vnoise(pw.xz*.018), nz2=vnoise(pw.xz*.11);
+  vec3 base=mix(vec3(.86,.82,.55),vec3(.70,.70,.45),smoothstep(.3,.8,nz));
+  base=mix(base,vec3(.80,.66,.42),step(.78,nz2)*.6);
+  float fth=.42+(bay-.5)*.22;
+  if(m.r>fth){
+    float hu=m.g+(nz2-.5)*.25;
+    vec3 fc= hu<.36 ? vec3(.95,.52,.20) : (hu<.62 ? vec3(.80,.22,.22) : vec3(.96,.74,.26));
+    float cell=hash12(floor(pw.xz/7.));
+    fc*= cell>.7 ? .82 : 1.;
+    float tk=hash12(floor(pw.xz/3.3)+.7); fc*= tk>.84 ? 1.14 : (tk<.16 ? .78 : 1.);
+    if(cell<m.a*.95) fc=mix(vec3(.20,.33,.27),vec3(.15,.24,.22),step(.5,hash12(floor(pw.xz/5.)+3.)));
+    base=fc;
+  }
+  if(h<3.2+nz*3.5 && slope<.35) base=mix(vec3(.93,.84,.62),vec3(.86,.75,.54),step(.6,nz2));
+  if(slope>.40+nz*.12 || (h>430. && slope>.2+nz*.1)) base=mix(vec3(.60,.56,.66),vec3(.45,.42,.53),step(.55,nz2));
+  if(h>545.+nz*70. && slope<.62) base=vec3(.98,.96,.95);
+  float dif=dot(n,uSun);
+  float L=clamp(dif*2.6+.12,0.,1.);
+  float sh=step(.5+(bay-.5)*.5,m.b);
+  L*=mix(.18,1.,sh)*cloudShadow(pw)*jetShadow(rel);
+  vec3 col=shadeTone(base,L,bay);
+  if(fract(h/24.)<.09 && slope>.06 && h>20.) col*=.92;
+  col=marks(col,rel,false,bay);
+  return col;
+}
+
+vec3 water(vec3 pw, vec3 rel, vec3 rd, float t, float bay){
+  float depth=-H(pw.xz);
+  float dj=depth+(bay-.5)*1.4;
+  vec3 c = dj<1.4 ? vec3(.62,.90,.84) : dj<4.5 ? vec3(.40,.80,.78) : dj<10. ? vec3(.22,.62,.70) : dj<20. ? vec3(.14,.44,.60) : dj<36. ? vec3(.10,.30,.50) : vec3(.08,.19,.38);
+  float nz=vnoise(pw.xz*.045+uTime*.06);
+  float fw=sin(depth*2.4-uTime*1.7+nz*6.);
+  float rp=sin(dot(pw.xz,vec2(.045,.031))+vnoise(pw.xz*.012)*7.+uTime*.9);
+  if(dj>3. && rp>.93-vnoise(pw.xz*.04-uTime*.05)*.12) c=c*1.25+.03;
+  if(depth<.5 || (depth<2.8 && fw>.62+depth*.08)) c=vec3(.95,.95,.90);
+  vec4 m=texture(uM,pw.xz/TILE);
+  float sh=step(.5+(bay-.5)*.5,m.b)*cloudShadow(pw)*jetShadow(rel);
+  c=mix(c*vec3(.55,.52,.78),c,sh<.9?0.:1.);
+  vec2 cell=floor(pw.xz/2.6);
+  float g1=hash12(cell+floor(uTime*7.)*vec2(17.1,3.7));
+  vec3 nr=normalize(vec3((hash12(cell+.5)-.5)*.32+(g1-.5)*.15,1.,(hash12(cell+9.)-.5)*.32));
+  vec3 r=reflect(rd,nr);
+  float fr=pow(1.-max(-rd.y,0.),5.);
+  fr=floor(fr*5.+bay)/5.;
+  c=mix(c,sky(reflect(rd,vec3(0,1,0)))*.96,fr*.85+.12);
+  vec3 r0=reflect(rd,vec3(0,1,0));
+  float sp0=dot(r0,uSun);
+  if(sh>.9){
+    c=mix(c,vec3(1.,.80,.50),step(1.-bay*.5,smoothstep(.93,.995,sp0))*.7);
+    float sp=dot(r,uSun);
+    if(sp>.992) c= sp>.997 ? vec3(1.,.98,.88) : vec3(1.,.82,.45);
+  }
+  if(g1>.9993 && t<2500. && vnoise(pw.xz*.01+uTime*.2)>.6) c=vec3(1.);
+  c=marks(c,rel,true,bay);
+  return c;
+}
+
+vec3 cloudShade(vec3 pw, vec3 rel, float bay){
+  float s=cloudS(pw.xz);
+  float e=22.;
+  float t0=ctop(pw.xz,s), tx=ctop(pw.xz+vec2(e,0),cloudS(pw.xz+vec2(e,0))), tz=ctop(pw.xz+vec2(0,e),cloudS(pw.xz+vec2(0,e)));
+  vec3 n=normalize(vec3(t0-tx, e*.8, t0-tz));
+  float L=dot(n,uSun)*1.9+.1;
+  if(pw.y<CB) L=min(L,.12+(pw.y-CB)/CK);
+  L+= (pw.y-CB)/CK*.3;
+  vec2 sd=normalize(uSun.xz);
+  float lift=uSun.y/length(uSun.xz);
+  vec2 q1=pw.xz+sd*60., q2=pw.xz+sd*150.;
+  float s1=cloudS(q1), s2=cloudS(q2);
+  if((s1>0. && ctop(q1,s1)>pw.y+60.*lift+10.) || (s2>0. && ctop(q2,s2)>pw.y+150.*lift+14.)) L-=.4;
+  L*=jetShadow(rel);
+  float q=L+(bay-.5)*.12;
+  vec3 c = q<.1 ? vec3(.44,.40,.62) : q<.32 ? vec3(.62,.54,.74) : q<.55 ? vec3(.84,.68,.78) : q<.8 ? vec3(.98,.78,.68) : vec3(1.,.90,.74);
+  return c;
+}
+
+void main(){
+  vec2 ndc=gl_FragCoord.xy/uRes*2.-1.;
+  vec4 pp=uInvVP*vec4(ndc,1.,1.);
+  vec3 rd=normalize(pp.xyz/pp.w);
+  vec3 ro=uCamW;
+  float bay=bayer(gl_FragCoord.xy);
+  float t; bool hit=marchT(ro,rd,t);
+  float tEnd=hit?t:TMAX;
+  float tc; bool ch=marchC(ro,rd,tEnd,tc);
+  vec3 col; float tt=-1.;
+  if(ch && tc<110. && bay>tc/110.*.85) ch=false;
+  if(ch){ vec3 rel=rd*tc; col=cloudShade(ro+rel,rel,bay); tt=tc; }
+  else if(hit){
+    vec3 pw=ro+rd*t;
+    if(H(pw.xz)<.1){ if(rd.y<0.){ t=-ro.y/rd.y; } pw=ro+rd*t; col=water(pw,rd*t,rd,t,bay); }
+    else col=land(pw,rd*t,rd,t,bay);
+    tt=t;
+  } else if(rd.y<0.){ col=fogc(rd); tt=TMAX; }
+  else col=sky(rd);
+  if(tt>0.){
+    float f=fogAmt(tt,ro.y+rd.y*tt*.5);
+    col=mix(col,fogc(rd),f);
+    vec4 cp=uVP*vec4(rd*min(tt,TMAX*.99),1.);
+    gl_FragDepth=clamp(cp.z/cp.w*.5+.5,0.,1.);
+  } else gl_FragDepth=1.;
+  o=vec4(col,1.);
+}`;
+
+const VS_MESH = `#version 300 es
+in vec3 aP; in float aM;
+uniform mat4 uM, uVP;
+out vec3 vW, vO; flat out float vMat;
+void main(){ vec4 w=uM*vec4(aP,1.); vW=w.xyz; vO=aP; vMat=aM; gl_Position=uVP*w; }`;
+
+const FS_MESH = GLSL_COMMON + `
+in vec3 vW, vO; flat in float vMat;
+uniform vec3 uSun; uniform float uGlow, uTime;
+out vec4 o;
+void main(){
+  vec3 n=normalize(cross(dFdx(vW),dFdy(vW)));
+  if(dot(n,vW)>0.) n=-n;
+  float m=vMat;
+  vec3 b;
+  if(m<.5){
+    vec3 p=vO;
+    float s1=dot(p.xz,vec2(.94,.34))*.62, s2=dot(vec2(abs(p.x),p.z),vec2(-.5,.87))*.5, s3=p.y*1.3+p.z*.21;
+    float v=fract(floor(s1)*.37+floor(s2)*.61+floor(s3)*.23);
+    b= v<.47 ? vec3(.62,.64,.69) : vec3(.36,.39,.46);
+  } else if(m<1.5) b=vec3(.16,.17,.22);
+  else if(m<2.5) b=vec3(.88,.66,.30);
+  else if(m<3.5) b=vec3(.80,.18,.22);
+  else if(m<4.5) b=vec3(.30,.28,.33);
+  else if(m<5.5){ o=vec4(mix(vec3(1.,.45,.16),vec3(1.,.95,.7),uGlow),0.); return; }
+  else if(m<6.5) b=vec3(.08,.07,.10);
+  else if(m<7.5) b=vec3(.92,.90,.86);
+  else if(m<8.5) b=vec3(.22,.22,.27);
+  else b=vec3(.60,.60,.66);
+  float l=dot(n,uSun);
+  float up=n.y;
+  vec3 c = l>.38 ? b*vec3(1.15,1.,.86) : (l>-.05||up>.55 ? b*vec3(.80,.76,.84) : b*vec3(.46,.42,.64));
+  if(m>1.5 && m<2.5){ float g=dot(reflect(normalize(vW),n),uSun); if(g>.9) c=vec3(1.,.93,.7); else if(n.y>.7) c=mix(c,vec3(.98,.80,.50),.4); }
+  o=vec4(c,0.);
+}`;
+
+const VS_PLUME = `#version 300 es
+in vec3 aP; in float aT;
+uniform mat4 uM, uVP;
+out float vT;
+void main(){ vec4 w=uM*vec4(aP,1.); vT=aT; gl_Position=uVP*w; }`;
+const FS_PLUME = GLSL_COMMON + `
+in float vT; uniform vec3 uC0, uC1; uniform float uA, uTime;
+out vec4 o;
+void main(){
+  float t=vT;
+  vec3 c=mix(uC0,uC1,smoothstep(0.,.8,t));
+  float a=uA*(1.-t*t)*(.82+.18*sin(uTime*71.+t*23.));
+  if(a<bayer(gl_FragCoord.xy)) discard;
+  o=vec4(c,0.);
+}`;
+
+const VS_PTS = `#version 300 es
+in vec3 aP; in float aS; in vec4 aC;
+uniform mat4 uVP; uniform float uPx;
+out vec4 vC; out float vS;
+void main(){ gl_Position=uVP*vec4(aP,1.); float s=aS*uPx/max(gl_Position.w,.5); vS=clamp(s,1.,60.); gl_PointSize=floor(vS+.5); vC=aC; vC.a*=smoothstep(6.,28.,gl_Position.w); }`;
+const FS_PTS = GLSL_COMMON + `
+in vec4 vC; in float vS; out vec4 o;
+void main(){
+  vec2 q=gl_PointCoord-.5;
+  if(vS>2.6 && dot(q,q)>.25) discard;
+  if(vC.a<bayer(gl_FragCoord.xy)) discard;
+  o=vec4(vC.rgb,0.);
+}`;
+
+const VS_LINE = `#version 300 es
+in vec3 aP; in vec4 aC; uniform mat4 uVP; out vec4 vC;
+void main(){ gl_Position=uVP*vec4(aP,1.); vC=aC; }`;
+const FS_LINE = GLSL_COMMON + `
+in vec4 vC; out vec4 o;
+void main(){ if(vC.a<bayer(gl_FragCoord.xy)) discard; o=vec4(vC.rgb,0.); }`;
+
+const FS_POST = GLSL_COMMON + `
+uniform sampler2D uS; uniform highp sampler3D uLut; uniform sampler2D uPal;
+uniform float uFlash; uniform ivec2 uSize;
+out vec4 o;
+float A(ivec2 p){ return texelFetch(uS,clamp(p,ivec2(0),uSize-1),0).a; }
+void main(){
+  ivec2 p=ivec2(gl_FragCoord.xy);
+  vec4 c=texelFetch(uS,p,0);
+  if(c.a>.5){
+    float m=min(min(A(p+ivec2(1,0)),A(p-ivec2(1,0))),min(A(p+ivec2(0,1)),A(p-ivec2(0,1))));
+    if(m<.5){ o=vec4(.08,.06,.12,1.); return; }
+  }
+  vec3 col=clamp(c.rgb+uFlash*vec3(1.,.86,.62),0.,1.);
+  vec4 l=texture(uLut,col*(31./32.)+.5/32.);
+  float idx= bayer(gl_FragCoord.xy)<l.b ? l.g : l.r;
+  o=vec4(texelFetch(uPal,ivec2(int(idx*255.+.5),0),0).rgb,1.);
+}`;
+
+// ================= CORE =================
+'use strict';
+const TILE = 10240, NT = 1024, CT = 5120, NC = 256, CB = 400, CK = 120, CRUISE = 720, SEED = 1337;
+const EL = 10 * Math.PI / 180;
+const SUN = (() => { const x = -0.9, z = 0.436, l = Math.hypot(x, z); return [Math.cos(EL) * x / l, Math.sin(EL), Math.cos(EL) * z / l]; })();
+const ERR = [];
+window.addEventListener('error', e => ERR.push(String(e.message || e)));
+window.addEventListener('unhandledrejection', e => ERR.push('rej: ' + String(e.reason)));
+
+// ---------- small math ----------
+const V = {
+  add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]],
+  sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
+  mul: (a, s) => [a[0] * s, a[1] * s, a[2] * s],
+  dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+  cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
+  len: a => Math.hypot(a[0], a[1], a[2]),
+  norm: a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; },
+  lerp: (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t],
+};
+const clamp = (x, a, b) => x < a ? a : x > b ? b : x;
+const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const wrapPi = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+const mod = (a, n) => ((a % n) + n) % n;
+const rnd = (a, b) => a + Math.random() * (b - a);
+
+function m4mul(a, b) { const o = new Float32Array(16);
+  for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s; } return o; }
+function m4inv(m) {
+  const inv = new Float32Array(16), a = m;
+  inv[0] = a[5]*a[10]*a[15]-a[5]*a[11]*a[14]-a[9]*a[6]*a[15]+a[9]*a[7]*a[14]+a[13]*a[6]*a[11]-a[13]*a[7]*a[10];
+  inv[4] = -a[4]*a[10]*a[15]+a[4]*a[11]*a[14]+a[8]*a[6]*a[15]-a[8]*a[7]*a[14]-a[12]*a[6]*a[11]+a[12]*a[7]*a[10];
+  inv[8] = a[4]*a[9]*a[15]-a[4]*a[11]*a[13]-a[8]*a[5]*a[15]+a[8]*a[7]*a[13]+a[12]*a[5]*a[11]-a[12]*a[7]*a[9];
+  inv[12] = -a[4]*a[9]*a[14]+a[4]*a[10]*a[13]+a[8]*a[5]*a[14]-a[8]*a[6]*a[13]-a[12]*a[5]*a[10]+a[12]*a[6]*a[9];
+  inv[1] = -a[1]*a[10]*a[15]+a[1]*a[11]*a[14]+a[9]*a[2]*a[15]-a[9]*a[3]*a[14]-a[13]*a[2]*a[11]+a[13]*a[3]*a[10];
+  inv[5] = a[0]*a[10]*a[15]-a[0]*a[11]*a[14]-a[8]*a[2]*a[15]+a[8]*a[3]*a[14]+a[12]*a[2]*a[11]-a[12]*a[3]*a[10];
+  inv[9] = -a[0]*a[9]*a[15]+a[0]*a[11]*a[13]+a[8]*a[1]*a[15]-a[8]*a[3]*a[13]-a[12]*a[1]*a[11]+a[12]*a[3]*a[9];
+  inv[13] = a[0]*a[9]*a[14]-a[0]*a[10]*a[13]-a[8]*a[1]*a[14]+a[8]*a[2]*a[13]+a[12]*a[1]*a[10]-a[12]*a[2]*a[9];
+  inv[2] = a[1]*a[6]*a[15]-a[1]*a[7]*a[14]-a[5]*a[2]*a[15]+a[5]*a[3]*a[14]+a[13]*a[2]*a[7]-a[13]*a[3]*a[6];
+  inv[6] = -a[0]*a[6]*a[15]+a[0]*a[7]*a[14]+a[4]*a[2]*a[15]-a[4]*a[3]*a[14]-a[12]*a[2]*a[7]+a[12]*a[3]*a[6];
+  inv[10] = a[0]*a[5]*a[15]-a[0]*a[7]*a[13]-a[4]*a[1]*a[15]+a[4]*a[3]*a[13]+a[12]*a[1]*a[7]-a[12]*a[3]*a[5];
+  inv[14] = -a[0]*a[5]*a[14]+a[0]*a[6]*a[13]+a[4]*a[1]*a[14]-a[4]*a[2]*a[13]-a[12]*a[1]*a[6]+a[12]*a[2]*a[5];
+  inv[3] = -a[1]*a[6]*a[11]+a[1]*a[7]*a[10]+a[5]*a[2]*a[11]-a[5]*a[3]*a[10]-a[9]*a[2]*a[7]+a[9]*a[3]*a[6];
+  inv[7] = a[0]*a[6]*a[11]-a[0]*a[7]*a[10]-a[4]*a[2]*a[11]+a[4]*a[3]*a[10]+a[8]*a[2]*a[7]-a[8]*a[3]*a[6];
+  inv[11] = -a[0]*a[5]*a[11]+a[0]*a[7]*a[9]+a[4]*a[1]*a[11]-a[4]*a[3]*a[9]-a[8]*a[1]*a[7]+a[8]*a[3]*a[5];
+  inv[15] = a[0]*a[5]*a[10]-a[0]*a[6]*a[9]-a[4]*a[1]*a[10]+a[4]*a[2]*a[9]+a[8]*a[1]*a[6]-a[8]*a[2]*a[5];
+  let det = a[0] * inv[0] + a[1] * inv[4] + a[2] * inv[8] + a[3] * inv[12];
+  det = 1 / (det || 1e-9); for (let i = 0; i < 16; i++) inv[i] *= det; return inv;
+}
+function persp(fovy, asp, n, f, shift) {
+  const t = 1 / Math.tan(fovy / 2), m = new Float32Array(16);
+  m[0] = t / asp; m[5] = t; m[10] = (f + n) / (n - f); m[11] = -1; m[14] = 2 * f * n / (n - f);
+  m[9] = -shift; return m;
+}
+function viewRot(r, u, b) { const m = new Float32Array(16);
+  m[0] = r[0]; m[4] = r[1]; m[8] = r[2]; m[1] = u[0]; m[5] = u[1]; m[9] = u[2]; m[2] = b[0]; m[6] = b[1]; m[10] = b[2]; m[15] = 1; return m; }
+function model(r, u, f, t, s) { s = s || [1, 1, 1]; const m = new Float32Array(16);
+  m[0] = r[0] * s[0]; m[1] = r[1] * s[0]; m[2] = r[2] * s[0]; m[4] = u[0] * s[1]; m[5] = u[1] * s[1]; m[6] = u[2] * s[1];
+  m[8] = f[0] * s[2]; m[9] = f[1] * s[2]; m[10] = f[2] * s[2]; m[12] = t[0]; m[13] = t[1]; m[14] = t[2]; m[15] = 1; return m; }
+// quaternion from camera basis (columns r,u,b)
+function basisToQuat(r, u, b) {
+  const m00 = r[0], m01 = u[0], m02 = b[0], m10 = r[1], m11 = u[1], m12 = b[1], m20 = r[2], m21 = u[2], m22 = b[2];
+  const tr = m00 + m11 + m22; let x, y, z, w;
+  if (tr > 0) { const s = Math.sqrt(tr + 1) * 2; w = s / 4; x = (m21 - m12) / s; y = (m02 - m20) / s; z = (m10 - m01) / s; }
+  else if (m00 > m11 && m00 > m22) { const s = Math.sqrt(1 + m00 - m11 - m22) * 2; w = (m21 - m12) / s; x = s / 4; y = (m01 + m10) / s; z = (m02 + m20) / s; }
+  else if (m11 > m22) { const s = Math.sqrt(1 + m11 - m00 - m22) * 2; w = (m02 - m20) / s; x = (m01 + m10) / s; y = s / 4; z = (m12 + m21) / s; }
+  else { const s = Math.sqrt(1 + m22 - m00 - m11) * 2; w = (m10 - m01) / s; x = (m02 + m20) / s; y = (m12 + m21) / s; z = s / 4; }
+  return [x, y, z, w];
+}
+function quatToBasis(q) {
+  const [x, y, z, w] = q;
+  return [[1 - 2 * (y * y + z * z), 2 * (x * y + z * w), 2 * (x * z - y * w)],
+          [2 * (x * y - z * w), 1 - 2 * (x * x + z * z), 2 * (y * z + x * w)],
+          [2 * (x * z + y * w), 2 * (y * z - x * w), 1 - 2 * (x * x + y * y)]];
+}
+function slerp(a, b, t) {
+  let d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]; let bb = b;
+  if (d < 0) { d = -d; bb = [-b[0], -b[1], -b[2], -b[3]]; }
+  if (d > 0.9995) { const r = [0, 1, 2, 3].map(i => a[i] + (bb[i] - a[i]) * t); const l = Math.hypot(...r); return r.map(v => v / l); }
+  const th = Math.acos(d), s = Math.sin(th), wa = Math.sin((1 - t) * th) / s, wb = Math.sin(t * th) / s;
+  return [0, 1, 2, 3].map(i => a[i] * wa + bb[i] * wb);
+}
+function lookBasis(fwd, upHint) { const b = V.norm(V.mul(fwd, -1)); let r = V.cross(upHint, b);
+  if (V.len(r) < 1e-4) r = [1, 0, 0]; r = V.norm(r); const u = V.cross(b, r); return [r, u, b]; }
+
+// ---------- GL ----------
+const glc = document.getElementById('gl'), ovc = document.getElementById('ov');
+const gl = glc.getContext('webgl2', { antialias: false, depth: false, alpha: false, premultipliedAlpha: false, powerPreference: 'high-performance' });
+function fatal(msg) { const e = document.getElementById('err'); e.style.display = 'block'; e.textContent = msg; ERR.push(msg); }
+if (!gl) fatal('Patrol needs WebGL2, which this browser does not provide.');
+function shader(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { const log = gl.getShaderInfoLog(s); console.error(log); fatal('Shader error: ' + log.slice(0, 300)); } return s; }
+function program(vs, fs, attribs) {
+  const p = gl.createProgram(); gl.attachShader(p, shader(gl.VERTEX_SHADER, vs)); gl.attachShader(p, shader(gl.FRAGMENT_SHADER, fs));
+  (attribs || []).forEach((a, i) => gl.bindAttribLocation(p, i, a));
+  gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) fatal('Link error: ' + gl.getProgramInfoLog(p));
+  const u = {}; const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+  for (let i = 0; i < n; i++) { const info = gl.getActiveUniform(p, i); const nm = info.name.replace(/\[0\]$/, ''); u[nm] = gl.getUniformLocation(p, info.name); }
+  return { p, u };
+}
+const PR = gl ? {
+  world: program(VS_FULL, FS_WORLD),
+  mesh: program(VS_MESH, FS_MESH, ['aP', 'aM']),
+  plume: program(VS_PLUME, FS_PLUME, ['aP', 'aT']),
+  pts: program(VS_PTS, FS_PTS, ['aP', 'aS', 'aC']),
+  line: program(VS_LINE, FS_LINE, ['aP', 'aC']),
+  post: program(VS_FULL, FS_POST),
+} : null;
+const emptyVAO = gl && gl.createVertexArray();
+
+function tex2D(w, h, ifmt, fmt, type, data, filter, wrap) {
+  const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+  gl.texImage2D(gl.TEXTURE_2D, 0, ifmt, w, h, 0, fmt, type, data);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrap); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrap);
+  return t;
+}
+const f32 = new Float32Array(1), u32 = new Uint32Array(f32.buffer);
+function toHalf(v) {
+  f32[0] = v; const x = u32[0], s = (x >>> 16) & 0x8000; let e = ((x >>> 23) & 0xff) - 112, m = x & 0x7fffff;
+  if (e <= 0) return s; if (e >= 31) return s | 0x7c00; return s | (e << 10) | ((m + 0x1000) >>> 13);
+}
+
+// ---------- palette & LUT ----------
+const PAL_HEX = ('1b1530 2a2448 3a3a72 545a98 7270b0 9688c2 b9a2cc d8b8d4 f0cac4 f9d8aa ffdc96 f8bc62 ec9448 fff2d2 fffaf0 ' +
+  'a6ece0 6cd0c6 3aa6b2 247a9c 1a5282 163a66 122a4c ' +
+  'eed8a2 c8b07c d8d088 b2ae6a 888c5a 60664e 3e4640 ' +
+  'f28c3a c2602c 8a3e2a cc3a3a 8e2836 f4c04a b88a32 3c5a48 26383a ' +
+  '9c92aa 70688a 4c4662 c8c2de 8a82b4 ' +
+  'a6aab4 7c808e 5a606e 3e4452 2a2e3a 141020 d03038 e8c062 a07838 ' +
+  'ffffe0 ffe070 ffa030 e05020 a02818 6a3a2c 8a8090 5a5266 403a4a 2e2838 ' +
+  'cfa8a0 a88890 e8b0a0 f4e0d0 dcc8b8 b4a0b8').split(/\s+/).filter(Boolean);
+const PAL = PAL_HEX.map(h => [parseInt(h.slice(0, 2), 16) / 255, parseInt(h.slice(2, 4), 16) / 255, parseInt(h.slice(4, 6), 16) / 255]);
+function oklab(c) {
+  const lin = v => v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  const r = lin(c[0]), g = lin(c[1]), b = lin(c[2]);
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b), m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b),
+    s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
+}
+function buildLUT() {
+  const N = 32, P = PAL.map(oklab), n = P.length, out = new Uint8Array(N * N * N * 4);
+  const d2 = (a, b) => { const x = a[0] - b[0], y = (a[1] - b[1]) * 1.1, z = (a[2] - b[2]) * 1.1; return x * x + y * y + z * z; };
+  for (let bi = 0; bi < N; bi++) for (let gi = 0; gi < N; gi++) for (let ri = 0; ri < N; ri++) {
+    const c = oklab([ri / 31, gi / 31, bi / 31]);
+    let a = 0, best = 1e9; for (let i = 0; i < n; i++) { const d = d2(c, P[i]); if (d < best) { best = d; a = i; } }
+    let bb = a, bt = 0, bs = best;
+    const A = P[a];
+    for (let i = 0; i < n; i++) { if (i === a) continue; const B = P[i], ab = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], L2 = d2(B, A);
+      let t = ((c[0] - A[0]) * ab[0] + (c[1] - A[1]) * ab[1] * 1.21 + (c[2] - A[2]) * ab[2] * 1.21) / (L2 || 1); t = clamp(t, 0, 1);
+      const pnt = [A[0] + ab[0] * t, A[1] + ab[1] * t, A[2] + ab[2] * t];
+      const sc = d2(c, pnt) + L2 * 0.06; if (sc < bs) { bs = sc; bb = i; bt = t; } }
+    const k = ((bi * N + gi) * N + ri) * 4; out[k] = a; out[k + 1] = bb; out[k + 2] = Math.round(bt * 255); out[k + 3] = 255;
+  }
+  return out;
+}
+
+// ---------- world generation with workers ----------
+const WORLD = { H: null, ready: false, thr: 0.33, cmax: 0.8 };
+function genWorld(onProgress) {
+  return new Promise((resolve, reject) => {
+    const src = document.getElementById('wsrc').textContent;
+    const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+    const nw = clamp((navigator.hardwareConcurrency || 4) - 1, 2, 6);
+    const ws = []; for (let i = 0; i < nw; i++) { const w = new Worker(url); w.onerror = e => reject(e.message || 'worker error'); ws.push(w); }
+    const CH = 32, chunks = NT / CH; const total = chunks * 3 + 4; let done = 0;
+    const tick = () => { done++; onProgress(done / total); };
+    function phase(t, extra, onRes) {
+      return new Promise(res => {
+        let next = 0, fin = 0;
+        const feed = w => { if (next >= chunks) return; const j0 = next * CH; next++; w.postMessage(Object.assign({ t, N: NT, j0, j1: j0 + CH, seed: SEED, tile: TILE }, extra)); };
+        ws.forEach(w => { w.onmessage = ev => { onRes(ev.data); tick(); fin++; if (fin === chunks) res(); else feed(w); }; feed(w); feed(w); });
+      });
+    }
+    const H = new Float32Array(NT * NT), forest = new Uint8Array(NT * NT), hue = new Uint8Array(NT * NT), con = new Uint8Array(NT * NT), shadow = new Uint8Array(NT * NT);
+    let cloud = null;
+    const cw = new Worker(url); cw.onmessage = ev => { cloud = ev.data.d; tick(); tick(); tick(); tick(); cw.terminate(); };
+    cw.postMessage({ t: 'cloud', N: NC, seed: SEED });
+    phase('height', {}, d => H.set(d.d, d.j0 * NT))
+      .then(() => { ws.forEach(w => w.postMessage({ t: 'setH', H })); return phase('mask', {}, d => { const o = d.j0 * NT; forest.set(d.forest, o); hue.set(d.hue, o); con.set(d.con, o); H.set(d.hc, o); }); })
+      .then(() => { ws.forEach(w => w.postMessage({ t: 'setH', H })); return phase('shadow', { sun: SUN }, d => shadow.set(d.d, d.j0 * NT)); })
+      .then(() => new Promise(r => { const wait = () => cloud ? r() : setTimeout(wait, 20); wait(); }))
+      .then(() => { ws.forEach(w => w.terminate()); URL.revokeObjectURL(url); resolve({ H, forest, hue, con, shadow, cloud }); });
+  });
+}
+function uploadWorld(d) {
+  const hh = new Uint16Array(NT * NT); for (let i = 0; i < hh.length; i++) hh[i] = toHalf(d.H[i]);
+  WORLD.texH = tex2D(NT, NT, gl.R16F, gl.RED, gl.HALF_FLOAT, hh, gl.LINEAR, gl.REPEAT);
+  const m = new Uint8Array(NT * NT * 4);
+  for (let i = 0; i < NT * NT; i++) { m[i * 4] = d.forest[i]; m[i * 4 + 1] = d.hue[i]; m[i * 4 + 2] = d.shadow[i]; m[i * 4 + 3] = d.con[i]; }
+  WORLD.texM = tex2D(NT, NT, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, m, gl.LINEAR, gl.REPEAT);
+  const sorted = Float32Array.from(d.cloud).sort();
+  WORLD.thr = sorted[Math.floor(sorted.length * 0.79)]; WORLD.cmax = sorted[sorted.length - 1] * 0.92;
+  const ch = new Uint16Array(NC * NC); for (let i = 0; i < ch.length; i++) ch[i] = toHalf(d.cloud[i]);
+  WORLD.texC = tex2D(NC, NC, gl.R16F, gl.RED, gl.HALF_FLOAT, ch, gl.LINEAR, gl.REPEAT);
+  WORLD.cloud = d.cloud; WORLD.H = d.H; WORLD.shadow = d.shadow; WORLD.ready = true;
+}
+function hAt(x, z) {
+  const H = WORLD.H; if (!H) return 0;
+  const fx = mod(x / TILE * NT - 0.5, NT), fz = mod(z / TILE * NT - 0.5, NT);
+  const x0 = Math.floor(fx), z0 = Math.floor(fz), tx = fx - x0, tz = fz - z0, x1 = (x0 + 1) % NT, z1 = (z0 + 1) % NT;
+  return (H[z0 * NT + x0] * (1 - tx) + H[z0 * NT + x1] * tx) * (1 - tz) + (H[z1 * NT + x0] * (1 - tx) + H[z1 * NT + x1] * tx) * tz;
+}
+const gAt = (x, z) => Math.max(hAt(x, z), 0);
+
+// ---------- meshes ----------
+function buildJet() {
+  const T = [];
+  const tri = (a, b, c, m) => T.push(...a, m, ...b, m, ...c, m);
+  const quad = (a, b, c, d, m) => { tri(a, b, c, m); tri(a, c, d, m); };
+  // fuselage loft: z, halfwidth, top, bottom, yoff
+  const S = [[7.7, .27, .27, .25, 0], [6.4, .52, .50, .45, .02], [5.2, .74, .70, .55, .05], [3.9, 1.25, .78, .60, 0], [2.0, 1.38, .80, .62, 0],
+    [0, 1.46, .76, .65, 0], [-2.5, 1.55, .70, .62, 0], [-5.0, 1.50, .62, .60, 0], [-7.1, 1.36, .50, .50, 0]];
+  const ring = s => { const [z, w, ht, hb, y] = s; return [[0, y + ht, z], [w * .62, y + ht * .82, z], [w, y + .02, z], [w * .68, y - hb * .86, z], [0, y - hb, z], [-w * .68, y - hb * .86, z], [-w, y + .02, z], [-w * .62, y + ht * .82, z]]; };
+  const tip = [0, .02, 8.9];
+  let prev = ring(S[0]);
+  for (let k = 0; k < 8; k++) tri(tip, prev[k], prev[(k + 1) % 8], 1);
+  for (let i = 1; i < S.length; i++) {
+    const cur = ring(S[i]); const mat = S[i][0] > 6.0 ? 1 : 0;
+    for (let k = 0; k < 8; k++) quad(prev[k], prev[(k + 1) % 8], cur[(k + 1) % 8], cur[k], mat);
+    prev = cur;
+  }
+  for (let k = 1; k < 7; k++) tri(prev[0], prev[k], prev[k + 1], 4);
+  // canopy bubble
+  const C = [[5.5, .08, .05], [4.9, .40, .40], [4.1, .50, .56], [3.3, .46, .48], [2.6, .18, .22]];
+  const topAt = z => { for (let i = 0; i < S.length - 1; i++) { const a = S[i], b = S[i + 1]; if (z <= a[0] && z >= b[0]) { const t = (a[0] - z) / (a[0] - b[0]); return (a[2] + a[4]) * (1 - t) + (b[2] + b[4]) * t; } } return .7; };
+  const cr = c => { const [z, w, h] = c, y = topAt(z) - .06; return [[-w, y, z], [-w * .72, y + h * .78, z], [0, y + h, z], [w * .72, y + h * .78, z], [w, y, z]]; };
+  let cp = cr(C[0]);
+  for (let i = 1; i < C.length; i++) { const cc = cr(C[i]); for (let k = 0; k < 4; k++) quad(cp[k], cp[k + 1], cc[k + 1], cc[k], 2); cp = cc; }
+  for (let k = 0; k < 4; k++) tri(cp[0], cp[k], cp[k + 1], 2);
+  for (const sx of [-1, 1]) {
+    const X = v => [v[0] * sx, v[1], v[2]];
+    // intakes
+    const i0 = 1.05, i1 = 1.62, y0 = -.58, y1 = .12, zf = 3.0, zb = -1.6;
+    quad(X([i0, y1, zf]), X([i1, y1, zf - .5]), X([i1, y0, zf - .5]), X([i0, y0, zf]), 6);
+    quad(X([i1, y1, zf - .5]), X([i1, y1, zb]), X([i1, y0, zb]), X([i1, y0, zf - .5]), 0);
+    quad(X([i0, y0, zf]), X([i1, y0, zf - .5]), X([i1, y0, zb]), X([i0, y0, zb]), 0);
+    quad(X([i0, y1, zf]), X([i1, y1, zf - .5]), X([i1, y1, zb]), X([i0, y1, zb]), 0);
+    // cropped delta wing with ridge
+    const rl = [1.3, 0, 2.4], tl = [5.6, -.05, -3.8], tt = [5.6, -.05, -5.6], rt = [1.3, 0, -5.8];
+    const rr = [1.3, .16, -.9], tr = [5.6, .02, -4.5], rb = [1.3, -.10, -.9], tb = [5.6, -.08, -4.5];
+    quad(X(rl), X(tl), X(tr), X(rr), 0); quad(X(rr), X(tr), X(tt), X(rt), 0);
+    quad(X(rl), X(tl), X(tb), X(rb), 0); quad(X(rb), X(tb), X(tt), X(rt), 0);
+    quad(X(tl), X(tr), X(tt), X(tb), 0);
+    // LERX
+    tri(X([.72, .1, 5.2]), X([1.3, .02, 2.4]), X([1.25, .05, 3.9]), 0);
+    // canted fins with red caps
+    const fr0 = [.95, .55, -3.8], fr1 = [.95, .55, -7.0], ft0 = [1.96, 3.05, -6.0], ft1 = [1.96, 3.05, -7.45];
+    const m0 = V.lerp(fr0, ft0, .82), m1 = V.lerp(fr1, ft1, .82);
+    quad(X(fr0), X(m0), X(m1), X(fr1), 0); quad(X(m0), X(ft0), X(ft1), X(m1), 3);
+    // stabilators
+    quad(X([1.4, .05, -5.6]), X([3.6, 0, -7.0]), X([3.6, 0, -7.9]), X([1.4, .05, -7.8]), 0);
+    // nozzles
+    const nx = .70, nr = .47;
+    for (let k = 0; k < 8; k++) {
+      const a0 = k / 8 * Math.PI * 2, a1 = (k + 1) / 8 * Math.PI * 2;
+      const p = (a, r, z) => X([nx + Math.cos(a) * r, Math.sin(a) * r, z]);
+      quad(p(a0, nr, -6.9), p(a1, nr, -6.9), p(a1, nr * .88, -8.15), p(a0, nr * .88, -8.15), 4);
+      tri(X([nx, 0, -8.0]), p(a0, nr * .82, -8.05), p(a1, nr * .82, -8.05), 5);
+    }
+  }
+  return new Float32Array(T);
+}
+function buildMissile() {
+  const T = []; const tri = (a, b, c, m) => T.push(...a, m, ...b, m, ...c, m); const quad = (a, b, c, d, m) => { tri(a, b, c, m); tri(a, c, d, m); };
+  const r = .14, n = 6, pt = (a, z, rr) => [Math.cos(a) * rr, Math.sin(a) * rr, z];
+  for (let k = 0; k < n; k++) { const a0 = k / n * 6.283, a1 = (k + 1) / n * 6.283;
+    quad(pt(a0, -1.5, r), pt(a1, -1.5, r), pt(a1, 1.1, r), pt(a0, 1.1, r), 7);
+    tri([0, 0, 1.6], pt(a0, 1.1, r), pt(a1, 1.1, r), 8); tri([0, 0, -1.5], pt(a0, -1.5, r), pt(a1, -1.5, r), 8); }
+  for (const [x, y] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) { quad([x * r, y * r, -1.5], [x * .42, y * .42, -1.45], [x * .42, y * .42, -1.0], [x * r, y * r, -.8], 9);
+    quad([x * r, y * r, .6], [x * .26, y * .26, .75], [x * .26, y * .26, .95], [x * r, y * r, 1.0], 9); }
+  return new Float32Array(T);
+}
+function buildCone() {
+  const T = [], n = 8, rings = [[0, 1], [.3, .88], [.65, .55], [1, .08]];
+  const p = (k, i) => { const a = k / n * 6.283; return [Math.cos(a) * rings[i][1], Math.sin(a) * rings[i][1], -rings[i][0], rings[i][0]]; };
+  for (let i = 0; i < rings.length - 1; i++) for (let k = 0; k < n; k++) {
+    const a = p(k, i), b = p(k + 1, i), c = p(k + 1, i + 1), d = p(k, i + 1); T.push(...a, ...b, ...c, ...a, ...c, ...d); }
+  for (let k = 0; k < n; k++) { const a = p(k, 0), b = p(k + 1, 0); T.push(0, 0, 0, 0, ...a, ...b); }
+  return new Float32Array(T);
+}
+function meshVAO(data, stride, layout) {
+  const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+  const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+  let off = 0; layout.forEach((sz, i) => { gl.enableVertexAttribArray(i); gl.vertexAttribPointer(i, sz, gl.FLOAT, false, stride * 4, off * 4); off += sz; });
+  gl.bindVertexArray(null); return { vao, n: data.length / stride };
+}
+function dynVAO(layout, stride) {
+  const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+  const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b);
+  let off = 0; layout.forEach((sz, i) => { gl.enableVertexAttribArray(i); gl.vertexAttribPointer(i, sz, gl.FLOAT, false, stride * 4, off * 4); off += sz; });
+  gl.bindVertexArray(null); return { vao, b };
+}
+let JET, MSL, CONE, PTS, LINES, LUT, PALT;
+if (gl) {
+  JET = meshVAO(buildJet(), 4, [3, 1]); MSL = meshVAO(buildMissile(), 4, [3, 1]); CONE = meshVAO(buildCone(), 4, [3, 1]);
+  PTS = dynVAO([3, 1, 4], 8); LINES = dynVAO([3, 4], 7);
+  LUT = gl.createTexture(); gl.bindTexture(gl.TEXTURE_3D, LUT); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+  gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, 32, 32, 32, 0, gl.RGBA, gl.UNSIGNED_BYTE, buildLUT());
+  for (const p of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_3D, p, gl.NEAREST);
+  for (const p of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T, gl.TEXTURE_WRAP_R]) gl.texParameteri(gl.TEXTURE_3D, p, gl.CLAMP_TO_EDGE);
+  const pd = new Uint8Array(256 * 4); PAL.forEach((c, i) => { pd[i * 4] = c[0] * 255; pd[i * 4 + 1] = c[1] * 255; pd[i * 4 + 2] = c[2] * 255; pd[i * 4 + 3] = 255; });
+  PALT = tex2D(256, 1, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, pd, gl.NEAREST, gl.CLAMP_TO_EDGE);
+}
+
+// ================= GAME =================
+const VIEWS = ['TOP', 'CHASE', 'COCKPIT'];
+const S = {
+  t: 0, started: false, auto: true,
+  pos: [TILE * 0.31, CRUISE, TILE * 0.62], yaw: -1.85, pitch: 0, roll: 0, v: 190, ab: 0, abT: 0,
+  rollT: -1, rollX: 0, helix: [0, 0, 0], yawRate: 0, pitchRate: 0, G: 1, Gs: 1, vs: 0, pullUp: false, slip: 0,
+  view: 1, from: null, blendT0: -10, chaseOff: null,
+  mouse: null, lDown: false, lDownT: 0, rDown: false, burnKey: false, touchBurn: false,
+  rails: [{ p: [-4.0, -.32, -3.7], armed: 1, t: 0 }, { p: [4.0, -.32, -3.7], armed: 1, t: 0 }, { p: [-2.6, -.34, -2.0], armed: 1, t: 0 }, { p: [2.6, -.34, -2.0], armed: 1, t: 0 }],
+  missiles: [], parts: [], rings: [], marks: [], trails: [[], []], trailAcc: 0, flash: 0, shake: 0,
+  frame: { f: [0, 0, -1], r: [1, 0, 0], u: [0, 1, 0] }, cam: null, fps: 60, qLevel: 0,
+};
+const RELOAD = 4.5;
+
+function jetFrame(yaw, pitch, roll) {
+  const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const f = [sy * cp, sp, -cy * cp];
+  const r0 = [cy, 0, sy];
+  const u0 = V.cross(r0, f);
+  const cr = Math.cos(roll), sr = Math.sin(roll);
+  const r = V.sub(V.mul(r0, cr), V.mul(u0, sr));
+  const u = V.add(V.mul(u0, cr), V.mul(r0, sr));
+  return { f, r, u, r0, u0 };
+}
+const local = (fr, o, p) => [o[0] + fr.r[0] * p[0] + fr.u[0] * p[1] + fr.f[0] * p[2], o[1] + fr.r[1] * p[0] + fr.u[1] * p[1] + fr.f[1] * p[2], o[2] + fr.r[2] * p[0] + fr.u[2] * p[1] + fr.f[2] * p[2]];
+const jetVisPos = () => V.add(S.pos, S.helix);
+
+// ---------- input helpers ----------
+function screenCenter() { const sh = S.cam ? S.cam.shift : 0; return [W / 2, H / 2 - sh * H / 2]; }
+function cursorWorld() {
+  if (!S.mouse || !S.cam) return null;
+  const ndc = [S.mouse[0] / W * 2 - 1, 1 - S.mouse[1] / H * 2];
+  const inv = S.cam.invVP; const x = ndc[0], y = ndc[1];
+  const w = inv[3] * x + inv[7] * y + inv[11] + inv[15];
+  const d = V.norm([(inv[0] * x + inv[4] * y + inv[8] + inv[12]) / w, (inv[1] * x + inv[5] * y + inv[9] + inv[13]) / w, (inv[2] * x + inv[6] * y + inv[10] + inv[14]) / w]);
+  const cp = S.cam.pos; if (Math.abs(d[1]) < 1e-3) return null;
+  const t = (S.pos[1] - cp[1]) / d[1]; if (t < 0) return null;
+  return [cp[0] + d[0] * t, S.pos[1], cp[2] + d[2] * t];
+}
+
+// ---------- flight ----------
+function updateFlight(dt) {
+  const altHold = tgt => clamp((tgt - S.pos[1]) * 0.0045, -0.32, 0.32);
+  let bankT = 0, pitchT = 0;
+  if (S.auto || !S.started) { bankT = Math.sin(S.t * 0.3) * 0.62; pitchT = altHold(CRUISE + Math.sin(S.t * 0.11) * 60); }
+  else if (S.view === 0) {
+    const T = cursorWorld();
+    if (T) { const dx = T[0] - S.pos[0], dz = T[2] - S.pos[2];
+      if (Math.hypot(dx, dz) > 30) { const e = wrapPi(Math.atan2(dx, -dz) - S.yaw); bankT = clamp(e * 1.9, -1.25, 1.25); } }
+    pitchT = altHold(CRUISE);
+  } else if (S.mouse) {
+    const c = screenCenter(), R = Math.min(H, W) * 0.42;
+    let ix = (S.mouse[0] - c[0]) / R, iy = (c[1] - S.mouse[1]) / R;
+    const dz = 0.035; ix = Math.abs(ix) < dz ? 0 : ix - Math.sign(ix) * dz; iy = Math.abs(iy) < dz ? 0 : iy - Math.sign(iy) * dz;
+    bankT = clamp(ix, -1, 1) * 1.25; pitchT = clamp(iy, -1, 1) * 0.95;
+  }
+  // terrain look-ahead: auto pull-up
+  const fx = Math.sin(S.yaw), fz = -Math.cos(S.yaw), y = S.pos[1];
+  let need = -2, pull = false;
+  const look = Math.max(S.v, 150);
+  for (let k = 1; k <= 14; k++) {
+    const d = (k * 0.22 + k * k * 0.012) * look;
+    const gx = S.pos[0] + fx * d, gz = S.pos[2] + fz * d, h = hAt(gx, gz);
+    const req = Math.atan2(Math.max(h, 0) + (h < 0 ? 7 : 32) - y, d);
+    if (req > need) need = req;
+  }
+  if (pitchT < need) { pull = need - pitchT > 0.06 && need > -0.02; pitchT = need + 0.025; }
+  pitchT = Math.min(pitchT, (3200 - y) * 0.002);
+  S.pullUp = pull;
+  const pr = clamp((pitchT - S.pitch) * 2.4, pull ? -1.8 : -1.0, pull ? 1.8 : 1.0);
+  S.pitch = clamp(S.pitch + pr * dt, -1.2, 1.2);
+  const rr = clamp((bankT - S.roll) * 4.2, -2.6, 2.6);
+  S.slip = S.slip + ((bankT - S.roll) * 0.35 - S.slip) * Math.min(1, dt * 3);
+  S.roll += rr * dt;
+  S.yawRate = 0.92 * Math.sin(S.roll) / Math.max(0.5, Math.cos(S.pitch));
+  S.yaw = wrapPi(S.yaw + S.yawRate * dt);
+  // throttle
+  const burning = S.burnKey || S.touchBurn || (S.lDown && S.t - S.lDownT > 0.22);
+  S.abT = burning && S.started ? 1 : 0;
+  S.ab += (S.abT - S.ab) * Math.min(1, dt * 3.2);
+  const vT = 188 + 128 * S.ab;
+  S.v += ((vT - S.v) * 0.55 - 9.81 * Math.sin(S.pitch) * 0.45) * dt; S.v = clamp(S.v, 120, 360);
+  const cp = Math.cos(S.pitch), f = [fx * cp, Math.sin(S.pitch), fz * cp];
+  S.pos = V.add(S.pos, V.mul(f, S.v * dt));
+  const g = hAt(S.pos[0], S.pos[2]), minY = Math.max(g, 0) + (g < 0 ? 4.5 : 11);
+  if (S.pos[1] < minY) { S.pos[1] = minY; S.pitch = Math.max(S.pitch, 0.02); }
+
+  S.vs = S.v * Math.sin(S.pitch);
+  const at = S.v * S.yawRate * cp / 9.81, ap = S.v * pr / 9.81;
+  S.G = Math.min(9.5, Math.hypot(at * 0.8, cp + ap * 0.35)); S.Gs += (S.G - S.Gs) * Math.min(1, dt * 4);
+  // barrel roll
+  if (S.rollT >= 0) {
+    S.rollT += dt; const k = clamp(S.rollT / 0.95, 0, 1), e = k * k * (3 - 2 * k);
+    S.rollX = e * Math.PI * 2;
+    const fr0 = jetFrame(S.yaw, S.pitch, S.roll), R = 7;
+    S.helix = V.add(V.mul(fr0.r0, Math.sin(S.rollX) * R), V.mul(fr0.u0, (1 - Math.cos(S.rollX)) * R));
+    if (k >= 1) { S.rollT = -1; S.rollX = 0; S.helix = [0, 0, 0]; }
+  }
+  S.frame = jetFrame(S.yaw, S.pitch, S.roll + S.rollX);
+}
+function barrelRoll() { if (S.rollT < 0 && S.started) { S.rollT = 0; Snd.whoosh(); } }
+
+// ---------- cameras ----------
+function viewTarget(i, dt) {
+  const fr = S.frame, jp = jetVisPos();
+  if (i === 0) return { off: [0, 390, 0], basis: [[1, 0, 0], [0, 0, -1], [0, 1, 0]], fov: 44 * Math.PI / 180, shift: 0 };
+  if (i === 1) {
+    const fl = jetFrame(S.yaw, S.pitch, S.roll);
+    const want = V.add(V.mul(fl.f, -40), [0, 9.5, 0]);
+    if (!S.chaseOff) S.chaseOff = want;
+    S.chaseOff = V.lerp(S.chaseOff, want, Math.min(1, dt * 3.5));
+    const camP = V.add(S.pos, S.chaseOff);
+    const look = V.add(S.pos, V.mul(fl.f, 26));
+    const up = V.norm(V.lerp([0, 1, 0], fl.u, 0.32));
+    return { off: V.sub(camP, jp), basis: lookBasis(V.sub(look, camP), up), fov: 58 * Math.PI / 180, shift: 0 };
+  }
+  const eye = local(fr, [0, 0, 0], [0, 1.28, 4.25]);
+  return { off: eye, basis: [fr.r, fr.u, V.mul(fr.f, -1)], fov: 70 * Math.PI / 180, shift: 0.3 };
+}
+function setView(i) {
+  if (i === S.view) return;
+  const c = S.cam; if (c) S.from = { off: V.sub(c.pos, jetVisPos()), q: c.q, fov: c.fov, shift: c.shift, view: S.view, w: c.cockpit };
+  S.view = i; S.blendT0 = S.t;
+  document.getElementById('view').textContent = VIEWS[i];
+}
+function updateCamera(dt) {
+  const tgt = viewTarget(S.view, dt);
+  const tq = basisToQuat(...tgt.basis);
+  let off = tgt.off, q = tq, fov = tgt.fov, shift = tgt.shift, b = 1;
+  const k = clamp((S.t - S.blendT0) / 1.05, 0, 1);
+  let cockpit = S.view === 2 ? 1 : 0;
+  if (S.from && k < 1) {
+    b = k * k * (3 - 2 * k);
+    off = V.lerp(S.from.off, tgt.off, b); q = slerp(S.from.q, tq, b);
+    fov = S.from.fov + (tgt.fov - S.from.fov) * b; shift = S.from.shift + (tgt.shift - S.from.shift) * b;
+    cockpit = S.from.w + (cockpit - S.from.w) * b;
+  }
+  if (S.shake > 0) { off = V.add(off, [rnd(-1, 1) * S.shake, rnd(-1, 1) * S.shake, rnd(-1, 1) * S.shake]); S.shake = Math.max(0, S.shake - dt * 3); }
+  const pos = V.add(jetVisPos(), off);
+  const [r, u, bb] = quatToBasis(q);
+  const P = persp(fov, W / H, 0.6, 30000, shift), Vm = viewRot(r, u, bb);
+  const VP = m4mul(P, Vm);
+  S.cam = { pos, q, fov, shift, r, u, b: bb, VP, invVP: m4inv(VP), cockpit, px: H / (2 * Math.tan(fov / 2)) };
+  S.jetVisible = V.len(off) > 11;
+}
+
+// ---------- particles ----------
+const PMAX = 5000;
+function emit(k, p, v, life, s0, s1, extra) {
+  if (S.parts.length >= PMAX) return;
+  S.parts.push({ k, x: p[0], y: p[1], z: p[2], vx: v[0], vy: v[1], vz: v[2], a: 0, l: life, s0, s1, r: Math.random(), e: extra || 0 });
+}
+const RAMP = {
+  smoke: t => [.92 - t * .3, .88 - t * .3, .9 - t * .22, (1 - t) * .85],
+  flame: t => [1, .95 - t * .4, .6 - t * .5, 1],
+  fire: t => t < .15 ? [1, 1, .85, 1] : t < .35 ? [1, .82, .3, 1] : t < .6 ? [.95, .45, .15, .95] : t < .8 ? [.55, .2, .12, .8] : [.32, .26, .3, (1 - t) * 3],
+  bigsmoke: t => [.30 + t * .2, .26 + t * .2, .32 + t * .22, t < .08 ? t / .08 * .9 : (1 - t) * .95],
+  ember: (t, r, a) => { const f = Math.sin(a * (6 + r * 8) + r * 30); return f > 0 ? [1, .55 + f * .3, .15, (1 - t) * 1.2] : [.7, .22, .1, (1 - t)]; },
+  spray: t => [.96, .98, 1, (1 - t) * .95],
+  foam: t => [.95, .97, .95, (1 - t) * .9],
+  flash: t => [1, 1, .9, 1 - t],
+  debris: t => [.15, .12, .14, 1],
+  dust: t => [.75, .62, .5, (1 - t) * .7],
+};
+function updateParts(dt) {
+  const P = S.parts;
+  for (let i = P.length - 1; i >= 0; i--) {
+    const p = P[i]; p.a += dt;
+    if (p.a >= p.l) { P[i] = P[P.length - 1]; P.pop(); continue; }
+    let drag = 0.5, grav = 0;
+    switch (p.k) {
+      case 'fire': drag = 3.2; grav = -6; break;
+      case 'bigsmoke': drag = 1.2; grav = -1.5; p.vx += 2.5 * dt; break;
+      case 'smoke': drag = 1.5; grav = -0.6; break;
+      case 'spray': drag = 0.6; grav = 9.8; break;
+      case 'debris': drag = 0.4; grav = 9.8; break;
+      case 'ember': drag = 1.5; grav = -0.5; break;
+      case 'foam': drag = 1.4; break;
+      case 'dust': drag = 2; grav = -1; break;
+    }
+    const k = Math.exp(-drag * dt);
+    p.vx *= k; p.vy = p.vy * k - grav * dt; p.vz *= k;
+    p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+    if (p.k === 'spray' || p.k === 'debris') { const g = gAt(p.x, p.z); if (p.y < g) { p.y = g; p.vy = 0; p.vx *= .5; p.vz *= .5; if (p.k === 'spray') p.a = Math.max(p.a, p.l * .8); } }
+    if (p.k === 'foam') p.y = 0.4;
+  }
+}
+
+// ---------- missiles ----------
+function aimPoint() {
+  const fr = S.frame, p = jetVisPos(), f = fr.f;
+  for (let d = 60; d < 7000; d += 25 + d * 0.01) {
+    const x = p[0] + f[0] * d, y = p[1] + f[1] * d, z = p[2] + f[2] * d;
+    if (y <= gAt(x, z)) return [x, gAt(x, z), z];
+  }
+  const fl = V.norm([f[0], 0, f[2]]);
+  const D = f[1] > -0.06 ? 1700 : 3000;
+  const x = p[0] + fl[0] * D, z = p[2] + fl[2] * D; return [x, gAt(x, z), z];
+}
+function fire() {
+  if (!S.started) return;
+  const order = [0, 1, 2, 3]; let idx = -1;
+  for (const i of order) if (S.rails[i].armed) { idx = i; break; }
+  if (idx < 0) { Snd.click(); return; }
+  const rail = S.rails[idx]; rail.armed = 0; rail.t = RELOAD;
+  const fr = S.frame, p = local(fr, jetVisPos(), rail.p);
+  const vel = V.add(V.mul(fr.f, S.v), V.mul(fr.u, -9));
+  S.missiles.push({ p, v: vel, tgt: aimPoint(), a: 0, f: fr.f, alive: true });
+  Snd.launch(); updateMslUI();
+}
+function updateMissiles(dt) {
+  for (const r of S.rails) if (!r.armed) { r.t -= dt; if (r.t <= 0) { r.armed = 1; updateMslUI(); Snd.arm(); } }
+  for (const m of S.missiles) {
+    m.a += dt;
+    let sp = V.len(m.v), dir = V.mul(m.v, 1 / sp);
+    if (m.a > 0.22) {
+      const want = V.norm(V.sub(m.tgt, m.p));
+      const ang = Math.acos(clamp(V.dot(dir, want), -1, 1)), maxA = (m.a < 0.5 ? 1.5 : 3.4) * dt;
+      if (ang > 1e-4) { const t = Math.min(1, maxA / ang); dir = V.norm(V.lerp(dir, want, t)); }
+      sp = Math.min(680, sp + 520 * dt);
+    } else { m.v[1] -= 9.8 * dt; dir = V.norm(m.v); sp = V.len(m.v); }
+    m.v = V.mul(dir, sp); m.f = dir;
+    const np = V.add(m.p, V.mul(m.v, dt));
+    // smoke trail & flame along the segment
+    if (m.a > 0.22) {
+      const n = 3; for (let i = 0; i < n; i++) { const q = V.lerp(m.p, np, i / n), tail = V.add(q, V.mul(dir, -1.8));
+        emit('smoke', tail, [rnd(-1.5, 1.5), rnd(-1, 2), rnd(-1.5, 1.5)], rnd(2.2, 3.4), 1.6, 7.5); }
+      emit('flame', V.add(np, V.mul(dir, -1.9)), V.mul(dir, -40), 0.06, 1.5, 0.8);
+    }
+    m.p = np;
+    const g = gAt(m.p[0], m.p[2]);
+    if (m.p[1] <= g + 0.5 || V.len(V.sub(m.p, m.tgt)) < 12 || m.a > 14) { m.alive = false; explode([m.p[0], Math.max(g, m.p[1] > g + 30 ? m.p[1] : g), m.p[2]], m.p[1] > g + 30); }
+  }
+  S.missiles = S.missiles.filter(m => m.alive);
+}
+function explode(p, air) {
+  const water = !air && hAt(p[0], p[2]) < 0.3;
+  const dist = S.cam ? V.len(V.sub(p, S.cam.pos)) : 1000;
+  S.flash = Math.max(S.flash, clamp(1.1 - dist / 4000, 0.18, 0.75));
+  S.shake = Math.max(S.shake, clamp(2.2 - dist / 900, 0, 1.6));
+  emit('flash', [p[0], p[1] + 8, p[2]], [0, 0, 0], 0.16, 90, 170);
+  for (let i = 0; i < 46; i++) { const d = V.norm([rnd(-1, 1), rnd(0.1, 1.2), rnd(-1, 1)]); emit('fire', V.add(p, V.mul(d, 4)), V.mul(d, rnd(30, 95)), rnd(0.9, 1.9), rnd(10, 16), rnd(26, 46)); }
+  for (let i = 0; i < 26; i++) emit('bigsmoke', V.add(p, [rnd(-14, 14), rnd(6, 24), rnd(-14, 14)]), [rnd(-6, 6), rnd(4, 12), rnd(-6, 6)], rnd(8, 13), rnd(16, 26), rnd(55, 90));
+  S.rings.push({ p: [p[0], p[1], p[2]], a: 0, l: 1.4, R: 230, water });
+  S.rings.push({ p: [p[0], p[1], p[2]], a: -0.1, l: 2.4, R: 130, water, dim: 1 });
+  if (air) { for (let i = 0; i < 16; i++) emit('debris', p, [rnd(-40, 40), rnd(0, 40), rnd(-40, 40)], rnd(1.5, 3), 1, 1); }
+  else if (water) {
+    for (let i = 0; i < 90; i++) { const a = rnd(0, 6.283), r = rnd(0, 9); emit('spray', [p[0] + Math.cos(a) * r, 1, p[2] + Math.sin(a) * r], [Math.cos(a) * rnd(3, 16), rnd(40, 120), Math.sin(a) * rnd(3, 16)], rnd(2.6, 4.2), rnd(3.5, 6), rnd(8, 14)); }
+    for (let i = 0; i < 40; i++) { const a = rnd(0, 6.283); emit('foam', [p[0], .4, p[2]], [Math.cos(a) * rnd(15, 45), 0, Math.sin(a) * rnd(15, 45)], rnd(5, 9), 4, 9); }
+    addMark(p, 2);
+  } else {
+    for (let i = 0; i < 40; i++) { const a = rnd(0, 6.283), r = rnd(2, 26); const q = [p[0] + Math.cos(a) * r, 0, p[2] + Math.sin(a) * r]; q[1] = gAt(q[0], q[2]) + 0.6; emit('ember', q, [rnd(-1, 1), rnd(0, 2), rnd(-1, 1)], rnd(5, 12), rnd(.9, 1.6), .8); }
+    for (let i = 0; i < 20; i++) emit('debris', p, [rnd(-35, 35), rnd(15, 55), rnd(-35, 35)], rnd(1.5, 3), 1.2, 1.2);
+    for (let i = 0; i < 24; i++) { const a = rnd(0, 6.283); emit('dust', V.add(p, [0, 2, 0]), [Math.cos(a) * rnd(40, 80), rnd(0, 6), Math.sin(a) * rnd(40, 80)], rnd(1.6, 2.6), 8, 22); }
+    addMark(p, 1);
+  }
+  Snd.boom(dist, water);
+}
+function addMark(p, type) {
+  S.marks.push({ x: p[0], z: p[2], type, a: 0, l: type === 1 ? 90 : 18 });
+  if (S.marks.length > 8) S.marks.shift();
+}
+function updateFx(dt) {
+  for (const r of S.rings) r.a += dt; S.rings = S.rings.filter(r => r.a < r.l);
+  for (const m of S.marks) m.a += dt; S.marks = S.marks.filter(m => m.a < m.l);
+  S.flash = Math.max(0, S.flash - dt * 3.2);
+  // vapour trails
+  S.trailAcc += dt;
+  const fr = S.frame, jp = jetVisPos();
+  if (S.trailAcc > 1 / 40) {
+    S.trailAcc = 0;
+    const tips = [local(fr, jp, [-5.6, -0.05, -4.8]), local(fr, jp, [5.6, -0.05, -4.8])];
+    tips.forEach((p, i) => { S.trails[i].push({ p, t: S.t, g: S.Gs }); while (S.trails[i].length && S.t - S.trails[i][0].t > 2.6) S.trails[i].shift(); });
+  }
+  // spray & wake when skimming water
+  const g = hAt(jp[0], jp[2]), alt = jp[1] - Math.max(g, 0);
+  if (g < 0 && alt < 32 && S.started) {
+    const k = 1 - alt / 32, n = Math.ceil(k * 6);
+    for (let i = 0; i < n; i++) {
+      const back = local(fr, [jp[0], 0, jp[2]], [rnd(-3, 3), 0, rnd(-12, -4)]);
+      emit('spray', [back[0], 0.8, back[2]], [fr.f[0] * S.v * .25 + rnd(-6, 6), rnd(6, 22) * k, fr.f[2] * S.v * .25 + rnd(-6, 6)], rnd(0.7, 1.4), 1.6, 3.2);
+    }
+    if (Math.random() < k * 1.5) for (const sgn of [-1, 1]) {
+      const rr = jetFrame(S.yaw, 0, 0).r0;
+      const pp = [jp[0] - fr.f[0] * 14, 0.4, jp[2] - fr.f[2] * 14];
+      emit('foam', pp, [rr[0] * sgn * rnd(6, 14), 0, rr[2] * sgn * rnd(6, 14)], rnd(2.5, 4), 1.2, 3.2);
+    }
+  }
+}
+
+// ---------- rendering ----------
+let W = 0, H = 0, FBO = null, FTEX = null, FDEP = null, SCALE = 3;
+const LEVELS = [340, 290, 245, 205, 170];
+function resize() {
+  const tH = LEVELS[S.qLevel];
+  let s = innerHeight / tH; if (S.qLevel === 0) s = Math.max(1, Math.round(s));
+  SCALE = s; H = Math.ceil(innerHeight / s); W = Math.ceil(innerWidth / s);
+  for (const c of [glc, ovc]) { c.width = W; c.height = H; c.style.width = (W * s) + 'px'; c.style.height = (H * s) + 'px'; }
+  if (!gl) return;
+  if (FTEX) { gl.deleteTexture(FTEX); gl.deleteRenderbuffer(FDEP); gl.deleteFramebuffer(FBO); }
+  FTEX = tex2D(W, H, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, null, gl.NEAREST, gl.CLAMP_TO_EDGE);
+  FDEP = gl.createRenderbuffer(); gl.bindRenderbuffer(gl.RENDERBUFFER, FDEP); gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, W, H);
+  FBO = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, FBO);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, FTEX, 0);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, FDEP);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  Cockpit.resize();
+}
+const rel = p => [p[0] - S.cam.pos[0], p[1] - S.cam.pos[1], p[2] - S.cam.pos[2]];
+const ptBuf = new Float32Array(PMAX * 8 + 64 * 8);
+const lnBuf = new Float32Array(4096 * 7);
+function render() {
+  const c = S.cam;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, FBO); gl.viewport(0, 0, W, H);
+  gl.clearColor(0, 0, 0, 1); gl.clearDepth(1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.ALWAYS); gl.depthMask(true);
+  // world
+  let P = PR.world; gl.useProgram(P.p); gl.bindVertexArray(emptyVAO);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, WORLD.texH); gl.uniform1i(P.u.uH, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, WORLD.texM); gl.uniform1i(P.u.uM, 1);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, WORLD.texC); gl.uniform1i(P.u.uC, 2);
+  gl.uniformMatrix4fv(P.u.uInvVP, false, c.invVP); gl.uniformMatrix4fv(P.u.uVP, false, c.VP);
+  gl.uniform3f(P.u.uCamW, mod(c.pos[0], TILE), c.pos[1], mod(c.pos[2], TILE));
+  gl.uniform3fv(P.u.uSun, SUN); gl.uniform2f(P.u.uRes, W, H);
+  gl.uniform2f(P.u.uCloudOff, mod(S.t * 6, CT), mod(S.t * 2.5, CT));
+  gl.uniform1f(P.u.uTime, S.t); gl.uniform1f(P.u.uThr, WORLD.thr); gl.uniform1f(P.u.uCMax, WORLD.cmax);
+  const fr = S.frame, jr = rel(jetVisPos());
+  gl.uniform3fv(P.u.uJP, jr); gl.uniform3fv(P.u.uJF, fr.f); gl.uniform3fv(P.u.uJR, fr.r); gl.uniform3fv(P.u.uJU, fr.u);
+  const mk = new Float32Array(32), mk2 = new Float32Array(32);
+  S.marks.forEach((m, i) => { const r = rel([m.x, 0, m.z]); const k = m.a / m.l;
+    if (m.type === 1) { mk.set([r[0], r[2], 26, clamp(1.4 - k * 1.2, 0, 1)], i * 4); }
+    else { mk.set([r[0], r[2], 18 + 75 * (1 - Math.exp(-m.a * 0.35)), 1 - k], i * 4); }
+    mk2.set([m.type, m.a, 0, 0], i * 4); });
+  gl.uniform4fv(P.u.uMk, mk); gl.uniform4fv(P.u.uMk2, mk2);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.depthFunc(gl.LEQUAL);
+  // jet + missiles
+  P = PR.mesh; gl.useProgram(P.p);
+  gl.uniformMatrix4fv(P.u.uVP, false, c.VP); gl.uniform3fv(P.u.uSun, SUN); gl.uniform1f(P.u.uGlow, S.ab); gl.uniform1f(P.u.uTime, S.t);
+  if (S.jetVisible) {
+    gl.bindVertexArray(JET.vao); gl.uniformMatrix4fv(P.u.uM, false, model(fr.r, fr.u, fr.f, jr)); gl.drawArrays(gl.TRIANGLES, 0, JET.n);
+    gl.bindVertexArray(MSL.vao);
+    for (const r of S.rails) if (r.armed) { gl.uniformMatrix4fv(P.u.uM, false, model(fr.r, fr.u, fr.f, rel(local(fr, jetVisPos(), r.p)))); gl.drawArrays(gl.TRIANGLES, 0, MSL.n); }
+  }
+  gl.bindVertexArray(MSL.vao);
+  for (const m of S.missiles) { const [r, u] = lookBasis(m.f, [0, 1, 0]); gl.uniformMatrix4fv(P.u.uM, false, model(r, u, m.f, rel(m.p))); gl.drawArrays(gl.TRIANGLES, 0, MSL.n); }
+  // plumes
+  gl.colorMask(true, true, true, false); gl.depthMask(false);
+  if (S.jetVisible) {
+    P = PR.plume; gl.useProgram(P.p); gl.bindVertexArray(CONE.vao);
+    gl.uniformMatrix4fv(P.u.uVP, false, c.VP); gl.uniform1f(P.u.uTime, S.t);
+    const L = 1.8 + 10 * S.ab + Math.sin(S.t * 50) * 0.3 * S.ab;
+    for (const sx of [-1, 1]) {
+      const np = rel(local(fr, jetVisPos(), [0.7 * sx, 0, -8.05]));
+      gl.uniformMatrix4fv(P.u.uM, false, model(fr.r, fr.u, fr.f, np, [.4, .4, L]));
+      gl.uniform3f(P.u.uC0, 1, .72, .32); gl.uniform3f(P.u.uC1, .9, .25, .2); gl.uniform1f(P.u.uA, .45 + .55 * S.ab);
+      gl.drawArrays(gl.TRIANGLES, 0, CONE.n);
+      if (S.ab > .05) { gl.uniformMatrix4fv(P.u.uM, false, model(fr.r, fr.u, fr.f, np, [.2, .2, L * .55]));
+        gl.uniform3f(P.u.uC0, 1, 1, 1); gl.uniform3f(P.u.uC1, 1, .9, .55); gl.uniform1f(P.u.uA, 1.2 * S.ab); gl.drawArrays(gl.TRIANGLES, 0, CONE.n); }
+    }
+  }
+  // lines: trails + rings
+  let n = 0; const segs = [];
+  const pushV = (p, col) => { if (n >= 4096) return; lnBuf.set([p[0], p[1], p[2], col[0], col[1], col[2], col[3]], n * 7); n++; };
+  for (const tr of S.trails) { if (tr.length < 2) continue; const s0 = n;
+    for (const q of tr) { const age = (S.t - q.t) / 2.6; const a = (0.16 + clamp((q.g - 1.4) / 3, 0, 0.7)) * (1 - age) * (S.started ? 1 : .7); pushV(rel(q.p), [1, 1, 1, a]); }
+    segs.push([gl.LINE_STRIP, s0, n - s0]); }
+  for (const r of S.rings) { if (r.a < 0) continue; const k = r.a / r.l, R = r.R * (1 - Math.pow(1 - k, 2.2)), s0 = n;
+    for (let i = 0; i < 48; i++) { const a = i / 48 * 6.283, x = r.p[0] + Math.cos(a) * R, z = r.p[2] + Math.sin(a) * R; const y = (r.water ? 0 : gAt(x, z)) + 2;
+      pushV(rel([x, y, z]), r.dim ? [.85, .78, .72, (1 - k) * .8] : [1, 1, .95, (1 - k) * 1.1]); }
+    segs.push([gl.LINE_LOOP, s0, n - s0]); }
+  if (n) {
+    P = PR.line; gl.useProgram(P.p); gl.uniformMatrix4fv(P.u.uVP, false, c.VP);
+    gl.bindVertexArray(LINES.vao); gl.bindBuffer(gl.ARRAY_BUFFER, LINES.b); gl.bufferData(gl.ARRAY_BUFFER, lnBuf.subarray(0, n * 7), gl.STREAM_DRAW);
+    for (const [m, s, cnt] of segs) gl.drawArrays(m, s, cnt);
+  }
+  // particles
+  let k = 0;
+  for (const p of S.parts) {
+    const t = p.a / p.l, col = RAMP[p.k](t, p.r, p.a), sz = p.s0 + (p.s1 - p.s0) * Math.sqrt(t);
+    ptBuf.set([p.x - c.pos[0], p.y - c.pos[1], p.z - c.pos[2], sz, col[0], col[1], col[2], col[3]], k * 8); k++;
+  }
+  for (const m of S.missiles) if (m.a > .22) { const q = rel(V.add(m.p, V.mul(m.f, -1.7))); ptBuf.set([q[0], q[1], q[2], 2.6, 1, .95, .75, 1], k * 8); k++; }
+  if (k) {
+    P = PR.pts; gl.useProgram(P.p); gl.uniformMatrix4fv(P.u.uVP, false, c.VP); gl.uniform1f(P.u.uPx, c.px);
+    gl.bindVertexArray(PTS.vao); gl.bindBuffer(gl.ARRAY_BUFFER, PTS.b); gl.bufferData(gl.ARRAY_BUFFER, ptBuf.subarray(0, k * 8), gl.STREAM_DRAW);
+    gl.drawArrays(gl.POINTS, 0, k);
+  }
+  gl.colorMask(true, true, true, true); gl.depthMask(true); gl.disable(gl.DEPTH_TEST);
+  // post to screen
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, W, H);
+  P = PR.post; gl.useProgram(P.p); gl.bindVertexArray(emptyVAO);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, FTEX); gl.uniform1i(P.u.uS, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_3D, LUT); gl.uniform1i(P.u.uLut, 1);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, PALT); gl.uniform1i(P.u.uPal, 2);
+  gl.uniform1f(P.u.uFlash, S.flash); gl.uniform2i(P.u.uSize, W, H);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+
+// ================= COCKPIT & HUD (Canvas 2D, hand-plotted pixels) =================
+const FONT = {
+  '0': '111101101101111', '1': '010110010010111', '2': '111001111100111', '3': '111001011001111', '4': '101101111001001',
+  '5': '111100111001111', '6': '111100111101111', '7': '111001010010010', '8': '111101111101111', '9': '111101111001111',
+  A: '010101111101101', B: '110101110101110', C: '011100100100011', D: '110101101101110', E: '111100110100111', F: '111100110100100',
+  G: '011100101101011', H: '101101111101101', I: '111010010010111', J: '001001001101010', K: '101101110101101', L: '100100100100111',
+  M: '101111111101101', N: '110101101101101', O: '010101101101010', P: '110101110100100', Q: '010101101110011', R: '110101110101101',
+  S: '011100010001110', T: '111010010010010', U: '101101101101111', V: '101101101101010', W: '101101111111101', X: '101101010101101',
+  Y: '101101010010010', Z: '111001010100111', '-': '000000111000000', '.': '000000000000010', ':': '000010000010000', '/': '001001010100100',
+  '+': '000010111010000', '%': '101001010100101', ' ': '000000000000000', '>': '100010001010100', '<': '001010100010001', '^': '010101000000000',
+};
+function makeDraw(ctx) {
+  const D = {
+    col(c) { ctx.fillStyle = c; return D; },
+    px(x, y, w = 1, h = 1) { ctx.fillRect(Math.round(x), Math.round(y), w, h); },
+    line(x0, y0, x1, y1) {
+      x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+      const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let e = dx + dy, n = 0;
+      for (;;) { ctx.fillRect(x0, y0, 1, 1); if ((x0 === x1 && y0 === y1) || n++ > 2000) break; const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; } }
+    },
+    dash(x0, y0, x1, y1, on, off) { const L = Math.hypot(x1 - x0, y1 - y0), n = Math.max(1, Math.floor(L / (on + off)));
+      for (let i = 0; i <= n; i++) { const a = i * (on + off) / L, b = Math.min(1, (i * (on + off) + on) / L); if (a > 1) break; D.line(x0 + (x1 - x0) * a, y0 + (y1 - y0) * a, x0 + (x1 - x0) * b, y0 + (y1 - y0) * b); } },
+    text(s, x, y, align) { s = String(s).toUpperCase(); let w = s.length * 4 - 1; x = Math.round(align === 'c' ? x - w / 2 : align === 'r' ? x - w : x); y = Math.round(y);
+      for (let i = 0; i < s.length; i++) { const g = FONT[s[i]] || FONT[' ']; for (let k = 0; k < 15; k++) if (g[k] === '1') ctx.fillRect(x + i * 4 + k % 3, y + (k / 3 | 0), 1, 1); } },
+    disc(cx, cy, r) { for (let y = -r; y <= r; y++) { const w = Math.floor(Math.sqrt(r * r - y * y + r * .6)); ctx.fillRect(cx - w, cy + y, w * 2 + 1, 1); } },
+    ring(cx, cy, r) { let x = r, y = 0, e = 1 - r; while (x >= y) { for (const [a, b] of [[x, y], [y, x], [-y, x], [-x, y], [-x, -y], [-y, -x], [y, -x], [x, -y]]) ctx.fillRect(cx + a, cy + b, 1, 1); y++; if (e < 0) e += 2 * y + 1; else { x--; e += 2 * (y - x) + 1; } } },
+    needle(cx, cy, ang, r0, r1) { const s = Math.sin(ang), c = -Math.cos(ang); D.line(cx + s * r0, cy + c * r0, cx + s * r1, cy + c * r1); },
+  };
+  return D;
+}
+const C = { bg: '#2a2638', bg2: '#322d42', edge: '#4a4460', hi: '#6a6282', dark: '#141020', face: '#0e0c14', ring: '#5a5470', tick: '#d8d0c0', dim: '#7a7088',
+  needle: '#f4ecd8', amber: '#f0a030', amb: ['#1c1208', '#4a2a0c', '#8a5216', '#c88224', '#f8b440', '#ffe08a'], red: '#e03a3a', redD: '#4a1a20', grn: '#7ad070', grnD: '#1e3a24', ambD: '#4a3414', hud: '#a8f48c', sky: '#4a74b8', gnd: '#8a5a30' };
+const DW = 480, DH = 124;
+const Cockpit = {
+  bg: null, pc: null, pctx: null, PW: 0, ox: 0, radar: null, scope: null, sweep: -1, sweepDir: 1,
+  resize() {
+    this.PW = Math.max(W, DW); this.ox = Math.floor((this.PW - DW) / 2);
+    this.bg = document.createElement('canvas'); this.bg.width = this.PW; this.bg.height = DH;
+    this.pc = document.createElement('canvas'); this.pc.width = this.PW; this.pc.height = DH; this.pctx = this.pc.getContext('2d');
+    this.drawBG(); this.setupScope();
+  },
+  G: { asi: [58, 34], adi: [104, 34], alt: [150, 34], turn: [58, 88], hsi: [104, 88], vsi: [150, 88], rpmL: [326, 30], rpmR: [366, 30], clk: [424, 34], radar: [240, 119] },
+  drawBG() {
+    const ctx = this.bg.getContext('2d'), D = makeDraw(ctx), o = this.ox, PW = this.PW;
+    D.col(C.bg); D.px(0, 0, PW, DH);
+    D.col(C.bg2); for (let y = 6; y < DH; y++) for (let x = (y & 1); x < PW; x += 2) if (((x >> 1) + (y >> 1)) % 7 === 0) D.px(x, y);
+    D.col(C.dark); D.px(0, 0, PW, 4); D.col('#3a3450'); D.px(0, 4, PW, 1); D.col(C.hi); D.px(0, 5, PW, 1);
+    // screws
+    D.col(C.edge); for (const x of [4, PW - 6]) for (const y of [10, DH - 12]) { D.px(x, y, 3, 3); }
+    // gauge bezels
+    const G = this.G;
+    const bez = (g, r) => { const [x, y] = [g[0] + o, g[1]]; D.col(C.dark); D.disc(x + 1, y + 1, r + 3); D.col(C.ring); D.disc(x, y, r + 2); D.col(C.edge); D.ring(x, y, r + 2); D.col(C.face); D.disc(x, y, r); D.col(C.hi); D.px(x - r + 2, y - r + 3); };
+    for (const k of ['asi', 'alt', 'turn', 'hsi', 'vsi']) bez(G[k], 19);
+    bez(G.adi, 20); bez(G.rpmL, 14); bez(G.rpmR, 14); bez(G.clk, 19);
+    // ticks
+    const ticks = (g, r, n, a0, a1, major) => { const [x, y] = [g[0] + o, g[1]]; for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; D.col(i % major === 0 ? C.tick : C.dim); D.needle(x, y, a, r - (i % major === 0 ? 4 : 2), r - 1); } };
+    const A0 = -Math.PI * 0.75, A1 = Math.PI * 0.75;
+    ticks(G.asi, 19, 16, A0, A1, 2); ticks(G.alt, 19, 50, 0, Math.PI * 2 - 0.0001, 5); ticks(G.vsi, 19, 12, -Math.PI / 2 - Math.PI * .9, -Math.PI / 2 + Math.PI * .9, 2);
+    ticks(G.rpmL, 14, 10, A0, A1, 2); ticks(G.rpmR, 14, 10, A0, A1, 2); ticks(G.clk, 19, 12, 0, Math.PI * 2 * 11 / 12, 3);
+    D.col(C.tick);
+    const lab = (g, s, dy) => D.text(s, g[0] + o, g[1] + dy, 'c');
+    lab(G.asi, 'KTS', 7); lab(G.alt, 'FT', -12); lab(G.vsi, 'VS', -12); lab(G.turn, 'TURN', -13); lab(G.rpmL, 'L', 5); lab(G.rpmR, 'R', 5);
+    D.col(C.dim); D.text('RPM', (G.rpmL[0] + G.rpmR[0]) / 2 + o, 48, 'c'); D.text('LOCAL', G.clk[0] + o, 58, 'c');
+    // VSI numbers
+    D.col(C.dim); D.text('UP', G.vsi[0] + o - 13, G.vsi[1] - 3, 'c'); D.text('DN', G.vsi[0] + o - 13, G.vsi[1] + 1, 'c');
+    // throttle quadrant
+    D.col(C.dark); D.px(o + 12, 12, 16, 104); D.col(C.edge); D.px(o + 11, 11, 18, 1); D.px(o + 11, 116, 18, 1);
+    D.col('#08060c'); D.px(o + 19, 16, 2, 96);
+    D.col(C.amber); D.text('AB', o + 4, 18, 'l'); D.col(C.tick); D.text('MIL', o + 0, 52, 'l'); D.text('IDL', o + 0, 104, 'l');
+    D.col(C.dim); D.px(o + 14, 34, 12, 1); D.px(o + 14, 60, 12, 1);
+    // EGT box
+    D.col(C.dark); D.px(o + 306, 60, 80, 54); D.col(C.edge); D.px(o + 306, 60, 80, 1); D.px(o + 306, 113, 80, 1);
+    D.col(C.tick); D.text('EGT', o + 314, 64, 'l'); D.text('G', o + 356, 64, 'l');
+    // lamp panel frame
+    D.col(C.dark); D.px(o + 392, 62, 84, 54);
+    // radar bezel
+    const [rx, ry] = [G.radar[0] + o, G.radar[1]];
+    D.col(C.dark); D.px(rx - 82, 8, 164, 114);
+    D.col(C.edge); D.px(rx - 82, 8, 164, 1); D.px(rx - 82, 121, 164, 1); D.px(rx - 82, 8, 1, 114); D.px(rx + 81, 8, 1, 114);
+    D.col(C.dim); D.text('GMAP', rx - 78, 11, 'l'); D.text('8 KM', rx + 78, 11, 'r');
+    // canopy rail
+    D.col('#1a1626'); D.px(0, DH - 4, PW, 4);
+  },
+  setupScope() {
+    const G = this.G, rx = G.radar[0] + this.ox, ry = G.radar[1];
+    const x0 = rx - 80, y0 = 9, w = 160, h = 112, R = 104, half = 52 * Math.PI / 180;
+    const map = new Int16Array(w * h * 2).fill(-1);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const dx = x0 + x - rx, dy = ry - (y0 + y), r = Math.hypot(dx, dy), a = Math.atan2(dx, dy);
+      if (r < R && Math.abs(a) < half && dy > 0) { map[(y * w + x) * 2] = Math.min(47, Math.floor((a + half) / (2 * half) * 48)); map[(y * w + x) * 2 + 1] = Math.min(39, Math.floor(r / R * 40)); }
+    }
+    const base = this.bg.getContext('2d').getImageData(x0, y0, w, h);
+    this.scope = { x0, y0, w, h, R, half, map, base, img: new ImageData(w, h), cells: new Float32Array(48 * 40), age: new Float32Array(48).fill(9) };
+    this.sweep = 0;
+  },
+  updateRadar(dt) {
+    const sc = this.scope; if (!sc || !WORLD.H) return;
+    const prev = this.sweep; this.sweep += this.sweepDir * dt * 1.7 * 48 / (2 * sc.half);
+    if (this.sweep >= 47.99) { this.sweep = 47.99; this.sweepDir = -1; } if (this.sweep <= 0) { this.sweep = 0; this.sweepDir = 1; }
+    const a0 = Math.min(prev, this.sweep) | 0, a1 = Math.max(prev, this.sweep) | 0;
+    for (let ai = a0; ai <= a1; ai++) {
+      const ang = S.yaw + (-sc.half + (ai + 0.5) / 48 * 2 * sc.half), dx = Math.sin(ang), dz = -Math.cos(ang);
+      let hp = gAt(S.pos[0], S.pos[2]);
+      for (let ri = 0; ri < 40; ri++) {
+        const d = (ri + 0.5) / 40 * 8000, h = hAt(S.pos[0] + dx * d, S.pos[2] + dz * d);
+        let v;
+        if (h < 0.5) v = 0.06 + (Math.random() < 0.02 ? 0.2 : 0);
+        else { const face = (h - hp) / 200 * 3.2; v = clamp(0.28 + face + h / 1600, 0.12, 0.85); if (h > S.pos[1] - 60) v = 1; }
+        hp = Math.max(h, 0);
+        sc.cells[ai * 40 + ri] = v;
+      }
+      sc.age[ai] = 0;
+    }
+    for (let i = 0; i < 48; i++) sc.age[i] += dt;
+  },
+  drawScope(ctx) {
+    const sc = this.scope; if (!sc) return;
+    const d = sc.img.data, b = sc.base.data, A = C.amb.map(h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]);
+    const B4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+    for (let y = 0; y < sc.h; y++) for (let x = 0; x < sc.w; x++) {
+      const i = y * sc.w + x, ai = sc.map[i * 2];
+      if (ai < 0) { d[i * 4] = b[i * 4]; d[i * 4 + 1] = b[i * 4 + 1]; d[i * 4 + 2] = b[i * 4 + 2]; d[i * 4 + 3] = 255; continue; }
+      const ri = sc.map[i * 2 + 1];
+      let v = sc.cells[ai * 40 + ri] * Math.max(0, 1 - sc.age[ai] / 3.2);
+      if (Math.abs(ai - this.sweep) < 1) v = Math.max(v, 0.75);
+      const q = v * 5 + (B4[(x & 3) + (y & 3) * 4] + .5) / 16 - .5; const c = A[clamp(Math.round(q), 0, 5)];
+      d[i * 4] = c[0]; d[i * 4 + 1] = c[1]; d[i * 4 + 2] = c[2]; d[i * 4 + 3] = 255;
+    }
+    ctx.putImageData(sc.img, sc.x0, sc.y0);
+    const D = makeDraw(ctx), rx = this.G.radar[0] + this.ox, ry = this.G.radar[1];
+    D.col(C.amb[2]);
+    for (const f of [0.25, 0.5, 0.75]) { const R = sc.R * f; for (let a = -sc.half; a <= sc.half; a += 0.05) D.px(rx + Math.sin(a) * R, ry - Math.cos(a) * R); }
+    D.col(C.amb[4]); D.px(rx - 2, ry - 3, 5, 1); D.px(rx, ry - 5, 1, 4);
+    D.col(C.amb[3]); D.text(String(Math.round(mod(S.yaw * 180 / Math.PI, 360))).padStart(3, '0'), rx, 20, 'c');
+  },
+  draw(ctx, presence) {
+    const o = this.ox, G = this.G, p = this.pctx, D = makeDraw(p);
+    p.drawImage(this.bg, 0, 0);
+    this.drawScope(p);
+    const at = g => [g[0] + o, g[1]];
+    const A0 = -Math.PI * 0.75, A1 = Math.PI * 0.75;
+    // airspeed
+    { const [x, y] = at(G.asi), kts = S.v * 1.944; D.col(C.needle); D.needle(x, y, A0 + (A1 - A0) * clamp(kts / 800, 0, 1), 0, 16); D.col(C.tick); D.text(Math.round(kts), x, y + 13, 'c'); D.col(C.red); D.px(x, y); }
+    // attitude
+    { const [x, y] = at(G.adi), R = 20, rl = S.roll + S.rollX, pt = S.pitch, s = Math.sin(rl), c = Math.cos(rl), k = 40;
+      for (let yy = -R; yy <= R; yy++) for (let xx = -R; xx <= R; xx++) { if (xx * xx + yy * yy > R * R + R * .6) continue;
+        const v = xx * s + yy * c - pt * k; p.fillStyle = Math.abs(v) < .7 ? '#f0e8d8' : v < 0 ? ((yy + xx) & 3 ? C.sky : '#5a84c4') : ((yy - xx) & 3 ? C.gnd : '#7a4a28'); p.fillRect(x + xx, y + yy, 1, 1); }
+      p.fillStyle = '#e8e0d0';
+      for (const pd of [-20, -10, 10, 20]) { const off = (pd * Math.PI / 180 - pt) * k; const cx2 = x - s * off, cy2 = y - c * off, wl = pd % 20 ? 4 : 7; if (Math.hypot(cx2 - x, cy2 - y) < R - 3) D.line(cx2 - c * wl, cy2 + s * wl, cx2 + c * wl, cy2 - s * wl); }
+      D.col(C.amber); D.px(x - 12, y, 8, 1); D.px(x + 5, y, 8, 1); D.px(x - 1, y - 1, 3, 3); D.px(x - 5, y + 1, 1, 2); D.px(x + 5, y + 1, 1, 2);
+      D.col(C.tick); D.needle(x, y, -rl, R - 4, R - 1); }
+    // altimeter
+    { const [x, y] = at(G.alt), ft = S.pos[1] * 3.281; D.col(C.dark); D.px(x - 10, y + 6, 21, 8); D.col(C.tick); D.text(String(Math.round(ft)).padStart(5, '0'), x, y + 8, 'c');
+      D.col(C.needle); D.needle(x, y, (ft % 1000) / 1000 * Math.PI * 2, 0, 16); D.col(C.amber); D.needle(x, y, (ft % 10000) / 10000 * Math.PI * 2, 0, 9); }
+    // turn & slip
+    { const [x, y] = at(G.turn), rate = S.yawRate * 180 / Math.PI; D.col(C.tick); D.needle(x, y + 2, 0, 15, 18); D.needle(x, y + 2, 0.5, 15, 18); D.needle(x, y + 2, -0.5, 15, 18);
+      D.col(C.needle); D.needle(x, y + 2, clamp(rate / 3 * 0.5, -1.2, 1.2), 0, 14);
+      D.col(C.dark); D.px(x - 12, y + 9, 25, 6); D.col(C.dim); D.px(x - 4, y + 9, 1, 6); D.px(x + 4, y + 9, 1, 6);
+      D.col('#e8e0d0'); D.disc(x + Math.round(clamp(S.slip * 22, -10, 10)), y + 12, 2); }
+    // heading
+    { const [x, y] = at(G.hsi), hd = S.yaw; D.col(C.dim);
+      for (let i = 0; i < 36; i++) { const a = i * Math.PI / 18 - hd; D.needle(x, y, a, i % 3 ? 16 : 13, 18); }
+      D.col(C.tick); [['N', 0], ['E', 1], ['S', 2], ['W', 3]].forEach(([l, i]) => { const a = i * Math.PI / 2 - hd; D.text(l, x + Math.sin(a) * 10 - 1, y - Math.cos(a) * 10 - 2, 'l'); });
+      D.col(C.amber); D.px(x, y - 19, 1, 4); D.px(x - 1, y - 2, 3, 5); D.px(x - 4, y, 9, 1);
+      D.col(C.tick); D.text(String(Math.round(mod(hd * 180 / Math.PI, 360))).padStart(3, '0'), x, y + 22 - 14, 'c'); }
+    // vertical speed
+    { const [x, y] = at(G.vsi), fpm = S.vs * 196.85; D.col(C.needle); D.needle(x, y, -Math.PI / 2 + clamp(fpm / 6000, -1, 1) * Math.PI * .9, 0, 16);
+      D.col(C.tick); D.text((fpm >= 0 ? '+' : '-') + String(Math.min(99, Math.round(Math.abs(fpm) / 100))).padStart(2, '0'), x + 5, y + 8, 'c'); }
+    // engines
+    const rpm = 91 + 13 * S.ab + Math.sin(S.t * 13) * .25;
+    for (const [g, j] of [[G.rpmL, 0], [G.rpmR, 1]]) { const [x, y] = at(g); D.col(C.needle); D.needle(x, y, A0 + (A1 - A0) * clamp((rpm + j * .3) / 110, 0, 1), 0, 11); D.col(C.tick); D.text(Math.round(rpm + j * .3), x, y + 8 - 18 + 19, 'c'); }
+    const egt = 610 + 260 * S.ab;
+    for (let j = 0; j < 2; j++) { const x = o + 312 + j * 10, h = Math.round(clamp((egt + j * 6) / 950, 0, 1) * 36);
+      D.col('#08060c'); D.px(x, 72, 6, 38); for (let i = 0; i < h; i++) { D.col(i > 30 ? C.red : i > 24 ? C.amber : C.grn); D.px(x + 1, 109 - i, 4, 1); } }
+    D.col(C.tick); D.text(Math.round(egt), o + 332, 88, 'l'); D.text('C', o + 332, 95, 'l');
+    // G
+    { D.col(C.tick); D.text(S.Gs.toFixed(1), o + 356, 72, 'l'); const h = Math.round(clamp(S.Gs / 9, 0, 1) * 34);
+      D.col('#08060c'); D.px(o + 372, 74, 6, 36); for (let i = 0; i < h; i++) { D.col(i > 24 ? C.red : i > 16 ? C.amber : C.tick); D.px(o + 373, 109 - i, 4, 1); } }
+    // clock
+    { const [x, y] = at(G.clk), d = new Date(), hh = d.getHours(), mm = d.getMinutes(), ss = d.getSeconds() + d.getMilliseconds() / 1000;
+      D.col(C.needle); D.needle(x, y, ((hh % 12) + mm / 60) / 12 * Math.PI * 2, 0, 9); D.needle(x, y, (mm + ss / 60) / 60 * Math.PI * 2, 0, 15);
+      D.col(C.red); D.needle(x, y, ss / 60 * Math.PI * 2, 0, 16); D.col(C.tick);
+      D.col(C.dark); D.px(x - 10, y + 6, 21, 7); D.col(C.amber); D.text(String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0'), x, y + 7, 'c'); }
+    // throttle lever
+    { const x = o + 20, y = Math.round(60 - S.ab * 34); D.col('#6a6478'); D.px(x - 1, y, 2, 112 - y);
+      D.col(C.dark); D.px(x - 9, y - 4, 18, 9); D.col(S.ab > .5 ? C.amber : '#9a92aa'); D.px(x - 8, y - 3, 16, 7); D.col('#d8d0e0'); D.px(x - 8, y - 3, 16, 1); D.col('#4a4458'); D.px(x - 8, y + 3, 16, 1); }
+    // warning lamps
+    const lowAlt = S.pos[1] - gAt(S.pos[0], S.pos[2]) < 60, overG = S.Gs > 5, rel = S.rails.some(r => !r.armed), blink = (S.t * 3 | 0) % 2 === 0;
+    const L = [['PULL UP', S.pullUp, C.red, C.redD], ['LOW ALT', lowAlt, C.amber, C.ambD], ['BURNER', S.ab > .5, C.grn, C.grnD], ['OVER G', overG, C.amber, C.ambD], ['RELOAD', rel, C.amber, C.ambD], ['CAUTION', (S.pullUp || overG) && blink, C.red, C.redD]];
+    L.forEach(([s, on, c1, c0], i) => { const x = o + 395 + (i % 2) * 40, y = 65 + (i / 2 | 0) * 17; D.col(on ? c1 : c0); D.px(x, y, 38, 14); D.col(on ? '#1b1020' : '#00000060'); if (!on) D.col('#6a5a60'); D.text(s, x + 19, y + 5, 'c'); });
+    // compose panel on screen
+    const sc = Math.min(1, W / DW, H / 300);
+    const ph = Math.round(DH * sc), slide = Math.round((1 - presence) * (ph + 10));
+    const y0 = H - ph + slide, xw = Math.round(this.PW * sc);
+    ctx.drawImage(this.pc, Math.round((W - xw) / 2), y0, xw, ph);
+    // canopy struts
+    const D2 = makeDraw(ctx), top = y0;
+    for (const sx of [-1, 1]) { const x0 = sx < 0 ? 0 : W - 1, x1 = sx < 0 ? Math.round(W * .1) : Math.round(W * .9);
+      for (let k = 0; k < 6; k++) { D2.col(k === 5 ? '#4a4458' : '#16121e'); D2.line(x0 + (sx < 0 ? k : -k), top, x1 + (sx < 0 ? k : -k), -1 - slide * 2); } }
+    return y0;
+  },
+};
+function projDir(d) {
+  const m = S.cam.VP, x = m[0] * d[0] + m[4] * d[1] + m[8] * d[2], y = m[1] * d[0] + m[5] * d[1] + m[9] * d[2], w = m[3] * d[0] + m[7] * d[1] + m[11] * d[2];
+  if (w <= 1e-4) return null; return [(x / w * 0.5 + 0.5) * W, (1 - (y / w * 0.5 + 0.5)) * H];
+}
+function drawHUD(ctx, panelTop) {
+  const D = makeDraw(ctx), fr = S.frame;
+  const bs = projDir(fr.f); if (!bs) return;
+  const cx = bs[0], cy = bs[1];
+  const bw = Math.min(118, W * 0.3), top = Math.max(8, cy - 92), bot = Math.min(panelTop - 4, cy + 74);
+  ctx.save(); ctx.beginPath(); ctx.rect(Math.round(cx - bw), top, Math.round(bw * 2), bot - top); ctx.clip();
+  D.col(C.hud);
+  const yw = S.yaw, dirAt = (az, el) => [Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)];
+  for (let pd = -80; pd <= 80; pd += 5) {
+    if (pd % 10 && Math.abs(pd) > 15) continue;
+    const el = pd * Math.PI / 180, cpt = projDir(dirAt(yw, el)); if (!cpt) continue;
+    const span = pd === 0 ? 0.42 : 0.12, gap = pd === 0 ? 0.05 : 0.035;
+    const pa = projDir(dirAt(yw - span, el)), pb = projDir(dirAt(yw - gap, el)), pc = projDir(dirAt(yw + gap, el)), pdd = projDir(dirAt(yw + span, el));
+    if (!pa || !pb || !pc || !pdd) continue;
+    if (Math.hypot(cpt[0] - cx, cpt[1] - cy) > 260) continue;
+    if (pd < 0) { D.dash(pa[0], pa[1], pb[0], pb[1], 3, 2); D.dash(pc[0], pc[1], pdd[0], pdd[1], 3, 2); }
+    else { D.line(pa[0], pa[1], pb[0], pb[1]); D.line(pc[0], pc[1], pdd[0], pdd[1]); }
+    if (pd !== 0) { const ux = pdd[0] - pc[0], uy = pdd[1] - pc[1], l = Math.hypot(ux, uy) || 1, nx = -uy / l * 3 * Math.sign(pd), ny = ux / l * 3 * Math.sign(pd);
+      D.line(pa[0], pa[1], pa[0] - nx, pa[1] - ny); D.line(pdd[0], pdd[1], pdd[0] - nx, pdd[1] - ny);
+      D.text(Math.abs(pd), pdd[0] + 3, pdd[1] - 2, 'l'); D.text(Math.abs(pd), pa[0] - 3, pa[1] - 2, 'r'); }
+  }
+  ctx.restore();
+  D.col(C.hud);
+  // boresight
+  D.px(cx - 8, cy, 4, 1); D.px(cx + 5, cy, 4, 1); D.line(cx - 4, cy, cx - 2, cy + 2); D.line(cx - 2, cy + 2, cx, cy); D.line(cx, cy, cx + 2, cy + 2); D.line(cx + 2, cy + 2, cx + 4, cy);
+  // heading tape
+  const hd = mod(S.yaw * 180 / Math.PI, 360), ty = top + 2;
+  for (let a = Math.ceil((hd - 24) / 5) * 5; a <= hd + 24; a += 5) { const x = cx + (a - hd) * 3.2; D.px(x, ty + 6, 1, a % 10 ? 2 : 4); if (a % 10 === 0) D.text(String(mod(a, 360) / 10 | 0).padStart(2, '0'), x, ty, 'c'); }
+  D.px(cx, ty + 11, 1, 3); D.text(String(Math.round(hd) % 360).padStart(3, '0'), cx, ty + 15, 'c');
+  // speed & altitude boxes
+  const sx = cx - bw + 4, ax = cx + bw - 4, by = cy - 3;
+  const box = (x, w, s, al) => { const x0 = al === 'l' ? x : x - w; D.px(x0, by - 3, w, 1); D.px(x0, by + 7, w, 1); D.px(x0, by - 3, 1, 11); D.px(x0 + w - 1, by - 3, 1, 11); D.text(s, x0 + w / 2, by, 'c'); };
+  box(sx, 21, Math.round(S.v * 1.944), 'l'); box(ax, 25, Math.round(S.pos[1] * 3.281), 'r');
+  for (let i = -3; i <= 3; i++) { const yy = by + 2 + i * 10 - ((S.v * 1.944) % 10) * 1; if (Math.abs(i) > 0) D.px(sx + 22, yy, 3, 1); const ya = by + 2 + i * 10 - ((S.pos[1] * 3.281 / 10) % 10); if (Math.abs(i) > 0) D.px(ax - 28, ya, 3, 1); }
+  D.text('KT', sx, by - 10, 'l'); D.text('FT', ax, by - 10, 'r');
+  const ralt = Math.round((S.pos[1] - gAt(S.pos[0], S.pos[2])) * 3.281);
+  D.text('R ' + ralt, ax, by + 12, 'r');
+  D.text('G ' + S.Gs.toFixed(1), sx, by + 12, 'l');
+  const msl = S.rails.filter(r => r.armed).length;
+  D.text('MSL ' + msl, sx, bot - 8, 'l');
+  D.text(S.ab > .5 ? 'AB' : 'MIL', ax, bot - 8, 'r');
+  if (S.pullUp && (S.t * 4 | 0) % 2 === 0) { D.text('PULL UP', cx, cy + 16, 'c'); D.px(cx - 16, cy + 14, 33, 1); D.px(cx - 16, cy + 22, 33, 1); }
+  else if (S.Gs > 5 && (S.t * 4 | 0) % 2 === 0) D.text('OVER G', cx, cy + 16, 'c');
+}
+function drawReticle(ctx) {
+  if (!S.mouse || !S.started) return;
+  const D = makeDraw(ctx), [x, y] = [Math.round(S.mouse[0]), Math.round(S.mouse[1])];
+  D.col('#1b1530'); D.px(x - 5, y, 4, 1); D.px(x + 2, y, 4, 1); D.px(x, y - 5, 1, 4); D.px(x, y + 2, 1, 4);
+  D.col('#ffe0a0'); D.px(x - 4, y - 1, 3, 1); D.px(x + 2, y - 1, 3, 1); D.px(x - 1, y - 4, 1, 3); D.px(x - 1, y + 2, 1, 3);
+  if (S.view !== 0) { const c = screenCenter(); D.col('#ffe0a0'); D.px(c[0] - 1, c[1] - 1, 2, 2); }
+}
+
+// ================= SOUND (Web Audio, synthesised, off by default) =================
+const Snd = {
+  ctx: null, on: false,
+  init() {
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return false;
+    const c = this.ctx = new AC();
+    this.master = c.createGain(); this.master.gain.value = 0; this.master.connect(c.destination);
+    const nb = c.createBuffer(1, c.sampleRate * 2, c.sampleRate), d = nb.getChannelData(0);
+    let b0 = 0; for (let i = 0; i < d.length; i++) { const w = Math.random() * 2 - 1; b0 = 0.97 * b0 + 0.03 * w; d[i] = w * 0.5 + b0 * 2.5; }
+    this.nb = nb;
+    const loop = () => { const s = c.createBufferSource(); s.buffer = nb; s.loop = true; s.start(); return s; };
+    // turbine roar
+    this.eF = c.createBiquadFilter(); this.eF.type = 'lowpass'; this.eF.frequency.value = 500; this.eG = c.createGain(); this.eG.gain.value = .25;
+    loop().connect(this.eF); this.eF.connect(this.eG); this.eG.connect(this.master);
+    // hum + whine
+    this.o1 = c.createOscillator(); this.o1.type = 'sawtooth'; this.o1.frequency.value = 62;
+    this.o2 = c.createOscillator(); this.o2.type = 'sawtooth'; this.o2.frequency.value = 62.7;
+    const hf = c.createBiquadFilter(); hf.type = 'lowpass'; hf.frequency.value = 260; this.hG = c.createGain(); this.hG.gain.value = .05;
+    this.o1.connect(hf); this.o2.connect(hf); hf.connect(this.hG); this.hG.connect(this.master); this.o1.start(); this.o2.start();
+    this.wh = c.createOscillator(); this.wh.type = 'sine'; this.wh.frequency.value = 2300; this.whG = c.createGain(); this.whG.gain.value = .006;
+    this.wh.connect(this.whG); this.whG.connect(this.master); this.wh.start();
+    // afterburner rumble
+    this.bF = c.createBiquadFilter(); this.bF.type = 'lowpass'; this.bF.frequency.value = 160; this.bG = c.createGain(); this.bG.gain.value = 0;
+    loop().connect(this.bF); this.bF.connect(this.bG); this.bG.connect(this.master);
+    // wind
+    this.wF = c.createBiquadFilter(); this.wF.type = 'bandpass'; this.wF.frequency.value = 900; this.wF.Q.value = .6; this.wG = c.createGain(); this.wG.gain.value = .05;
+    loop().connect(this.wF); this.wF.connect(this.wG); this.wG.connect(this.master);
+    return true;
+  },
+  toggle() {
+    if (!this.ctx && !this.init()) return;
+    this.on = !this.on;
+    const g = this.master.gain, t = this.ctx.currentTime;
+    if (this.on) { this.ctx.resume(); g.cancelScheduledValues(t); g.setTargetAtTime(0.55, t, 0.15); }
+    else { g.cancelScheduledValues(t); g.setTargetAtTime(0, t, 0.08); }
+  },
+  update(dt) {
+    if (!this.on) return;
+    const t = this.ctx.currentTime, ck = S.view === 2 && S.cam && S.cam.cockpit > .5 ? 0.55 : 1;
+    this.eF.frequency.setTargetAtTime(380 + S.ab * 700 + S.v * 1.2, t, .1); this.eG.gain.setTargetAtTime((.16 + S.ab * .18) * ck, t, .1);
+    const hz = 58 + S.ab * 18; this.o1.frequency.setTargetAtTime(hz, t, .2); this.o2.frequency.setTargetAtTime(hz * 1.012, t, .2);
+    this.wh.frequency.setTargetAtTime(2100 + S.ab * 500, t, .3);
+    this.bG.gain.setTargetAtTime(S.ab * .5 * ck, t, .08);
+    this.wG.gain.setTargetAtTime(.02 + Math.pow(S.v / 300, 2) * .05 + Math.min(.08, (S.Gs - 1) * .015), t, .15);
+    this.wF.frequency.setTargetAtTime(600 + S.v * 3, t, .2);
+    if (S.pullUp && S.t - (this.lastBeep || 0) > .5) { this.lastBeep = S.t; this.tone(1180, .12, .06); }
+  },
+  burst(dur, f0, f1, gain, type, delay) {
+    if (!this.on) return; const c = this.ctx, t = c.currentTime + (delay || 0);
+    const s = c.createBufferSource(); s.buffer = this.nb; const f = c.createBiquadFilter(); f.type = type || 'lowpass';
+    f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + .015); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(this.master); s.start(t, Math.random()); s.stop(t + dur + .05);
+  },
+  tone(hz, dur, gain, delay, type) {
+    if (!this.on) return; const c = this.ctx, t = c.currentTime + (delay || 0);
+    const o = c.createOscillator(); o.type = type || 'square'; o.frequency.value = hz; const g = c.createGain();
+    g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur); o.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + .02);
+  },
+  launch() { this.burst(1.1, 3000, 400, .5, 'bandpass'); this.burst(.25, 900, 120, .4); },
+  boom(dist, water) {
+    const dl = Math.min(2.4, dist / 340), att = clamp(1.2 - dist / 5000, .15, 1);
+    this.burst(water ? 2.2 : 2.6, 1400, 40, .9 * att, 'lowpass', dl);
+    if (!this.on) return; const c = this.ctx, t = c.currentTime + dl, o = c.createOscillator(), g = c.createGain();
+    o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(28, t + .9); g.gain.setValueAtTime(.7 * att, t); g.gain.exponentialRampToValueAtTime(.0001, t + 1.1);
+    o.connect(g); g.connect(this.master); o.start(t); o.stop(t + 1.2);
+    if (water) this.burst(1.6, 5000, 1500, .25 * att, 'highpass', dl + .15);
+  },
+  whoosh() { this.burst(.9, 400, 2400, .22, 'bandpass'); },
+  arm() { this.tone(880, .05, .05); this.tone(1320, .06, .05, .07); },
+  click() { this.tone(240, .05, .08); },
+};
+
+// ================= UI & INPUT =================
+const $ = id => document.getElementById(id);
+function updateMslUI() { $('msl').innerHTML = S.rails.map(r => r.armed ? '&#9646;' : '<i>&#9647;</i>').join(''); }
+function toInternal(e) { return [e.clientX / SCALE, e.clientY / SCALE]; }
+const isUI = t => t && t.closest && t.closest('button,#title,#hints');
+function start() {
+  if (S.started || !WORLD.ready) return;
+  S.started = true; $('title').classList.add('gone'); setTimeout(() => $('title').style.display = 'none', 700); $('hints').style.display = 'flex'; document.body.classList.add('flying');
+  S.mouse = screenCenter();
+}
+addEventListener('mousemove', e => { if (!S.started) return; const m = toInternal(e); if (S.mouse && (Math.abs(m[0] - S.mouse[0]) + Math.abs(m[1] - S.mouse[1]) > 1.5)) S.auto = false; S.mouse = m; });
+addEventListener('mousedown', e => {
+  if (!S.started) { if (WORLD.ready && e.button === 0 && !(e.target && e.target.id === 'snd')) start(); return; }
+  if (isUI(e.target)) return;
+  S.mouse = toInternal(e);
+  if (e.button === 0) { S.lDown = true; S.lDownT = S.t; }
+  if (e.button === 2) { S.rDown = true; fire(); }
+});
+addEventListener('mouseup', e => {
+  if (e.button === 0 && S.lDown) { S.lDown = false; if (S.t - S.lDownT < 0.22) barrelRoll(); }
+  if (e.button === 2) S.rDown = false;
+});
+addEventListener('contextmenu', e => e.preventDefault());
+addEventListener('blur', () => { S.lDown = false; S.rDown = false; S.burnKey = false; S.touchBurn = false; });
+addEventListener('keydown', e => {
+  if (e.code === 'Space') { e.preventDefault(); if (!S.started) { start(); return; } if (!e.repeat) setView((S.view + 1) % 3); }
+  else if (e.code === 'KeyF' && !e.repeat) fire();
+  else if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight')) S.burnKey = true;
+  else if (e.code === 'KeyR' && !e.repeat) barrelRoll();
+  else if (e.code === 'Enter') start();
+});
+addEventListener('keyup', e => { if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') S.burnKey = false; });
+$('snd').addEventListener('click', e => { e.stopPropagation(); Snd.toggle(); $('snd').textContent = Snd.on ? 'SOUND ON' : 'SOUND OFF'; $('snd').classList.toggle('on', Snd.on); $('snd').blur(); });
+$('go').addEventListener('click', e => { e.stopPropagation(); start(); });
+// touch
+const touchSteer = new Map();
+if (matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window) document.body.classList.add('touch');
+for (const c of [glc]) {
+  c.addEventListener('pointerdown', e => { if (e.pointerType !== 'touch') return; e.preventDefault(); document.body.classList.add('touch');
+    if (!S.started) { start(); return; } touchSteer.set(e.pointerId, 1); S.mouse = toInternal(e); S.auto = false; });
+  c.addEventListener('pointermove', e => { if (e.pointerType !== 'touch' || !touchSteer.has(e.pointerId)) return; e.preventDefault(); S.mouse = toInternal(e); });
+  const up = e => { if (e.pointerType !== 'touch') return; touchSteer.delete(e.pointerId); if (!touchSteer.size && S.view !== 0) S.mouse = screenCenter(); };
+  c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
+}
+function tbtn(id, down, up) {
+  const b = $(id);
+  b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); if (!S.started) start(); b.classList.add('down'); down && down(); });
+  const u = e => { b.classList.remove('down'); up && up(); };
+  b.addEventListener('pointerup', u); b.addEventListener('pointercancel', u); b.addEventListener('pointerleave', u);
+  b.addEventListener('contextmenu', e => e.preventDefault());
+}
+tbtn('tFire', fire); tbtn('tRoll', barrelRoll); tbtn('tBurn', () => S.touchBurn = true, () => S.touchBurn = false); tbtn('tView', () => setView((S.view + 1) % 3));
+addEventListener('resize', () => resize());
+
+// ================= LOOP =================
+let last = performance.now(), slowT = 0, fastT = 0, ema = 16, warm = 0;
+function adapt(ms, dt) {
+  warm += dt; if (warm < 2.5) return;
+  ema += (ms - ema) * 0.08;
+  if (ema > 25) { slowT += dt; fastT = 0; } else if (ema < 13) { fastT += dt; slowT = 0; } else { slowT = Math.max(0, slowT - dt); fastT = 0; }
+  if (slowT > 1.2 && S.qLevel < LEVELS.length - 1) { S.qLevel++; slowT = 0; warm = 0; ema = 16; resize(); }
+  if (fastT > 6 && S.qLevel > 0) { S.qLevel--; fastT = 0; warm = 0; ema = 16; resize(); }
+}
+function step(dt) {
+  S.t += dt;
+  updateFlight(dt);
+  updateMissiles(dt);
+  updateParts(dt);
+  updateFx(dt);
+  updateCamera(dt);
+  Cockpit.updateRadar(dt);
+  Snd.update(dt);
+}
+function draw() {
+  render();
+  const ctx = ovc.getContext('2d'); ctx.imageSmoothingEnabled = false; ctx.clearRect(0, 0, W, H);
+  const pres = S.cam.cockpit;
+  if (pres > 0.01) { const top = Cockpit.draw(ctx, pres); if (pres > 0.97) drawHUD(ctx, top); }
+  drawReticle(ctx);
+}
+function frame(now) {
+  const ms = now - last; last = now;
+  const dt = Math.min(0.05, Math.max(0, ms / 1000));
+  if (WORLD.ready && !window.__patrolManual) { step(dt); draw(); adapt(ms, dt); }
+  requestAnimationFrame(frame);
+}
+// test & debug hook
+window.__patrol = { S, ERR, step, draw, setView, fire, barrelRoll, start, explode, hAt, resize, get W() { return W; }, get H() { return H; } };
+
+if (gl) {
+  resize(); updateMslUI();
+  const bar = $('bar').firstElementChild, st = $('status');
+  st.textContent = 'Generating terrain 0%';
+  genWorld(p => { bar.style.width = (p * 100).toFixed(1) + '%'; st.textContent = (p < 0.36 ? 'Raising hills ' : p < 0.7 ? 'Planting autumn forests ' : p < 0.98 ? 'Baking long shadows ' : 'Gathering clouds ') + Math.round(p * 100) + '%'; })
+    .then(d => {
+      uploadWorld(d);
+      // start over lake country away from the high peaks
+      let best = null;
+      for (let j = 0; j < 64; j++) for (let i = 0; i < 64; i++) {
+        const x = (i + .5) / 64 * TILE, z = (j + .5) / 64 * TILE; if (hAt(x, z) > -8) continue;
+        let mx = 0, w = 0; for (let a = 0; a < 16; a++) { const r = 400 + (a % 4) * 500, an = a * 2.4; const h = hAt(x + Math.cos(an) * r, z + Math.sin(an) * r); mx = Math.max(mx, h); if (h < 0) w++; }
+        const sc = mx + Math.abs(w - 6) * 30; if (!best || sc < best[0]) best = [sc, x, z];
+      }
+      if (best) { S.pos[0] = best[1]; S.pos[2] = best[2]; }
+      st.textContent = 'Ready'; bar.style.width = '100%'; $('go').classList.add('ready');
+      updateCamera(0); last = performance.now(); requestAnimationFrame(frame);
+    })
+    .catch(e => fatal('World generation failed: ' + e));
+}
+
+</script>
+</body>
+</html>

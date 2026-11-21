@@ -9,7 +9,7 @@ Hiện có 2 game, chọn khi tạo phòng mới:
 
 Vào phòng bằng link mời thì tự vào đúng game của phòng đó.
 
-Ngoài ra có **🎣 Câu Cá 3D** (mở ở `/fish.html` hoặc bấm link ở sảnh).
+Ngoài ra có **🎣 Câu Cá 3D** (mở ở `/fish.html` hoặc bấm link ở sảnh) và **✈️ Patrol** (mở ở `/patrol.html`).
 
 ## Tính năng Poker
 
@@ -42,6 +42,12 @@ Ngoài ra có **🎣 Câu Cá 3D** (mở ở `/fish.html` hoặc bấm link ở 
 - Hết chip phải chờ 3 phút rồi mới mua lại được, như bên Poker.
 
 Muốn đổi mức cược, thời gian hay tỉ lệ ăn, sửa các hằng số ở đầu file `xidach.js`.
+
+## Patrol
+
+Đồ chơi lái chiến đấu cơ pixel art, một file duy nhất `public/patrol.html` (không thư viện, không ảnh; chỉ tải font Google). Thế giới là height field lặp liền mạch sinh bằng web worker lúc tải, ray-march trong fragment shader WebGL2; buồng lái và HUD vẽ bằng Canvas 2D. Chữ trong game bằng tiếng Anh.
+
+Điều khiển: chuột lái, bấm = lộn vòng, giữ chuột trái = đốt sau, chuột phải hoặc F = bắn tên lửa, Space = đổi góc nhìn (từ trên, bám đuôi, buồng lái). Có nút cảm ứng trên điện thoại. Âm thanh tắt sẵn, bật ở góc phải.
 
 ## Câu Cá 3D
 
