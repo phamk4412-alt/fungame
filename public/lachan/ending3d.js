@@ -2,7 +2,7 @@
 // Góc nhìn: từ bàn của Hoàng Nam (người chơi) nhìn ngang lớp về phía dãy cửa sổ.
 //  - good: nắng vàng, Minh Anh ngồi cạnh cửa sổ, quay sang cười nói với các bạn.
 //  - bad : trời âm u, mọi người nhìn lên bảng, chỗ ngồi của Minh Anh bỏ trống.
-// Lớp học ở tầng trệt: ngoài cửa sổ là sân trường, cây xanh ngang tầm mắt. Cửa sổ luôn đóng.
+// Lớp học ở tầng trệt của một trường ven biển: ngoài cửa sổ là sân, đường ray, bãi cát và biển. Cửa sổ luôn đóng.
 import * as THREE from './vendor/three.module.min.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -56,27 +56,33 @@ function materials(good) {
       g.stroke();
     }
   });
+  // Sàn gỗ ván dài màu mật ong (lớp học kiểu Nhật)
   const floor = canvasTex(512, 512, (g, w, h) => {
     const n = 8;
     for (let i = 0; i < n; i++) {
-      for (let j = 0; j < n; j++) {
-        const v = 205 + ((i + j) % 2) * 18 + Math.random() * 8;
-        g.fillStyle = `rgb(${v},${v - 6},${v - 16})`;
-        g.fillRect((i * w) / n, (j * h) / n, w / n, h / n);
+      const off = Math.random() * h;
+      for (let j = -1; j < 2; j++) {
+        const v = Math.random() * 18;
+        g.fillStyle = `rgb(${200 + v},${158 + v},${108 + v})`;
+        g.fillRect((i * w) / n, off + j * h * 0.75, w / n, h * 0.75);
+        g.fillStyle = 'rgba(110,70,30,0.35)';
+        g.fillRect((i * w) / n, off + j * h * 0.75, w / n, 2);
       }
-    }
-    g.strokeStyle = 'rgba(120,110,95,0.5)';
-    for (let i = 0; i <= n; i++) {
-      g.beginPath(); g.moveTo((i * w) / n, 0); g.lineTo((i * w) / n, h); g.stroke();
-      g.beginPath(); g.moveTo(0, (i * h) / n); g.lineTo(w, (i * h) / n); g.stroke();
+      g.fillStyle = 'rgba(110,70,30,0.4)';
+      g.fillRect((i * w) / n, 0, 2, h);
+      for (let k = 0; k < 6; k++) {
+        g.fillStyle = 'rgba(150,100,50,0.12)';
+        g.fillRect((i * w) / n + 6 + Math.random() * (w / n - 12), 0, 1, h);
+      }
     }
   });
   floor.wrapS = floor.wrapT = THREE.RepeatWrapping;
-  floor.repeat.set(4, 5);
+  floor.repeat.set(3, 4);
   return {
-    wall: new THREE.MeshStandardMaterial({ color: good ? '#f1e6cf' : '#c9c6bd', roughness: 0.95 }),
-    wallLow: new THREE.MeshStandardMaterial({ color: good ? '#6f9b7c' : '#5d7266', roughness: 0.8 }),
-    floor: new THREE.MeshStandardMaterial({ map: floor, roughness: 0.55 }),
+    wall: new THREE.MeshStandardMaterial({ color: good ? '#f7f1e3' : '#c9c6bd', roughness: 0.95 }),
+    curtain: new THREE.MeshStandardMaterial({ color: good ? '#fffaf0' : '#d6d6d0', roughness: 0.9, side: THREE.DoubleSide }),
+    wallLow: new THREE.MeshStandardMaterial({ color: good ? '#cfe3d4' : '#8a9a90', roughness: 0.8 }),
+    floor: new THREE.MeshStandardMaterial({ map: floor, roughness: 0.4 }),
     ceiling: new THREE.MeshStandardMaterial({ color: '#f4f2ec', roughness: 1 }),
     desk: new THREE.MeshStandardMaterial({ map: wood, roughness: 0.45, color: '#c08a58' }),
     metal: new THREE.MeshStandardMaterial({ color: '#4a4f57', roughness: 0.4, metalness: 0.7 }),
@@ -168,18 +174,18 @@ function makePerson(o) {
 
   // Đầu
   const head = new THREE.Group();
-  head.position.set(0, 1.15, 0.01);
+  head.position.set(0, 1.17, 0.01);
+  head.scale.setScalar(1.22); // đầu to hơn một chút: trông dễ thương
   g.add(head);
   const skull = mesh(new THREE.SphereGeometry(0.1, 32, 24), skin);
-  skull.scale.set(0.9, 1.12, 1.0);
+  skull.scale.set(0.96, 1.05, 1.0);
   head.add(skull);
   const jaw = mesh(new THREE.SphereGeometry(0.07, 24, 16), skin);
-  jaw.scale.set(0.95, 0.9, 0.95);
-  jaw.position.set(0, -0.05, 0.02);
+  jaw.scale.set(1.05, 0.85, 0.95);
+  jaw.position.set(0, -0.035, 0.018);
   head.add(jaw);
-  const nose = mesh(new THREE.SphereGeometry(0.018, 12, 10), skin);
-  nose.scale.set(0.8, 1.2, 1.1);
-  nose.position.set(0, -0.01, 0.098);
+  const nose = mesh(new THREE.SphereGeometry(0.009, 10, 8), skin);
+  nose.position.set(0, -0.012, 0.099);
   head.add(nose);
   [0.09, -0.09].forEach((x) => {
     const ear = mesh(new THREE.SphereGeometry(0.022, 10, 8), skin);
@@ -190,45 +196,56 @@ function makePerson(o) {
 
   const laughing = o.mood === 'laugh';
   const happy = laughing || o.mood === 'happy';
-  // Mắt
-  [0.035, -0.035].forEach((x) => {
+  // Mắt to kiểu hoạt hình: dẹt sát mặt, có đốm sáng, không lồi ra ngoài
+  [0.036, -0.036].forEach((x) => {
+    const tilt = x > 0 ? 0.36 : -0.36;
     if (laughing) {
-      // mắt cười híp: vòng cung
-      const arc = mesh(new THREE.TorusGeometry(0.014, 0.0035, 6, 12, Math.PI), M.dark, false, false);
-      arc.position.set(x, 0.022, 0.088);
+      // mắt cười híp: vòng cung ^ ^
+      const arc = mesh(new THREE.TorusGeometry(0.016, 0.004, 6, 14, Math.PI), M.dark, false, false);
+      arc.position.set(x, 0.012, 0.093);
+      arc.rotation.y = tilt;
       head.add(arc);
     } else {
-      const ew = mesh(new THREE.SphereGeometry(0.014, 14, 10), M.eyeW, false, false);
-      ew.scale.set(1.2, 0.85, 0.5);
-      ew.position.set(x, 0.02, 0.086);
-      head.add(ew);
-      const ir = mesh(new THREE.SphereGeometry(0.0085, 12, 10), M.iris, false, false);
-      ir.position.set(x, 0.02, 0.092);
+      const ir = mesh(new THREE.SphereGeometry(0.019, 18, 14), M.iris, false, false);
+      ir.scale.set(0.82, 1.08, 0.28);
+      ir.position.set(x, 0.008, 0.0905);
+      ir.rotation.y = tilt;
       head.add(ir);
+      const hi = mesh(new THREE.SphereGeometry(0.0055, 10, 8), M.eyeW, false, false);
+      hi.scale.set(1, 1, 0.4);
+      hi.position.set(x + 0.005, 0.016, 0.0955);
+      head.add(hi);
+      const hi2 = mesh(new THREE.SphereGeometry(0.0028, 8, 6), M.eyeW, false, false);
+      hi2.position.set(x - 0.004, -0.001, 0.0955);
+      head.add(hi2);
+      if (o.girl) {
+        const lash = mesh(new THREE.TorusGeometry(0.017, 0.0026, 6, 12, Math.PI * 0.8), M.dark, false, false);
+        lash.position.set(x, 0.011, 0.0925);
+        lash.rotation.set(0, tilt, Math.PI * 0.1);
+        head.add(lash);
+      }
     }
-    const brow = mesh(new THREE.BoxGeometry(0.032, 0.006, 0.008), hairM, false, false);
-    brow.position.set(x, 0.048 + (happy ? 0.004 : 0), 0.09);
-    brow.rotation.z = x > 0 ? (happy ? -0.15 : -0.05) : (happy ? 0.15 : 0.05);
+    const brow = mesh(new THREE.CapsuleGeometry(0.003, 0.022, 4, 8), hairM, false, false);
+    brow.rotation.z = Math.PI / 2 + (x > 0 ? (happy ? -0.18 : -0.06) : (happy ? 0.18 : 0.06));
+    brow.position.set(x, 0.05 + (happy ? 0.004 : 0), 0.084);
     head.add(brow);
-    if (happy) {
-      const blush = mesh(new THREE.SphereGeometry(0.014, 10, 8), new THREE.MeshStandardMaterial({ color: '#ff8f8f', transparent: true, opacity: 0.45 }), false, false);
-      blush.scale.set(1.3, 0.7, 0.3);
-      blush.position.set(x * 1.45, -0.012, 0.082);
-      head.add(blush);
-    }
+    // má hồng (lúc nào cũng có, vui thì đậm hơn)
+    const blush = mesh(new THREE.SphereGeometry(0.016, 12, 8), new THREE.MeshStandardMaterial({ color: '#ff7f8f', transparent: true, opacity: happy ? 0.55 : 0.3, depthWrite: false }), false, false);
+    blush.scale.set(1.3, 0.75, 0.25);
+    blush.position.set(x * 1.5, -0.022, 0.082);
+    blush.rotation.y = tilt * 1.6;
+    head.add(blush);
   });
-  // Miệng
+  // Miệng nhỏ
   if (laughing) {
-    const m = mesh(new THREE.SphereGeometry(0.024, 16, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), M.dark, false, false);
-    m.scale.set(1.1, 0.9, 0.5);
-    m.position.set(0, -0.045, 0.09);
+    const m = mesh(new THREE.CircleGeometry(0.017, 20, Math.PI, Math.PI), new THREE.MeshStandardMaterial({ color: '#7a2433', roughness: 0.6 }), false, false);
+    m.scale.set(1.15, 1, 1);
+    m.position.set(0, -0.034, 0.0952);
     head.add(m);
-    const t = box(0.034, 0.008, 0.008, M.teeth, 0, -0.048, 0.098);
-    head.add(t);
   } else {
-    const smile = mesh(new THREE.TorusGeometry(happy ? 0.02 : 0.016, 0.004, 6, 14, happy ? Math.PI : 0.6), M.lips, false, false);
-    smile.rotation.z = happy ? Math.PI : Math.PI + (Math.PI - 0.6) / 2;
-    smile.position.set(0, happy ? -0.04 : -0.05, 0.09);
+    const smile = mesh(new THREE.TorusGeometry(happy ? 0.014 : 0.01, 0.0032, 6, 14, happy ? Math.PI : 0.9), M.lips, false, false);
+    smile.rotation.z = happy ? Math.PI : Math.PI + (Math.PI - 0.9) / 2;
+    smile.position.set(0, happy ? -0.03 : -0.038, 0.096);
     head.add(smile);
   }
 
@@ -251,11 +268,6 @@ function makePerson(o) {
     fall.scale.set(1.25, 1, 0.45);
     fall.position.set(0, -0.13, -0.075);
     head.add(fall);
-    [0.08, -0.08].forEach((x) => {
-      const side = mesh(new THREE.CapsuleGeometry(0.022, 0.12, 6, 10), hairM);
-      side.position.set(x * 1.02, -0.06, 0.0);
-      head.add(side);
-    });
   } else if (o.style === 'bun') {
     const bun = mesh(new THREE.SphereGeometry(0.045, 16, 12), hairM);
     bun.position.set(0, 0.1, -0.07);
@@ -278,7 +290,7 @@ function makePerson(o) {
 function makeDesk(M, withBook) {
   const g = new THREE.Group();
   g.add(box(1.2, 0.04, 0.5, M.desk, 0, 0.74, 0));
-  g.add(box(1.16, 0.3, 0.02, M.desk, 0, 0.58, 0.24));
+  g.add(box(1.16, 0.3, 0.02, M.desk, 0, 0.58, -0.24)); // tấm chắn phía bảng, chân để dưới gầm
   [[-0.56, -0.22], [0.56, -0.22], [-0.56, 0.22], [0.56, 0.22]].forEach(([x, z]) => g.add(box(0.035, 0.72, 0.035, M.metal, x, 0.36, z)));
   if (withBook) {
     const book = box(0.22, 0.015, 0.3, M.paper, -0.25, 0.768, -0.02);
@@ -361,11 +373,11 @@ function buildRoom(scene, M, good, board) {
   // Tường cửa sổ (x = x0): 3 cửa sổ lớn, luôn đóng
   const wins = [-2.6, 0.2, 3.0];
   const ww = 1.9;
-  const wy0 = 0.95;
+  const wy0 = 0.72;
   const wy1 = 2.55;
   scene.add(box(0.15, wy0, z1 - z0, M.wall, x0, wy0 / 2, 0));
   scene.add(box(0.15, h - wy1, z1 - z0, M.wall, x0, (wy1 + h) / 2, 0));
-  scene.add(box(0.16, 0.9, z1 - z0, M.wallLow, x0 + 0.01, 0.45, 0));
+  scene.add(box(0.16, 0.68, z1 - z0, M.wallLow, x0 + 0.01, 0.34, 0));
   let zPrev = z0;
   wins.forEach((zc) => {
     const a = zc - ww / 2;
@@ -381,59 +393,182 @@ function buildRoom(scene, M, good, board) {
     scene.add(glass);
     // Bậu cửa
     scene.add(box(0.3, 0.04, ww + 0.1, M.frame, x0 + 0.1, wy0 - 0.01, zc));
+    // Rèm trắng buộc gọn hai bên cửa sổ
+    [a + 0.14, a + ww - 0.14].forEach((cz) => {
+      for (let f = 0; f < 4; f++) {
+        const fold = mesh(new THREE.CylinderGeometry(0.045, 0.06 + (f % 2) * 0.015, wy1 - wy0 + 0.5, 10, 1, true), M.curtain, true, true);
+        fold.position.set(x0 + 0.14 + (f % 2) * 0.03, (wy0 + wy1) / 2 + 0.1, cz + (f - 1.5) * 0.06);
+        scene.add(fold);
+      }
+      const tie = mesh(new THREE.TorusGeometry(0.12, 0.015, 6, 16), new THREE.MeshStandardMaterial({ color: good ? '#e9b8b8' : '#999' }));
+      tie.rotation.x = Math.PI / 2;
+      tie.position.set(x0 + 0.15, 1.45, cz);
+      scene.add(tie);
+    });
   });
+  // Cảnh buồn: rèm kéo kín, lớp tối và lặng, không nhìn ra ngoài
+  if (!good) {
+    const closed = new THREE.MeshStandardMaterial({ color: '#c9cbc6', roughness: 1, transparent: true, opacity: 0.94, side: THREE.DoubleSide });
+    wins.forEach((zc) => {
+      for (let f = 0; f < 10; f++) {
+        const fold = mesh(new THREE.CylinderGeometry(0.11, 0.11, wy1 - wy0 + 0.5, 12, 1, true, Math.PI, Math.PI), closed, false, true);
+        fold.position.set(x0 + 0.22, (wy0 + wy1) / 2 + 0.1, zc - ww / 2 + 0.1 + f * (ww - 0.2) / 9);
+        fold.scale.set(0.35, 1, 1);
+        scene.add(fold);
+      }
+    });
+  }
+  // Thanh treo rèm
+  scene.add(box(0.04, 0.04, z1 - z0, M.frame, x0 + 0.16, wy1 + 0.25, 0));
   scene.add(box(0.15, wy1 - wy0, z1 - zPrev, M.wall, x0, (wy0 + wy1) / 2, (z1 + zPrev) / 2));
   return wins;
 }
 
-/** Bên ngoài cửa sổ: sân trường tầng trệt, cây xanh, trời. */
+/** Bên ngoài cửa sổ: trường ven biển kiểu Shichirigahama. Sân, đường ray tàu nhỏ, bãi cát, biển, đảo, núi xa. */
 function buildOutside(scene, good) {
-  const sky = canvasTex(16, 256, (g, w, h) => {
+  // Trời: dải màu + mây tích vẽ tay kiểu anime
+  const sky = canvasTex(1024, 512, (g, w, h) => {
     const gr = g.createLinearGradient(0, 0, 0, h);
-    if (good) { gr.addColorStop(0, '#5aa9ff'); gr.addColorStop(0.6, '#bfe3ff'); gr.addColorStop(1, '#fff2d6'); }
-    else { gr.addColorStop(0, '#7d8794'); gr.addColorStop(0.7, '#aab2bb'); gr.addColorStop(1, '#c4c9cc'); }
+    if (good) { gr.addColorStop(0, '#2f86f0'); gr.addColorStop(0.55, '#8cc8ff'); gr.addColorStop(0.82, '#d9efff'); gr.addColorStop(1, '#fff6e2'); }
+    else { gr.addColorStop(0, '#6f7a88'); gr.addColorStop(0.7, '#a3abb5'); gr.addColorStop(1, '#c1c6cb'); }
     g.fillStyle = gr;
     g.fillRect(0, 0, w, h);
+    const cloud = (cx, cy, sz, n) => {
+      for (let i = 0; i < n; i++) {
+        const x = cx + (Math.random() - 0.5) * sz * 2.4;
+        const y = cy - Math.random() * sz * 0.9;
+        const r = sz * (0.35 + Math.random() * 0.45);
+        // bóng mây phía dưới
+        g.fillStyle = good ? 'rgba(196,214,240,0.9)' : 'rgba(140,148,160,0.8)';
+        g.beginPath(); g.arc(x, y + r * 0.25, r, 0, Math.PI * 2); g.fill();
+      }
+      for (let i = 0; i < n; i++) {
+        const x = cx + (Math.random() - 0.5) * sz * 2.2;
+        const y = cy - Math.random() * sz * 1.0 - sz * 0.1;
+        const r = sz * (0.3 + Math.random() * 0.4);
+        g.fillStyle = good ? 'rgba(255,255,255,0.96)' : 'rgba(176,182,190,0.9)';
+        g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+      }
+    };
+    if (good) {
+      cloud(160, 452, 34, 10);
+      cloud(560, 448, 44, 12);
+      cloud(880, 455, 28, 8);
+      g.fillStyle = 'rgba(255,255,255,0.55)';
+      for (let i = 0; i < 6; i++) { g.beginPath(); g.ellipse(Math.random() * w, 80 + Math.random() * 150, 60 + Math.random() * 60, 6, 0, 0, Math.PI * 2); g.fill(); }
+    } else {
+      for (let i = 0; i < 10; i++) cloud(Math.random() * w, 120 + Math.random() * 300, 90, 12);
+    }
   });
-  const skyM = new THREE.Mesh(new THREE.PlaneGeometry(80, 30), new THREE.MeshBasicMaterial({ map: sky, fog: false }));
-  skyM.position.set(-30, 12, 0);
+  const skyM = new THREE.Mesh(new THREE.PlaneGeometry(420, 120), new THREE.MeshBasicMaterial({ map: sky, fog: false }));
+  skyM.position.set(-150, 38, -20);
   skyM.rotation.y = Math.PI / 2;
   scene.add(skyM);
-  const yard = mesh(new THREE.PlaneGeometry(40, 60), new THREE.MeshStandardMaterial({ color: good ? '#8fbf6a' : '#6f8a62', roughness: 1 }), false, true);
+
+  // Biển: xa xanh thẫm, gần xanh ngọc, có vệt sóng lấp lánh
+  const seaTex = canvasTex(1024, 512, (g, w, h) => {
+    const gr = g.createLinearGradient(0, 0, w, 0);
+    if (good) { gr.addColorStop(0, '#2c6fb8'); gr.addColorStop(0.7, '#2f9fc7'); gr.addColorStop(1, '#5fd0cf'); }
+    else { gr.addColorStop(0, '#4b5c6c'); gr.addColorStop(1, '#6d8088'); }
+    g.fillStyle = gr;
+    g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 900; i++) {
+      const x = Math.random() * w;
+      g.fillStyle = good ? `rgba(255,255,255,${0.25 + Math.random() * 0.5})` : 'rgba(220,225,230,0.25)';
+      g.fillRect(x, Math.random() * h, 1, 2 + (x / w) * 12);
+    }
+  });
+  const sea = mesh(new THREE.PlaneGeometry(260, 400), new THREE.MeshStandardMaterial({ map: seaTex, roughness: 0.25, metalness: 0.1 }), false, false);
+  sea.rotation.set(-Math.PI / 2, 0, -Math.PI / 2);
+  sea.position.set(-145, -0.6, -20);
+  scene.add(sea);
+  // Bãi cát và sóng vỗ bờ
+  const sand = mesh(new THREE.PlaneGeometry(6, 400), new THREE.MeshStandardMaterial({ color: good ? '#e8d3a6' : '#a9a08e', roughness: 1 }), false, true);
+  sand.rotation.x = -Math.PI / 2;
+  sand.position.set(-15, -0.4, -20);
+  scene.add(sand);
+  const foam = mesh(new THREE.PlaneGeometry(0.6, 400), new THREE.MeshBasicMaterial({ color: good ? '#ffffff' : '#c9cdd0', transparent: true, opacity: 0.8 }), false, false);
+  foam.rotation.x = -Math.PI / 2;
+  foam.position.set(-18.1, -0.55, -20);
+  scene.add(foam);
+
+  // Sân trường ngay dưới cửa sổ, đường ven biển và đường ray tàu nhỏ
+  const yard = mesh(new THREE.PlaneGeometry(4, 400), new THREE.MeshStandardMaterial({ color: good ? '#9ccc72' : '#70885f', roughness: 1 }), false, true);
   yard.rotation.x = -Math.PI / 2;
-  yard.position.set(-24, -0.01, 0);
+  yard.position.set(-6, -0.01, -20);
   scene.add(yard);
-  const path = mesh(new THREE.PlaneGeometry(3, 60), new THREE.MeshStandardMaterial({ color: '#c9b79c', roughness: 1 }), false, true);
-  path.rotation.x = -Math.PI / 2;
-  path.position.set(-6, 0, 0);
-  scene.add(path);
-  // Hàng rào bồn hoa ngay dưới cửa sổ
-  const bushM = new THREE.MeshStandardMaterial({ color: good ? '#4f9a4a' : '#47684a', roughness: 0.9 });
-  for (let z = -5; z <= 5; z += 0.6) {
-    const b = mesh(new THREE.IcosahedronGeometry(0.45, 1), bushM);
-    b.position.set(-4.7, 0.45, z + Math.random() * 0.2);
-    scene.add(b);
+  const road = mesh(new THREE.PlaneGeometry(5, 400), new THREE.MeshStandardMaterial({ color: good ? '#8c9097' : '#6c7075', roughness: 0.9 }), false, true);
+  road.rotation.x = -Math.PI / 2;
+  road.position.set(-10.5, -0.2, -20);
+  scene.add(road);
+  const railM = new THREE.MeshStandardMaterial({ color: '#6b6f75', roughness: 0.4, metalness: 0.6 });
+  const sleeperM = new THREE.MeshStandardMaterial({ color: '#5a4a3a', roughness: 1 });
+  for (const rx of [-8.9, -9.9]) scene.add(box(0.06, 0.06, 200, railM, rx, -0.14, -20));
+  for (let z = -60; z < 30; z += 0.7) scene.add(box(1.5, 0.05, 0.18, sleeperM, -9.4, -0.18, z));
+  // Lan can trắng dọc bờ biển
+  const railW = new THREE.MeshStandardMaterial({ color: '#f4f4f0', roughness: 0.5 });
+  scene.add(box(0.06, 0.06, 200, railW, -12.9, 0.55, -20));
+  for (let z = -60; z < 30; z += 1.6) scene.add(box(0.06, 0.8, 0.06, railW, -12.9, 0.18, z));
+  // Biển báo chắn tàu
+  const post = box(0.08, 2.4, 0.08, railW, -8.3, 1.0, -6.5);
+  scene.add(post);
+  const sign = canvasTex(128, 128, (g, w, h) => {
+    g.fillStyle = '#f5c400'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#111';
+    for (let i = -4; i < 8; i++) { g.beginPath(); g.moveTo(i * 24, 0); g.lineTo(i * 24 + 12, 0); g.lineTo(i * 24 + 12 + h, h); g.lineTo(i * 24 + h, h); g.fill(); }
+  });
+  const x1 = mesh(new THREE.PlaneGeometry(1.1, 0.18), new THREE.MeshStandardMaterial({ map: sign, side: THREE.DoubleSide }), false, false);
+  x1.position.set(-8.25, 1.9, -6.5); x1.rotation.set(0, Math.PI / 2, 0.6);
+  const x2 = x1.clone(); x2.rotation.z = -0.6;
+  scene.add(x1, x2);
+  const lampM = new THREE.MeshStandardMaterial({ color: '#d33', emissive: good ? '#300' : '#000' });
+  [-0.22, 0.22].forEach((dz) => { const l = mesh(new THREE.SphereGeometry(0.09, 12, 8), lampM); l.position.set(-8.24, 1.5, -6.5 + dz); scene.add(l); });
+
+  // Bồn cây thấp dưới cửa sổ
+  const bushM = new THREE.MeshStandardMaterial({ color: good ? '#5aa64f' : '#47684a', roughness: 0.9 });
+  for (let z = -5; z <= 5; z += 0.7) {
+    const bsh = mesh(new THREE.IcosahedronGeometry(0.4, 1), bushM);
+    bsh.position.set(-4.6, 0.3, z + Math.random() * 0.2);
+    scene.add(bsh);
   }
-  // Cây
+  // Hai cây ở hai bên khung cảnh, không che biển
   const trunkM = new THREE.MeshStandardMaterial({ color: '#6b4a2f', roughness: 1 });
-  const leafM = [good ? '#5fae4f' : '#4d7350', good ? '#78c25e' : '#5b7f5b', good ? '#3f8f3f' : '#3e5e42'].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.95 }));
-  [[-9, -3], [-11, 2.5], [-8.5, 6], [-14, -7], [-15, 8], [-12, -0.5]].forEach(([x, z], i) => {
-    const t = mesh(new THREE.CylinderGeometry(0.18, 0.28, 3.4, 10), trunkM);
-    t.position.set(x, 1.7, z);
+  const leafM = [good ? '#5fae4f' : '#4d7350', good ? '#82c862' : '#5b7f5b'].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.95 }));
+  [[-6.5, -7.5], [-6.8, 8.5]].forEach(([x, z], i) => {
+    const t = mesh(new THREE.CylinderGeometry(0.16, 0.26, 3.6, 10), trunkM);
+    t.position.set(x, 1.8, z);
     scene.add(t);
-    for (let k = 0; k < 6; k++) {
-      const l = mesh(new THREE.IcosahedronGeometry(1 + Math.random() * 0.6, 1), leafM[(i + k) % 3]);
-      l.position.set(x + Math.random() * 2 - 1, 3.6 + Math.random() * 1.4, z + Math.random() * 2 - 1);
+    for (let k2 = 0; k2 < 6; k2++) {
+      const l = mesh(new THREE.IcosahedronGeometry(1 + Math.random() * 0.5, 1), leafM[(i + k2) % 2]);
+      l.position.set(x + Math.random() * 2 - 1, 3.8 + Math.random() * 1.2, z + Math.random() * 2 - 1);
       scene.add(l);
     }
   });
-  // Dãy nhà phía xa
-  const bld = mesh(new THREE.BoxGeometry(4, 6, 40), new THREE.MeshStandardMaterial({ color: good ? '#f3d27a' : '#b9ad8a', roughness: 0.9 }), false, true);
-  bld.position.set(-22, 3, 0);
-  scene.add(bld);
-  for (let z = -18; z < 18; z += 2.4) {
-    for (const y of [1.6, 4.2]) scene.add(box(0.05, 1.1, 1.2, new THREE.MeshStandardMaterial({ color: '#6d8fb3', roughness: 0.3 }), -19.97, y, z));
+
+  // Hòn đảo xanh ngoài khơi, có ngọn tháp nhỏ
+  const isleM = new THREE.MeshStandardMaterial({ color: good ? '#4f8f5a' : '#56675c', roughness: 1 });
+  const isle = mesh(new THREE.SphereGeometry(9, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), isleM, false, false);
+  isle.scale.set(1, 0.42, 1.5);
+  isle.position.set(-80, -0.6, -24);
+  scene.add(isle);
+  const tower = mesh(new THREE.CylinderGeometry(0.35, 0.6, 4.2, 10), new THREE.MeshStandardMaterial({ color: '#e9ece8', roughness: 0.6 }), false, false);
+  tower.position.set(-80, 5.3, -23);
+  scene.add(tower);
+  // Núi xa (có tuyết trên đỉnh khi trời trong)
+  if (good) {
+    const fujiM = new THREE.MeshBasicMaterial({ color: '#8fa9d0', fog: false });
+    const fuji = new THREE.Mesh(new THREE.ConeGeometry(30, 15, 40, 1, true), fujiM);
+    fuji.position.set(-200, 6.5, -45);
+    scene.add(fuji);
+    const snow = new THREE.Mesh(new THREE.ConeGeometry(9.2, 4.6, 40), new THREE.MeshBasicMaterial({ color: '#f4f8ff', fog: false }));
+    snow.position.set(-200, 11.7, -45);
+    scene.add(snow);
   }
+  // Mũi đất xa bên phải
+  const cape = mesh(new THREE.SphereGeometry(20, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: good ? '#5d8f6a' : '#5b6860', roughness: 1 }), false, false);
+  cape.scale.set(1.2, 0.3, 2.2);
+  cape.position.set(-70, -0.6, 80);
+  scene.add(cape);
 }
 
 /**
@@ -463,7 +598,7 @@ function mount(container, o) {
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(good ? '#cfe6ff' : '#9aa3ab');
-  scene.fog = new THREE.Fog(good ? '#e9f3ff' : '#a7adb2', 14, 40);
+  scene.fog = new THREE.Fog(good ? '#d9efff' : '#b0b7bd', 30, 260);
   const M = materials(good);
   const wins = buildRoom(scene, M, good, o.board);
   buildOutside(scene, good);
@@ -521,7 +656,12 @@ function mount(container, o) {
         const isHer = ci === HER.col && ri === HER.row && side === HER.side;
         const isMe = ci === ME.col && ri === ME.row && side === ME.side;
         const chair = makeChair(M);
-        chair.position.set(sx, 0, z + (isHer && !good ? -0.12 : 0.05));
+        // Ghế quay lưng về phía sau lớp (+z), mặt ghế hướng lên bảng như người ngồi
+        chair.rotation.y = Math.PI;
+        const herMate = ci === HER.col && ri === HER.row && !isHer;
+        // Ghế trống (của Minh Anh khi vắng, của bạn cùng bàn khi Minh Anh quay sang) được đẩy sát vào bàn
+        chair.position.set(sx, 0, z + ((isHer && !good) || (herMate && good) ? -0.14 : 0.02));
+        if (herMate && good) return; // Minh Anh quay sang chỗ này nói chuyện: bỏ ghế để không vướng chân
         scene.add(chair);
         if (isMe) return;
         if (isHer && !good) return; // chỗ ngồi bỏ trống
@@ -541,6 +681,7 @@ function mount(container, o) {
         p.rotation.y = Math.PI; // nhìn lên bảng (−z)
         scene.add(p);
         people[name] = p;
+        p.userData.chair = chair;
         if (good) {
           const pos = p.position;
           const near = pos.distanceTo(V(target.x, 0, target.z)) < 2.6;
@@ -558,6 +699,7 @@ function mount(container, o) {
         } else {
           p.userData.head.rotation.x = 0.12;
         }
+        chair.rotation.y = p.rotation.y; // ghế xoay theo người ngồi
       });
     });
   });
@@ -571,9 +713,9 @@ function mount(container, o) {
 
   // Camera: ngồi ở bàn của Hoàng Nam, nhìn ngang lớp ra phía dãy cửa sổ
   const fov0 = 48;
-  const camera = new THREE.PerspectiveCamera(fov0, 16 / 9, 0.05, 120);
+  const camera = new THREE.PerspectiveCamera(fov0, 16 / 9, 0.05, 500);
   const eye = V(myDeskX + ME.side * 0.3, 1.18, myZ + 0.05);
-  const look0 = V(-4, 1.25, myZ - 1.4);
+  const look0 = V(-4, 1.08, myZ - 1.4);
   const look1 = target.clone().add(V(-0.4, 0.15, 0));
   camera.position.copy(eye);
   camera.lookAt(look0);
