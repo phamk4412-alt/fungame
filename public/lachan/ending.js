@@ -149,9 +149,12 @@
     const $ = (id) => root.querySelector('#' + id);
     const show = (id) => root.querySelectorAll('.lce-step').forEach((s) => s.classList.toggle('on', s.id === id));
     let done = false;
+    let room3d = null; // lớp học 3D (ending3d.js); không có WebGL thì dùng hình SVG
+    const drop3d = () => { if (room3d) { room3d.dispose(); room3d = null; } };
     const finish = () => {
       if (done) return;
       done = true;
+      drop3d();
       timers.forEach(clearTimeout);
       timers.length = 0;
       show('lceCons');
@@ -188,17 +191,32 @@
     at(t, () => show('lceMorning'));
     t += 3000;
     // 3) Lớp học
-    at(t, () => show('lceClass'));
+    at(t, () => {
+      show('lceClass');
+      if (window.LCClass3D) {
+        const wrap = $('lceClassWrap');
+        const svg = wrap.querySelector('svg');
+        room3d = window.LCClass3D.mount(wrap, {
+          good, D, board: good ? sc.board : 'Sĩ số: 16 · Có mặt: 15',
+          avatarFor: (n) => (n === D.characters.witness.name ? D.characters.witness.avatar : A.fromName(n)),
+        });
+        if (room3d && svg) svg.remove();
+        wrap.classList.toggle('is3d', !!room3d);
+      }
+    });
     at(t + 1200, () => $('lceRoll').classList.add('on'));
     at(t + 3000, () => { $('lceSilence').classList.add('on'); if (good && S && S.correct) S.correct(); });
     if (good) {
-      at(t + 3600, () => root.querySelector('.seat.hers').classList.add('lit'));
+      at(t + 3600, () => { const her = root.querySelector('.seat.hers'); if (her) her.classList.add('lit'); });
       sc.bubbles.forEach((b, i) => at(t + 4400 + i * 1500, () => {
-        const pos = bubbleAt(D, b.who);
         const el = document.createElement('div');
         el.className = 'lce-bubble' + (b.who === D.characters.victim.name ? ' her' : '');
-        el.style.left = pos.left + '%';
-        el.style.top = pos.top + '%';
+        if (room3d) room3d.track(b.who, el);
+        else {
+          const pos = bubbleAt(D, b.who);
+          el.style.left = pos.left + '%';
+          el.style.top = pos.top + '%';
+        }
         el.textContent = b.text;
         el.dataset.who = b.who;
         // Mỗi người chỉ một bong bóng: câu mới thay câu cũ
@@ -208,18 +226,19 @@
       }));
       t += 4400 + sc.bubbles.length * 1500 + 2200;
     } else {
-      at(t + 5200, () => { $('lceEmpty').classList.add('on'); root.querySelector('.seat.empty').classList.add('lit'); });
+      at(t + 5200, () => { $('lceEmpty').classList.add('on'); const em = root.querySelector('.seat.empty'); if (em) em.classList.add('lit'); });
       t += 9000;
     }
     // 4) Lời kết
     at(t, () => show('lceAfter'));
+    at(t + 600, drop3d);
     t += 2200 * (afterLines.length + 1) + 2400;
     // 5) Màn cuối: hậu quả + số hỗ trợ (thua) hoặc vinh danh (thắng)
     at(t, finish);
     $('lceSkip').addEventListener('click', finish);
     return {
       skip: finish,
-      stop() { timers.forEach(clearTimeout); root.classList.remove('show', 'good'); root.innerHTML = ''; },
+      stop() { drop3d(); timers.forEach(clearTimeout); root.classList.remove('show', 'good'); root.innerHTML = ''; },
     };
   }
 

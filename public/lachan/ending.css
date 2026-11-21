@@ -102,3 +102,9 @@
 .lce-points { text-align: left; font-size: 1.2rem; line-height: 1.6; margin: 0 0 0.6rem; }
 @keyframes popIn { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.2); } }
 .confetti { z-index: 70; }
+
+/* Lớp học 3D */
+.lce-classwrap.is3d { aspect-ratio: 16 / 9; width: min(78rem, 94vw, 128vh); border-radius: 1rem; overflow: hidden; box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.5); }
+.lce-classwrap .lce-3d { width: 100%; height: 100%; display: block; }
+.lce-bubble.me { background: #cfe3ff; transform: translate(-50%, -50%); }
+.lce-bubble.me::after { display: none; }
