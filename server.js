@@ -26,7 +26,7 @@ const MIME = {
 const server = http.createServer((req, res) => {
   if (fishApi.handle(req, res)) return;
   const urlPath = decodeURIComponent(new URL(req.url, 'http://x').pathname);
-  let file = path.normalize(path.join(PUBLIC_DIR, urlPath === '/' ? 'index.html' : urlPath));
+  let file = path.normalize(path.join(PUBLIC_DIR, urlPath.endsWith('/') ? urlPath + 'index.html' : urlPath));
   if (!file.startsWith(PUBLIC_DIR)) {
     res.writeHead(403).end();
     return;

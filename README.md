@@ -49,6 +49,19 @@ Muốn đổi mức cược, thời gian hay tỉ lệ ăn, sửa các hằng s�
 
 Điều khiển: chuột lái, bấm = lộn vòng, giữ chuột trái = đốt sau, chuột phải hoặc F = bắn tên lửa, Space = đổi góc nhìn (từ trên, bám đuôi, buồng lái). Có nút cảm ứng trên điện thoại. Âm thanh tắt sẵn, bật ở góc phải.
 
+## Lá Chắn Ngôn Từ (5 giây trước nút Gửi)
+
+Gameshow chống bạo lực mạng cho sân khấu: laptop nối máy chiếu, mở `/lachan/` (hoặc mở thẳng file `public/lachan/index.html`, không cần server, không cần Wi-Fi). Giao diện mô phỏng mạng xã hội của Minh Anh, một sinh viên bị "bóc phốt" sai sự thật; các đội giữ thanh **Chỉ số Tinh thần** không về 0.
+
+- **Màn 1 · Soi Bóng Tối:** 5 bình luận, phân loại Góp ý xây dựng (phím A) hay Bạo lực mạng (phím B), có giải thích sau mỗi câu.
+- **Màn 2 · Cơn Bão Bình Luận:** 60 giây, bình luận ác ý trôi lên ngày càng nhanh; chọn đúng kỹ năng cho bình luận MỤC TIÊU: 1 Chụp bằng chứng, 2 Chặn & Báo cáo, 3 Khóa bình luận, 4 Cầu cứu hỗ trợ. Bình luận chạm đỉnh làm Tinh thần giảm.
+- **Màn 3 · 5 Giây Đảo Ngược:** vào vai bạn cùng lớp, 3 tình huống trong nhóm chat, chọn 1 trong 3 cách phản hồi (phím 1–3) để hồi Tinh thần cho Minh Anh.
+- HP về 0 thì hiện màn hình hậu quả tâm lý; hết game với HP trên 50% thì thắng (vỗ tay, pháo giấy).
+
+Phím MC: Space tiếp tục, P tạm dừng, F toàn màn hình, M âm thanh, H về màn hình chính. Chọn đội đang chơi ở góc trên; bảng điểm 4 đội lưu trong trình duyệt. Âm thanh tổng hợp bằng Web Audio, avatar vẽ bằng SVG, không tải gì từ mạng.
+
+**Sửa nội dung:** toàn bộ câu hỏi, bình luận, đáp án, điểm cộng/trừ, tốc độ, tên đội nằm trong `public/lachan/data.json`. Sửa xong chạy `node public/lachan/build-data.js` để cập nhật `data.js` (bản sao dùng khi mở bằng file://). `npm test` kiểm tra dữ liệu hợp lệ.
+
 ## Câu Cá 3D
 
 Game câu cá 3D chạy ngay trên trình duyệt, mở ở `/fish.html` (trang chủ có nút **🎣 Câu Cá 3D**). Đăng ký bằng tên và mật khẩu, tiến trình lưu lâu dài trên server.

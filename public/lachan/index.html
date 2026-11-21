@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lá Chắn Ngôn Từ · 5 giây trước nút Gửi</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg-blobs" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div id="flash" class="flash" aria-hidden="true"></div>
+  <div id="vignette" class="vignette" aria-hidden="true"></div>
+
+  <!-- Thanh trên cùng: dành cho MC điều khiển -->
+  <header class="topbar">
+    <div class="brand"><span class="shield">🛡️</span><b>LÁ CHẮN NGÔN TỪ</b><small id="brandSub">5 giây trước nút Gửi</small></div>
+    <nav class="steps" id="steps">
+      <button data-round="1"><em>1</em>Soi Bóng Tối</button>
+      <button data-round="2"><em>2</em>Cơn Bão Bình Luận</button>
+      <button data-round="3"><em>3</em>5 Giây Đảo Ngược</button>
+    </nav>
+    <div class="tools">
+      <label class="team-pick">Đội đang chơi <select id="teamSelect"></select></label>
+      <button id="pauseBtn" class="tool" title="Tạm dừng (P)">⏸</button>
+      <button id="muteBtn" class="tool" title="Bật/tắt âm thanh (M)">🔊</button>
+      <button id="fsBtn" class="tool" title="Toàn màn hình (F)">⛶</button>
+      <button id="homeBtn" class="tool" title="Về màn hình chính (H)">⌂</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- CỘT TRÁI: hồ sơ nhân vật + thanh Tinh thần -->
+    <aside class="col col-left">
+      <section class="panel profile">
+        <div class="cover"><span>K22 · Truyền thông</span></div>
+        <div class="avatar-wrap"><div id="victimAvatar" class="avatar xl"></div><span class="online"></span></div>
+        <h2 id="victimName">Minh Anh</h2>
+        <p id="victimHandle" class="muted">@minhanh.k22</p>
+        <p id="victimBio" class="bio"></p>
+        <div class="stats">
+          <div><b id="victimFollowers">1.248</b><small>người theo dõi</small></div>
+          <div class="bell"><b id="notifCount">0</b><small>thông báo mới</small></div>
+        </div>
+      </section>
+
+      <section class="panel hp-panel" id="hpPanel">
+        <div class="hp-head">
+          <span>CHỈ SỐ TINH THẦN</span>
+          <b id="hpValue">100%</b>
+        </div>
+        <div class="hp-bar"><div id="hpFill" class="hp-fill"></div><div id="hpGhost" class="hp-ghost"></div><div class="hp-ticks"><i></i><i></i><i></i><i></i></div></div>
+        <div class="hp-mood"><span id="hpMoodIcon">😊</span><span id="hpMood">Ổn định</span></div>
+        <div id="hpDelta" class="hp-delta"></div>
+      </section>
+
+      <section class="panel role-panel" id="rolePanel">
+        <div class="role-label">BẠN ĐANG VÀO VAI</div>
+        <div class="role-row"><div id="witnessAvatar" class="avatar md"></div><div><b id="witnessName">Hoàng Nam</b><small id="witnessRole">Bạn cùng lớp</small></div></div>
+      </section>
+    </aside>
+
+    <!-- CỘT GIỮA: bài viết + luồng bình luận -->
+    <section class="col col-center">
+      <div class="phone">
+        <div class="appbar">
+          <span class="app-logo">@</span>
+          <span class="app-tabs"><b>Dành cho bạn</b><span>Đang theo dõi</span></span>
+          <span class="app-icons"><span class="live-dot"></span>TRỰC TIẾP</span>
+        </div>
+        <article class="post" id="post">
+          <header class="post-head">
+            <div id="pageAvatar" class="avatar sm"></div>
+            <div><b id="pageName">Hóng Biến Đại Học</b> <span class="verified">✔</span><small><span id="postTime">2 giờ</span> · 🌐 <span id="postAudience">Công khai</span></small></div>
+            <span class="post-more">···</span>
+          </header>
+          <p class="post-text" id="postText"></p>
+          <div class="post-image" id="postImage"><div class="fake-sheet"><i></i><i></i><i></i><i></i><i></i></div><span class="stamp">PHỐT??</span><small id="postImageCap"></small></div>
+          <footer class="post-meta"><span>😡😂😮 <b id="postReacts">4,2K</b></span><span><b id="postComments">1,9K</b> bình luận · <b id="postShares">860</b> lượt chia sẻ</span></footer>
+        </article>
+        <div class="stage" id="stage"></div>
+      </div>
+    </section>
+
+    <!-- CỘT PHẢI: đồng hồ + nút hành động + bảng điểm -->
+    <aside class="col col-right">
+      <section class="panel timer-panel">
+        <div class="round-badge" id="roundBadge">Sẵn sàng</div>
+        <div class="timer">
+          <svg viewBox="0 0 120 120" class="ring"><circle cx="60" cy="60" r="52" class="ring-bg" /><circle cx="60" cy="60" r="52" class="ring-fg" id="ringFg" /></svg>
+          <div class="timer-num"><b id="timerNum">--</b><small id="timerLabel">giây</small></div>
+        </div>
+        <div class="round-goal" id="roundGoal">Nhận diện · Tự vệ · Đồng cảm</div>
+      </section>
+
+      <section class="panel actions-panel">
+        <div class="panel-title" id="actionsTitle">BẢNG ĐIỀU KHIỂN</div>
+        <div class="actions" id="actions"></div>
+        <div class="combo" id="combo"></div>
+      </section>
+
+      <section class="panel score-panel">
+        <div class="panel-title">BẢNG ĐIỂM <small id="roundScore"></small></div>
+        <ol class="teams" id="teams"></ol>
+        <button class="reset-scores" id="resetScores">Xóa bảng điểm</button>
+      </section>
+    </aside>
+  </main>
+
+  <!-- Màn hình chính -->
+  <section class="overlay show" id="introScreen">
+    <div class="intro-card">
+      <div class="intro-shield">🛡️</div>
+      <h1 id="introTitle">LÁ CHẮN NGÔN TỪ</h1>
+      <p class="intro-sub" id="introSub">5 giây trước nút Gửi</p>
+      <p class="intro-tag" id="introTag"></p>
+      <div class="intro-rounds" id="introRounds"></div>
+      <div class="intro-team">Đội bắt đầu: <select id="introTeam"></select></div>
+      <button class="big-btn" id="startBtn">▶ BẮT ĐẦU</button>
+      <p class="keys">Phím tắt MC: <kbd>Space</kbd> tiếp tục · <kbd>A</kbd>/<kbd>B</kbd> Màn 1 · <kbd>1</kbd>–<kbd>4</kbd> Màn 2 · <kbd>1</kbd>–<kbd>3</kbd> Màn 3 · <kbd>P</kbd> dừng · <kbd>F</kbd> toàn màn hình · <kbd>M</kbd> âm thanh</p>
+    </div>
+  </section>
+
+  <!-- Màn giới thiệu từng vòng -->
+  <section class="overlay" id="roundScreen">
+    <div class="round-card">
+      <div class="round-num" id="rsNum">MÀN 1</div>
+      <h1 id="rsName"></h1>
+      <div class="round-goal-tag" id="rsGoal"></div>
+      <p id="rsIntro"></p>
+      <div id="rsExtra"></div>
+      <button class="big-btn" id="rsStart">▶ VÀO TRẬN</button>
+    </div>
+  </section>
+
+  <!-- Kết thúc / hậu quả -->
+  <section class="overlay" id="endScreen">
+    <div class="end-card" id="endCard">
+      <div class="end-icon" id="endIcon"></div>
+      <h1 id="endTitle"></h1>
+      <p class="end-lead" id="endLead"></p>
+      <ul class="end-points" id="endPoints"></ul>
+      <p class="end-help" id="endHelp"></p>
+      <div class="end-stats" id="endStats"></div>
+      <p class="end-msg" id="endMsg"></p>
+      <div class="end-btns"><button class="big-btn" id="endCta"></button><button class="ghost-btn" id="endHome">Về màn hình chính</button></div>
+    </div>
+  </section>
+
+  <div class="paused-tag" id="pausedTag">⏸ TẠM DỪNG · bấm P để tiếp tục</div>
+  <div class="toasts" id="toasts"></div>
+  <canvas id="confetti" class="confetti"></canvas>
+
+  <!-- data.js là bản sao của data.json, giúp mở file trực tiếp (file://) khi không có server -->
+  <script src="data.js"></script>
+  <script src="rules.js"></script>
+  <script src="audio.js"></script>
+  <script src="avatar.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
