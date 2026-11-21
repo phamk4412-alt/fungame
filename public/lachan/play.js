@@ -118,7 +118,7 @@
       if (s.outcome === 'win') {
         $('endIc').textContent = teamRank === 1 ? '🏆' : '🛡️';
         $('endTitle').textContent = D.endings.win.title;
-        $('endText').textContent = `${D.endings.win.lead} ${s.teams[0].name} dẫn đầu.`;
+        $('endText').textContent = `${D.endings.goodScene.closing} ${s.teams[0].name} dẫn đầu.`;
         $('endHelp').innerHTML = '';
       } else {
         $('endIc').textContent = '🌧️';

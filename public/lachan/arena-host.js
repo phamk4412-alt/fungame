@@ -166,27 +166,20 @@
   }
 
   function renderEnd(s) {
-    if (s.outcome === 'win') {
-      const e = D.endings.win;
-      screen('final');
-      $('finalCard').innerHTML = `<div class="end-icon">🏆</div><h1>${esc(e.title)}</h1><p class="lead">${esc(e.lead)} Tinh thần cuối: <b>${s.hp}%</b></p>
-        <ul>${e.points.map((p) => `<li>${esc(p)}</li>`).join('')}</ul>${podiumHtml(s)}
-        <p class="end-msg">${esc(D.meta.finalMessage)}</p>
-        <div class="final-btns"><button class="big-btn" id="againBtn">↻ Chơi lại</button></div>`;
-      $('againBtn').onclick = () => cmd('reset');
-      S.applause(4);
-      confetti();
-      return;
-    }
-    // Thua: cảnh kết thúc an toàn rồi tới hậu quả + bảng xếp hạng
+    // Thắng: Minh Anh đi học lại, cười nói với cả lớp. Thua: cảnh kết thúc an toàn rồi tới màn hậu quả.
+    // Cả hai đều kết bằng bảng xếp hạng đội.
+    const win = s.outcome === 'win';
     screen('play');
-    S.doom();
+    if (!win) S.doom();
     ending = window.LCEnding.play($('lceRoot'), D, {
+      kind: win ? 'good' : 'bad',
       sound: S,
-      extra: `<div class="podium-wrap"><h3>BẢNG XẾP HẠNG ĐỘI · Tinh thần cuối của Minh Anh: ${s.hp}%</h3>${podiumHtml(s)}</div>`,
+      stats: win ? `<div><b>${s.hp}%</b><small>Tinh thần cuối</small></div><div><b>${s.players.length}</b><small>người cùng bảo vệ</small></div>` : '',
+      extra: `<div class="podium-wrap"><h3>BẢNG XẾP HẠNG ĐỘI${win ? '' : ' · Tinh thần cuối của Minh Anh: ' + s.hp + '%'}</h3>${podiumHtml(s)}</div>`,
       onDone(btns) {
-        btns.innerHTML = '<button id="lceAgain">↻ Chơi lại, lần này hãy lên tiếng</button>';
+        btns.innerHTML = `<button id="lceAgain">${win ? '↻ Chơi lại' : '↻ Chơi lại, lần này hãy lên tiếng'}</button>`;
         btns.querySelector('#lceAgain').onclick = () => cmd('reset');
+        if (win) confetti();
       },
     });
   }
