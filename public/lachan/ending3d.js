@@ -168,18 +168,18 @@ function makePerson(o) {
 
   // Đầu
   const head = new THREE.Group();
-  head.position.set(0, 1.15, 0.01);
+  head.position.set(0, 1.17, 0.01);
+  head.scale.setScalar(1.22); // đầu to hơn một chút: trông dễ thương
   g.add(head);
   const skull = mesh(new THREE.SphereGeometry(0.1, 32, 24), skin);
-  skull.scale.set(0.9, 1.12, 1.0);
+  skull.scale.set(0.96, 1.05, 1.0);
   head.add(skull);
   const jaw = mesh(new THREE.SphereGeometry(0.07, 24, 16), skin);
-  jaw.scale.set(0.95, 0.9, 0.95);
-  jaw.position.set(0, -0.05, 0.02);
+  jaw.scale.set(1.05, 0.85, 0.95);
+  jaw.position.set(0, -0.035, 0.018);
   head.add(jaw);
-  const nose = mesh(new THREE.SphereGeometry(0.018, 12, 10), skin);
-  nose.scale.set(0.8, 1.2, 1.1);
-  nose.position.set(0, -0.01, 0.098);
+  const nose = mesh(new THREE.SphereGeometry(0.009, 10, 8), skin);
+  nose.position.set(0, -0.012, 0.099);
   head.add(nose);
   [0.09, -0.09].forEach((x) => {
     const ear = mesh(new THREE.SphereGeometry(0.022, 10, 8), skin);
@@ -190,45 +190,56 @@ function makePerson(o) {
 
   const laughing = o.mood === 'laugh';
   const happy = laughing || o.mood === 'happy';
-  // Mắt
-  [0.035, -0.035].forEach((x) => {
+  // Mắt to kiểu hoạt hình: dẹt sát mặt, có đốm sáng, không lồi ra ngoài
+  [0.036, -0.036].forEach((x) => {
+    const tilt = x > 0 ? 0.36 : -0.36;
     if (laughing) {
-      // mắt cười híp: vòng cung
-      const arc = mesh(new THREE.TorusGeometry(0.014, 0.0035, 6, 12, Math.PI), M.dark, false, false);
-      arc.position.set(x, 0.022, 0.088);
+      // mắt cười híp: vòng cung ^ ^
+      const arc = mesh(new THREE.TorusGeometry(0.016, 0.004, 6, 14, Math.PI), M.dark, false, false);
+      arc.position.set(x, 0.012, 0.093);
+      arc.rotation.y = tilt;
       head.add(arc);
     } else {
-      const ew = mesh(new THREE.SphereGeometry(0.014, 14, 10), M.eyeW, false, false);
-      ew.scale.set(1.2, 0.85, 0.5);
-      ew.position.set(x, 0.02, 0.086);
-      head.add(ew);
-      const ir = mesh(new THREE.SphereGeometry(0.0085, 12, 10), M.iris, false, false);
-      ir.position.set(x, 0.02, 0.092);
+      const ir = mesh(new THREE.SphereGeometry(0.019, 18, 14), M.iris, false, false);
+      ir.scale.set(0.82, 1.08, 0.28);
+      ir.position.set(x, 0.008, 0.0905);
+      ir.rotation.y = tilt;
       head.add(ir);
+      const hi = mesh(new THREE.SphereGeometry(0.0055, 10, 8), M.eyeW, false, false);
+      hi.scale.set(1, 1, 0.4);
+      hi.position.set(x + 0.005, 0.016, 0.0955);
+      head.add(hi);
+      const hi2 = mesh(new THREE.SphereGeometry(0.0028, 8, 6), M.eyeW, false, false);
+      hi2.position.set(x - 0.004, -0.001, 0.0955);
+      head.add(hi2);
+      if (o.girl) {
+        const lash = mesh(new THREE.TorusGeometry(0.017, 0.0026, 6, 12, Math.PI * 0.8), M.dark, false, false);
+        lash.position.set(x, 0.011, 0.0925);
+        lash.rotation.set(0, tilt, Math.PI * 0.1);
+        head.add(lash);
+      }
     }
-    const brow = mesh(new THREE.BoxGeometry(0.032, 0.006, 0.008), hairM, false, false);
-    brow.position.set(x, 0.048 + (happy ? 0.004 : 0), 0.09);
-    brow.rotation.z = x > 0 ? (happy ? -0.15 : -0.05) : (happy ? 0.15 : 0.05);
+    const brow = mesh(new THREE.CapsuleGeometry(0.003, 0.022, 4, 8), hairM, false, false);
+    brow.rotation.z = Math.PI / 2 + (x > 0 ? (happy ? -0.18 : -0.06) : (happy ? 0.18 : 0.06));
+    brow.position.set(x, 0.05 + (happy ? 0.004 : 0), 0.084);
     head.add(brow);
-    if (happy) {
-      const blush = mesh(new THREE.SphereGeometry(0.014, 10, 8), new THREE.MeshStandardMaterial({ color: '#ff8f8f', transparent: true, opacity: 0.45 }), false, false);
-      blush.scale.set(1.3, 0.7, 0.3);
-      blush.position.set(x * 1.45, -0.012, 0.082);
-      head.add(blush);
-    }
+    // má hồng (lúc nào cũng có, vui thì đậm hơn)
+    const blush = mesh(new THREE.SphereGeometry(0.016, 12, 8), new THREE.MeshStandardMaterial({ color: '#ff7f8f', transparent: true, opacity: happy ? 0.55 : 0.3, depthWrite: false }), false, false);
+    blush.scale.set(1.3, 0.75, 0.25);
+    blush.position.set(x * 1.5, -0.022, 0.082);
+    blush.rotation.y = tilt * 1.6;
+    head.add(blush);
   });
-  // Miệng
+  // Miệng nhỏ
   if (laughing) {
-    const m = mesh(new THREE.SphereGeometry(0.024, 16, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), M.dark, false, false);
-    m.scale.set(1.1, 0.9, 0.5);
-    m.position.set(0, -0.045, 0.09);
+    const m = mesh(new THREE.CircleGeometry(0.017, 20, Math.PI, Math.PI), new THREE.MeshStandardMaterial({ color: '#7a2433', roughness: 0.6 }), false, false);
+    m.scale.set(1.15, 1, 1);
+    m.position.set(0, -0.034, 0.0952);
     head.add(m);
-    const t = box(0.034, 0.008, 0.008, M.teeth, 0, -0.048, 0.098);
-    head.add(t);
   } else {
-    const smile = mesh(new THREE.TorusGeometry(happy ? 0.02 : 0.016, 0.004, 6, 14, happy ? Math.PI : 0.6), M.lips, false, false);
-    smile.rotation.z = happy ? Math.PI : Math.PI + (Math.PI - 0.6) / 2;
-    smile.position.set(0, happy ? -0.04 : -0.05, 0.09);
+    const smile = mesh(new THREE.TorusGeometry(happy ? 0.014 : 0.01, 0.0032, 6, 14, happy ? Math.PI : 0.9), M.lips, false, false);
+    smile.rotation.z = happy ? Math.PI : Math.PI + (Math.PI - 0.9) / 2;
+    smile.position.set(0, happy ? -0.03 : -0.038, 0.096);
     head.add(smile);
   }
 
@@ -278,7 +289,7 @@ function makePerson(o) {
 function makeDesk(M, withBook) {
   const g = new THREE.Group();
   g.add(box(1.2, 0.04, 0.5, M.desk, 0, 0.74, 0));
-  g.add(box(1.16, 0.3, 0.02, M.desk, 0, 0.58, 0.24));
+  g.add(box(1.16, 0.3, 0.02, M.desk, 0, 0.58, -0.24)); // tấm chắn phía bảng, chân để dưới gầm
   [[-0.56, -0.22], [0.56, -0.22], [-0.56, 0.22], [0.56, 0.22]].forEach(([x, z]) => g.add(box(0.035, 0.72, 0.035, M.metal, x, 0.36, z)));
   if (withBook) {
     const book = box(0.22, 0.015, 0.3, M.paper, -0.25, 0.768, -0.02);
@@ -521,7 +532,12 @@ function mount(container, o) {
         const isHer = ci === HER.col && ri === HER.row && side === HER.side;
         const isMe = ci === ME.col && ri === ME.row && side === ME.side;
         const chair = makeChair(M);
-        chair.position.set(sx, 0, z + (isHer && !good ? -0.12 : 0.05));
+        // Ghế quay lưng về phía sau lớp (+z), mặt ghế hướng lên bảng như người ngồi
+        chair.rotation.y = Math.PI;
+        const herMate = ci === HER.col && ri === HER.row && !isHer;
+        // Ghế trống (của Minh Anh khi vắng, của bạn cùng bàn khi Minh Anh quay sang) được đẩy sát vào bàn
+        chair.position.set(sx, 0, z + ((isHer && !good) || (herMate && good) ? -0.14 : 0.02));
+        if (herMate && good) return; // Minh Anh quay sang chỗ này nói chuyện: bỏ ghế để không vướng chân
         scene.add(chair);
         if (isMe) return;
         if (isHer && !good) return; // chỗ ngồi bỏ trống
@@ -541,6 +557,7 @@ function mount(container, o) {
         p.rotation.y = Math.PI; // nhìn lên bảng (−z)
         scene.add(p);
         people[name] = p;
+        p.userData.chair = chair;
         if (good) {
           const pos = p.position;
           const near = pos.distanceTo(V(target.x, 0, target.z)) < 2.6;
@@ -558,6 +575,7 @@ function mount(container, o) {
         } else {
           p.userData.head.rotation.x = 0.12;
         }
+        chair.rotation.y = p.rotation.y; // ghế xoay theo người ngồi
       });
     });
   });
