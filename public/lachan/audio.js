@@ -138,6 +138,13 @@
         tone(f / 2, s, 1.8, { type: 'triangle', vol: 0.05 });
       });
     },
+    /** Giai điệu vui, sáng cho kết thúc có hậu. */
+    joy() {
+      [[523, 0], [659, 0.25], [784, 0.5], [1047, 0.75], [880, 1.2], [1047, 1.45], [1319, 1.7]].forEach(([f, s]) => {
+        tone(f, s, 0.5, { type: 'triangle', vol: 0.13 });
+        tone(f / 2, s, 0.6, { type: 'sine', vol: 0.06 });
+      });
+    },
     start() {
       [392, 523, 659, 784].forEach((f, i) => tone(f, i * 0.09, 0.3, { type: 'triangle', vol: 0.16 }));
     },

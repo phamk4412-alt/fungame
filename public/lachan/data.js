@@ -551,6 +551,56 @@ window.LCNT_DATA = {
       ],
       "question": "Nếu có một người lên tiếng sớm hơn…"
     },
+    "goodScene": {
+      "chatTitle": "Nhóm chat: K22 TRUYỀN THÔNG 🐧",
+      "messages": [
+        {
+          "author": "Minh Anh",
+          "text": "Cảm ơn mọi người đã tin mình 🥹"
+        },
+        {
+          "author": "Hoàng Nam",
+          "text": "Bọn mình luôn ở đây mà! Mai đi học nhé 💪"
+        },
+        {
+          "author": "Trà My",
+          "text": "Mai mình mang bánh mì cho cậu 🥖"
+        },
+        {
+          "author": "Quốc Bảo",
+          "text": "Page kia gỡ bài và đính chính rồi đó ❤️"
+        }
+      ],
+      "morning": "Sáng hôm sau",
+      "classTitle": "Lớp K22 Truyền thông · Tiết 1",
+      "board": "Sĩ số: 16 · Có mặt: 16",
+      "rollCall": "Cô giáo điểm danh: \"Minh Anh?\"",
+      "answer": "\"Dạ, có ạ!\" 😄",
+      "bubbles": [
+        {
+          "who": "Minh Anh",
+          "text": "Chào cả lớp! 😄"
+        },
+        {
+          "who": "Hoàng Nam",
+          "text": "Chào Minh Anh! 👋"
+        },
+        {
+          "who": "Trà My",
+          "text": "Bánh mì của cậu nè 🥖"
+        },
+        {
+          "who": "Quốc Bảo",
+          "text": "Trưa nay đi ăn chè không? 🍧"
+        },
+        {
+          "who": "Minh Anh",
+          "text": "Đi chứ! 🥰"
+        }
+      ],
+      "closing": "Minh Anh lại cười, lại nói chuyện rôm rả với cả lớp như chưa từng có cơn bão nào.",
+      "lesson": "Chỉ cần một người lên tiếng đúng lúc, câu chuyện đã khác."
+    },
     "consequences": {
       "title": "Hậu quả của bạo lực mạng",
       "victimTitle": "Với người bị bắt nạt",

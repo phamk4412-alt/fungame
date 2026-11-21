@@ -174,3 +174,10 @@ test('cảnh thua có số Tổng đài 111 và không có từ ngữ mô tả c
   const text = JSON.stringify(sc).toLowerCase();
   ['ban công', 'nhảy', 'rơi', 'cầu', 'tự tử', 'tự vẫn', 'chết'].forEach((w) => assert.ok(!text.includes(w), 'cảnh cuối có từ: ' + w));
 });
+
+test('cảnh có hậu: Minh Anh có mặt, đủ lời thoại, bong bóng đều có người nói', () => {
+  const g = D.endings.goodScene;
+  assert.ok(g.messages.length >= 2 && g.bubbles.length >= 2);
+  assert.ok(g.bubbles.some((b) => b.who === D.characters.victim.name), 'Minh Anh phải nói chuyện với cả lớp');
+  assert.ok(g.closing && g.lesson && g.answer && g.board);
+});

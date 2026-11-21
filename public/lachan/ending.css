@@ -67,3 +67,38 @@
   .lce-cons h1 { font-size: 1.9rem; }
   .lce-after p { font-size: 1.3rem; }
 }
+
+/* ---------- Kết thúc có hậu ---------- */
+.lce-root.good { background: radial-gradient(1000px 700px at 50% 30%, #3a2a5a 0%, #120d22 70%); }
+.lce.good .lce-phone { filter: none; box-shadow: 0 0 6rem rgba(255, 190, 120, 0.25); }
+.lce.good .lce-title span { color: #ffe2a8; }
+.lce-msg.other p { background: #2c4a7a; border-radius: 1rem 1rem 1rem 0.2rem; }
+.lce-msg p b { display: block; font-size: 0.8rem; color: #9fb8ff; margin-bottom: 0.1rem; }
+.lce.good .lce-msg:not(.other) p { background: #b2477a; }
+.lce-classwrap { position: relative; width: min(64rem, 92vw); }
+.lce-classwrap .classroom { width: 100%; display: block; }
+.classroom.good { filter: none; }
+.classroom.good .board { fill: #fff; }
+.classroom.good .mate { opacity: 1; }
+.classroom.good .desk-top { fill: #a5774a; }
+.classroom.good .desk-front { fill: #7a5634; }
+.classroom .seat.hers.lit .mate { filter: drop-shadow(0 0 14px rgba(255, 210, 120, 0.95)); }
+.classroom .seat.hers.lit .desk-top { fill: #e0b57c; }
+.lce-caption.happy { color: #ffd98a; font-weight: 700; }
+.lce-bubble { position: absolute; transform: translate(-50%, -100%); background: #fff; color: #222; font-size: clamp(0.8rem, 1.25vw, 1.2rem); font-weight: 600; padding: 0.4rem 0.8rem; border-radius: 1rem; white-space: nowrap; box-shadow: 0 0.4rem 1rem rgba(0, 0, 0, 0.3); animation: lceBubble .5s cubic-bezier(.2,.9,.3,1.5) both; }
+.lce-bubble::after { content: ""; position: absolute; left: 50%; bottom: -0.45rem; margin-left: -0.45rem; border: 0.45rem solid transparent; border-top-color: #fff; border-bottom: 0; }
+.lce-bubble.her { background: #ffd1e6; }
+.lce-bubble.her::after { border-top-color: #ffd1e6; }
+@keyframes lceBubble { from { transform: translate(-50%, -60%) scale(0.3); opacity: 0; } }
+.lce.good .lce-after p.q { color: #8ff0c0; }
+.lce-win { align-items: center; text-align: center; background: radial-gradient(900px 600px at 50% 0%, #3b2d6b 0%, #0b0a18 70%); }
+.lce-trophy { font-size: 5rem; line-height: 1; animation: popIn .8s ease both; }
+.lce-win h1 { margin-top: 0.2rem; }
+.lce-lead { font-size: 1.4rem; color: #c9cee6; margin: -0.6rem 0 1rem; }
+.lce-stats { display: flex; gap: 1rem; justify-content: center; margin-bottom: 1rem; }
+.lce-stats div { background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 1rem; padding: 0.6rem 1.4rem; }
+.lce-stats b { display: block; font-size: 1.8rem; }
+.lce-stats small { color: #9aa3c7; }
+.lce-points { text-align: left; font-size: 1.2rem; line-height: 1.6; margin: 0 0 0.6rem; }
+@keyframes popIn { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.2); } }
+.confetti { z-index: 70; }

@@ -26,6 +26,7 @@
     r1: null,
     r2: null,
     r3: null,
+    epoch: 0, // tăng mỗi lần đổi vòng / về màn chính để hủy các hẹn giờ cũ
   };
 
   // ---------- Tải dữ liệu ----------
@@ -141,7 +142,8 @@
     setHp(G.hp + d);
     if (d < 0) flash('red');
     if (G.hp <= 0 && G.phase !== 'end') {
-      setTimeout(() => endGame('fail'), 650);
+      const ep = G.epoch;
+      setTimeout(() => { if (G.epoch === ep) endGame('fail'); }, 650);
       G.phase = 'end';
     }
   }
@@ -287,8 +289,10 @@
     $('stage').innerHTML = '';
     $('stage').className = 'stage';
     $('combo').textContent = '';
-    $('post').classList.remove('compact', 'dim');
+    $('post').classList.remove('compact', 'dim', 'gone');
+    if (G.r3) G.r3.timers.forEach(clearTimeout);
     G.r1 = G.r2 = G.r3 = null;
+    G.epoch++;
     document.body.classList.remove('drama');
   }
 
@@ -543,7 +547,7 @@
   // ======================================================
   function startR3() {
     G.r3 = { idx: 0, chosen: false, timers: [] };
-    $('post').classList.add('compact');
+    $('post').classList.add('compact', 'gone'); // Màn 3 cần chỗ cho cả đoạn chat
     showSituation();
   }
 
@@ -692,8 +696,9 @@
       stats += `<div><b>${G.r2.handled}</b><small>bình luận xử lý</small></div><div><b>×${G.r2.best}</b><small>combo cao nhất</small></div><div><b>${G.r2.missed}</b><small>lọt lưới</small></div>`;
     }
     toast(`<b>Hoàn thành ${esc(D['round' + r].name)}!</b> +${G.roundScore} điểm`, 'ok');
+    const ep = G.epoch;
     setTimeout(() => {
-      if (G.phase === 'end') return;
+      if (G.epoch !== ep || G.phase === 'end') return;
       goRound(r + 1);
       $('rsExtra').insertAdjacentHTML('afterbegin', `<div class="prev-stats"><span>Kết quả ${esc(D['round' + r].name)}</span>${stats}</div>`);
     }, r === 2 ? 900 : 300);
@@ -722,13 +727,17 @@
       else { setHp(CFG.hpStart, true); G.notif = 0; $('notifCount').textContent = '0'; goRound(1); }
     };
     stopConfetti();
-    if (kind === 'fail' && window.LCEnding) {
-      // Tinh thần về 0: phát cảnh kết thúc (tin nhắn không ai trả lời, chỗ ngồi bỏ trống) rồi tới màn hậu quả
+    if ((kind === 'fail' || kind === 'win') && window.LCEnding) {
+      // Thua (Tinh thần về 0): tin nhắn không ai trả lời, chỗ ngồi bỏ trống, rồi màn hậu quả.
+      // Thắng: cả lớp động viên, sáng hôm sau Minh Anh đi học, cười nói vui vẻ với mọi người.
       showOverlay(null);
-      S.doom();
+      if (kind === 'fail') S.doom();
       ending = window.LCEnding.play($('lceRoot'), D, {
+        kind: kind === 'win' ? 'good' : 'bad',
         sound: S,
+        stats: kind === 'win' ? $('endStats').innerHTML : '',
         onDone(btns) {
+          if (kind === 'win') confetti();
           btns.innerHTML = `<button id="lceCta">${esc($('endCta').textContent)}</button><button class="ghost" id="lceHome">Về màn hình chính</button>`;
           btns.querySelector('#lceCta').onclick = () => { stopEnding(); $('endCta').click(); };
           btns.querySelector('#lceHome').onclick = () => { stopEnding(); goHome(); };
@@ -737,8 +746,7 @@
       return;
     }
     showOverlay('endScreen');
-    if (kind === 'win') { S.applause(4); confetti(); }
-    else { S.doom(); }
+    S.doom();
   }
 
   let ending = null;

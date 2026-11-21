@@ -410,7 +410,7 @@ body.paused .layout { filter: grayscale(0.6) brightness(0.7); }
 .confetti.on { display: block; }
 
 /* Màn hình nhỏ (điện thoại/tablet dọc): xếp chồng các cột */
-@media (max-aspect-ratio: 4/3) {
+@media (max-aspect-ratio: 1/1) {
   html { font-size: min(2.2vw, 1.6vh); }
   html, body { overflow: auto; }
   .layout { height: auto; grid-template-columns: 1fr; }
@@ -438,3 +438,21 @@ body.paused .layout { filter: grayscale(0.6) brightness(0.7); }
 .intro-btns { display: flex; gap: 1.2rem; justify-content: center; align-items: center; flex-wrap: wrap; }
 .arena-btn { display: inline-flex; flex-direction: column; align-items: center; text-decoration: none; color: #fff; background: linear-gradient(90deg, #12b88a, #2f8cff, #12b88a); background-size: 200% 100%; box-shadow: 0 0.8rem 2.4rem rgba(30, 200, 160, 0.4); padding: 0.7rem 2.4rem; }
 .arena-btn small { font-size: 0.8rem; letter-spacing: 0; font-weight: 600; opacity: 0.9; }
+
+.post.gone { display: none; }
+
+/* Máy chiếu 4:3 (1024×768…): 2 cột, không phải cuộn trang */
+@media (max-aspect-ratio: 4/3) and (min-aspect-ratio: 1/1) {
+  html { font-size: min(1.32vw, 1.8vh); }
+  html, body { overflow: hidden; }
+  .layout { height: calc(100vh - 3.6rem); grid-template-columns: 60fr 40fr; grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "center left" "center right"; }
+  .col-center { grid-area: center; }
+  .col-left { grid-area: left; }
+  .col-right { grid-area: right; overflow: auto; }
+  .col-center .phone { height: auto; }
+  .col-left .profile { display: none; }
+  .col-right > * { flex: none !important; }
+  .col-right .actions-panel .act { padding-top: 0.55rem; padding-bottom: 0.55rem; }
+  .steps button { font-size: 0.8rem; }
+  .brand small, .team-pick { display: none; }
+}
