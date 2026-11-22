@@ -8,6 +8,7 @@ const { Table } = require('./game');
 const { XiDachTable } = require('./xidach');
 const fishApi = require('./fish/api');
 const lachanArena = require('./lachan/server');
+const patrolNet = require('./patrol/server');
 
 const GAMES = { poker: Table, xidach: XiDachTable };
 
@@ -98,6 +99,12 @@ wss.on('connection', (ws) => {
       return;
     }
 
+    // Patrol không chiến nhiều người (pt:*)
+    if (typeof msg.type === 'string' && msg.type.startsWith('pt:')) {
+      patrolNet.handle(ws, msg);
+      return;
+    }
+
     if (msg.type === 'join') {
       const code = cleanCode(msg.room) || crypto.randomBytes(3).toString('hex').toUpperCase();
       const room = getRoom(code, msg.game);
@@ -150,6 +157,7 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     lachanArena.close(ws);
+    patrolNet.close(ws);
     const room = ws.room;
     if (!room) return;
     room.clients.delete(ws);

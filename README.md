@@ -47,7 +47,11 @@ Muốn đổi mức cược, thời gian hay tỉ lệ ăn, sửa các hằng s�
 
 Đồ chơi lái chiến đấu cơ pixel art, một file duy nhất `public/patrol.html` (không thư viện, không ảnh; chỉ tải font Google). Thế giới là height field lặp liền mạch sinh bằng web worker lúc tải, ray-march trong fragment shader WebGL2; buồng lái và HUD vẽ bằng Canvas 2D. Chữ trong game bằng tiếng Anh.
 
-Điều khiển: chuột lái, bấm = lộn vòng, giữ chuột trái = đốt sau, chuột phải hoặc F = bắn tên lửa, Space = đổi góc nhìn (từ trên, bám đuôi, buồng lái). Có nút cảm ứng trên điện thoại. Âm thanh tắt sẵn, bật ở góc phải.
+Điều khiển: chuột lái (bay tự do mọi hướng: nhào lộn, bay ngửa), Q/E = bánh lái, bấm = lộn vòng, giữ chuột trái = đốt sau, chuột phải hoặc F = bắn tên lửa, Space = đổi góc nhìn (từ trên, bám đuôi, buồng lái). Có nút cảm ứng trên điện thoại. Âm thanh tắt sẵn, bật ở góc phải.
+
+**Chọn máy bay:** Kestrel (cân bằng), Heron (cánh tam giác, nhanh nhất), Wasp (nhẹ, xoay nhanh nhất, ít máu), Bison (chậm, nhiều máu, 6 tên lửa). Thông số nằm ở bảng `PLANES` đầu phần GAME trong `patrol.html`; máu phía server ở `patrol/server.js`.
+
+**Chơi nhiều người:** nhập tên và **mã phòng** ở màn hình đầu; ai cùng mã phòng thì bay chung một bầu trời (tối đa 12 người/phòng), thấy tên và khoảng cách của nhau, khóa mục tiêu rồi bắn tên lửa. Mỗi phát trúng mất 55 máu; bị bắn hạ hoặc đâm vào núi/mặt nước là chết, 4 giây sau hồi sinh. Góc trái hiện bảng điểm (hạ/chết) và tin tức trận. Khi phòng chỉ có mình bạn sẽ có 2 máy bay tập bắn (DRONE) bay cùng. Mạng chạy qua WebSocket của `server.js` với tin nhắn `pt:*` (`patrol/server.js`); mở file trực tiếp không có server thì vẫn chơi được với drone.
 
 ## Lá Chắn Ngôn Từ (5 giây trước nút Gửi)
 

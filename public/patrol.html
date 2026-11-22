@@ -41,12 +41,35 @@ body.flying,body.flying canvas{cursor:none}
   border:0;padding:6px 10px;cursor:pointer;box-shadow:0 0 0 2px #4a3a6a}
 #snd.on{color:#1b1530;background:#ffd890}
 #touch{display:none}
-body.touch #touch{display:block}
+body.touch.flying #touch{display:block}
 body.touch #hints .mouse{display:none}
 .tb{position:fixed;z-index:6;width:68px;height:68px;font-family:'Press Start 2P',monospace;font-size:10px;color:#f7e6cc;background:rgba(22,16,38,.55);
   border:0;box-shadow:0 0 0 3px #f0b060;display:flex;align-items:center;justify-content:center;touch-action:none}
 .tb.down{background:#f0b060;color:#1b1530}
 #tFire{right:22px;bottom:96px}#tRoll{right:104px;bottom:40px}#tBurn{left:22px;bottom:40px;height:110px}#tView{right:22px;top:52px;width:58px;height:40px}
+#pick{display:flex;gap:10px;justify-content:center;margin:0 0 12px;flex-wrap:wrap}
+#pick label{font-size:11px;color:var(--dim);letter-spacing:1px}
+#pick input{font-family:'JetBrains Mono',monospace;font-size:13px;width:120px;margin-left:6px;padding:5px 7px;border:0;background:#2a1f44;color:#ffd890;
+  box-shadow:0 0 0 2px #6a5a8a;text-transform:uppercase;outline:none}
+#pick input:focus{box-shadow:0 0 0 2px #ffd890}
+#proom{width:80px!important}
+#planes{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 16px}
+#planes button{font-size:9.5px;color:#e9d8c6;background:#241a3c;border:0;padding:7px 5px;cursor:pointer;text-align:left;box-shadow:0 0 0 2px #4a3a6a;
+  display:flex;flex-direction:column;gap:2px;line-height:1.35}
+#planes button b{font-family:'Press Start 2P',monospace;font-weight:400;font-size:9px;color:#ffd890;margin-bottom:2px}
+#planes button em{font-style:normal;color:var(--dim);margin-bottom:3px}
+#planes button u{text-decoration:none;color:#f08a3a;letter-spacing:-1px}
+#planes button.sel{background:#3a2a52;box-shadow:0 0 0 2px #ffd890,0 0 0 4px #b8343a}
+@media (max-width:560px){#planes{grid-template-columns:repeat(2,1fr)}#card{padding:22px 18px 20px}#card .keys{display:none}}
+#net{position:fixed;left:10px;top:10px;z-index:4;font-size:11px;color:#9ef08a;background:rgba(22,16,38,.62);padding:5px 9px;display:none}
+#board{position:fixed;left:10px;top:38px;z-index:4;font-size:10.5px;color:#e9d8c6;display:none;min-width:190px;pointer-events:none}
+#board div{display:grid;grid-template-columns:1fr auto 22px 22px;gap:6px;background:rgba(22,16,38,.55);padding:2px 8px}
+#board div.me{color:#ffd890}
+#board i{font-style:normal;color:var(--dim)}#board b{color:#9ef08a;text-align:right}#board em{font-style:normal;color:#f08a3a;text-align:right}
+#board p{margin:4px 0 0;padding:2px 8px;background:rgba(22,16,38,.42);color:#ffd890}
+#banner{position:fixed;left:50%;top:34%;transform:translateX(-50%);z-index:5;display:none;font-family:'Press Start 2P',monospace;font-size:clamp(14px,3vw,24px);
+  color:#ffd890;text-shadow:3px 3px 0 #b8343a,6px 6px 0 #1b1530;text-align:center;pointer-events:none;white-space:nowrap}
+#banner small{display:block;margin-top:14px;font-size:11px;color:#f7e6cc;text-shadow:2px 2px 0 #1b1530}
 #err{position:fixed;inset:auto 0 40% 0;text-align:center;color:#ffd890;font-family:'JetBrains Mono',monospace;display:none;z-index:9}
 </style>
 </head>
@@ -56,15 +79,20 @@ body.touch #hints .mouse{display:none}
 <div id="title"><div id="card">
   <h1>PATROL</h1>
   <p class="tag mono">LAKE COUNTRY &middot; AUTUMN &middot; LAST LIGHT</p>
+  <div id="pick"><label class="mono">PILOT <input id="pname" maxlength="14" placeholder="PILOT" autocomplete="off" spellcheck="false"></label><label class="mono">ROOM <input id="proom" maxlength="8" placeholder="SKY" autocomplete="off" spellcheck="false"></label></div>
+  <div id="planes"></div>
   <div id="bar"><i></i></div>
   <p id="status" class="mono">Starting&hellip;</p>
   <button id="go">CLICK TO FLY</button>
-  <p class="keys mono"><b>Mouse</b> steer &middot; <b>Click</b> barrel roll &middot; <b>Hold</b> afterburner<br><b>Right click / F</b> missile &middot; <b>Space</b> change view</p>
+  <p class="keys mono"><b>Mouse</b> steer &middot; <b>Click</b> barrel roll &middot; <b>Hold</b> afterburner<br><b>Right click / F</b> missile &middot; <b>Q/E</b> rudder &middot; <b>Space</b> change view<br>Same room code = same sky. Shoot friends down, don't hit the hills.</p>
 </div></div>
-<div id="hints" class="mono"><span class="mouse"><b>MOUSE</b> steer</span><span class="mouse"><b>CLICK</b> roll</span><span class="mouse"><b>HOLD</b> burner</span><span class="mouse"><b>RMB/F</b> missile</span><span><b>SPACE</b> view <span id="view">CHASE</span></span><span>MSL <span id="msl"></span></span></div>
+<div id="hints" class="mono"><span class="mouse"><b>MOUSE</b> steer</span><span class="mouse"><b>CLICK</b> roll</span><span class="mouse"><b>HOLD</b> burner</span><span class="mouse"><b>RMB/F</b> missile</span><span class="mouse"><b>Q/E</b> yaw</span><span><b>SPACE</b> view <span id="view">CHASE</span></span><span>MSL <span id="msl"></span></span></div>
 <button id="snd" class="mono">SOUND OFF</button>
 <div id="touch"><button class="tb" id="tFire">FIRE</button><button class="tb" id="tRoll">ROLL</button><button class="tb" id="tBurn">BURN</button><button class="tb" id="tView">VIEW</button></div>
 <div id="err"></div>
+<div id="net" class="mono"></div>
+<div id="board" class="mono"></div>
+<div id="banner"></div>
 <script type="text/plain" id="wsrc">
 // ---- terrain worker (embedded into patrol.html) ----
 const GX = new Float32Array(16), GY = new Float32Array(16);
@@ -460,7 +488,7 @@ void main(){ vec4 w=uM*vec4(aP,1.); vW=w.xyz; vO=aP; vMat=aM; gl_Position=uVP*w;
 
 const FS_MESH = GLSL_COMMON + `
 in vec3 vW, vO; flat in float vMat;
-uniform vec3 uSun; uniform float uGlow, uTime;
+uniform vec3 uSun; uniform float uGlow, uTime; uniform vec3 uCamoA, uCamoB, uCap, uTint;
 out vec4 o;
 void main(){
   vec3 n=normalize(cross(dFdx(vW),dFdy(vW)));
@@ -471,10 +499,10 @@ void main(){
     vec3 p=vO;
     float s1=dot(p.xz,vec2(.94,.34))*.62, s2=dot(vec2(abs(p.x),p.z),vec2(-.5,.87))*.5, s3=p.y*1.3+p.z*.21;
     float v=fract(floor(s1)*.37+floor(s2)*.61+floor(s3)*.23);
-    b= v<.47 ? vec3(.62,.64,.69) : vec3(.36,.39,.46);
+    b= v<.47 ? uCamoA : uCamoB;
   } else if(m<1.5) b=vec3(.16,.17,.22);
   else if(m<2.5) b=vec3(.88,.66,.30);
-  else if(m<3.5) b=vec3(.80,.18,.22);
+  else if(m<3.5) b=uCap;
   else if(m<4.5) b=vec3(.30,.28,.33);
   else if(m<5.5){ o=vec4(mix(vec3(1.,.45,.16),vec3(1.,.95,.7),uGlow),0.); return; }
   else if(m<6.5) b=vec3(.08,.07,.10);
@@ -485,7 +513,7 @@ void main(){
   float up=n.y;
   vec3 c = l>.38 ? b*vec3(1.15,1.,.86) : (l>-.05||up>.55 ? b*vec3(.80,.76,.84) : b*vec3(.46,.42,.64));
   if(m>1.5 && m<2.5){ float g=dot(reflect(normalize(vW),n),uSun); if(g>.9) c=vec3(1.,.93,.7); else if(n.y>.7) c=mix(c,vec3(.98,.80,.50),.4); }
-  o=vec4(c,0.);
+  o=vec4(min(c+uTint,vec3(1.)),0.);
 }`;
 
 const VS_PLUME = `#version 300 es
@@ -750,59 +778,109 @@ function hAt(x, z) {
 const gAt = (x, z) => Math.max(hAt(x, z), 0);
 
 // ---------- meshes ----------
-function buildJet() {
+// Plane designs (all original). Each mesh is a lofted fuselage + mirrored flying surfaces.
+const PLANES = {
+  kestrel: { name: 'KESTREL', role: 'Twin-tail fighter', cruise: 190, burn: 318, roll: 2.7, pitch: 1.35, yaw: .35, hp: 100,
+    camo: [[.62, .64, .69], [.36, .39, .46]], cap: [.80, .18, .22], tip: [5.6, -.05, -4.8], eye: [0, 1.28, 4.25],
+    nozzles: [[-.7, 0, -8.05, .4], [.7, 0, -8.05, .4]],
+    rails: [[-4.0, -.32, -3.7], [4.0, -.32, -3.7], [-2.6, -.34, -2.0], [2.6, -.34, -2.0]],
+    tipZ: 8.9, radome: 6.0,
+    S: [[7.7, .27, .27, .25, 0], [6.4, .52, .50, .45, .02], [5.2, .74, .70, .55, .05], [3.9, 1.25, .78, .60, 0], [2.0, 1.38, .80, .62, 0],
+      [0, 1.46, .76, .65, 0], [-2.5, 1.55, .70, .62, 0], [-5.0, 1.50, .62, .60, 0], [-7.1, 1.36, .50, .50, 0]],
+    C: [[5.5, .08, .05], [4.9, .40, .40], [4.1, .50, .56], [3.3, .46, .48], [2.6, .18, .22]],
+    intake: [1.05, 1.62, -.58, .12, 3.0, -1.6],
+    wing: [[1.3, 0, 2.4], [5.6, -.05, -3.8], [5.6, -.05, -5.6], [1.3, 0, -5.8]], lerx: [[.72, .1, 5.2], [1.3, .02, 2.4], [1.25, .05, 3.9]],
+    fins: [{ r0: [.95, .55, -3.8], r1: [.95, .55, -7.0], t0: [1.96, 3.05, -6.0], t1: [1.96, 3.05, -7.45] }],
+    stab: [[1.4, .05, -5.6], [3.6, 0, -7.0], [3.6, 0, -7.9], [1.4, .05, -7.8]],
+    noz: [[.7, .47, -6.9, -8.15]] },
+  heron: { name: 'HERON', role: 'Delta interceptor', cruise: 212, burn: 362, roll: 2.3, pitch: 1.1, yaw: .3, hp: 90,
+    camo: [[.82, .70, .50], [.54, .42, .30]], cap: [.22, .42, .72], tip: [6.2, -.05, -6.9], eye: [0, 1.15, 5.0],
+    nozzles: [[0, 0, -8.6, .5]],
+    rails: [[-4.4, -.3, -4.6], [4.4, -.3, -4.6], [-2.6, -.32, -2.6], [2.6, -.32, -2.6]],
+    tipZ: 10.2, radome: 7.4,
+    S: [[8.6, .24, .24, .22, 0], [7.2, .46, .44, .40, .02], [5.6, .64, .62, .50, .05], [3.6, .82, .70, .56, 0], [0, .98, .70, .60, 0],
+      [-4.0, .96, .62, .58, 0], [-7.5, .66, .50, .48, 0]],
+    C: [[6.4, .07, .05], [5.8, .36, .38], [5.0, .44, .52], [4.2, .40, .42], [3.5, .14, .18]],
+    intake: [.85, 1.3, -.5, .1, 3.0, -1.0],
+    wing: [[.9, 0, 3.2], [6.2, -.05, -6.3], [6.2, -.05, -7.3], [.9, 0, -7.4]],
+    fins: [{ r0: [0, .55, -3.0], r1: [0, .5, -7.4], t0: [0, 3.5, -6.3], t1: [0, 3.5, -7.9], center: true }],
+    canard: [[.75, .25, 5.0], [2.2, .25, 3.9], [2.2, .25, 3.4], [.75, .25, 3.6]],
+    noz: [[0, .58, -7.3, -8.7]] },
+  wasp: { name: 'WASP', role: 'Agile light fighter', cruise: 176, burn: 292, roll: 3.4, pitch: 1.75, yaw: .45, hp: 80,
+    camo: [[.52, .60, .70], [.26, .32, .44]], cap: [.96, .76, .22], tip: [5.2, 0, -.4], eye: [0, 1.15, 3.8],
+    nozzles: [[0, 0, -6.95, .44]],
+    rails: [[-3.8, -.3, -1.6], [3.8, -.3, -1.6], [-2.4, -.32, -2.6], [2.4, -.32, -2.6]],
+    tipZ: 8.0, radome: 5.6,
+    S: [[7.0, .24, .24, .22, 0], [5.8, .46, .44, .40, .02], [4.4, .66, .64, .50, .05], [2.6, .92, .72, .56, 0], [0, 1.02, .72, .60, 0],
+      [-3.4, .95, .62, .56, 0], [-5.9, .62, .48, .46, 0]],
+    C: [[5.0, .07, .05], [4.4, .38, .40], [3.6, .46, .54], [2.8, .42, .44], [2.1, .14, .18]],
+    intake: [.9, 1.35, -.52, .1, 2.2, -1.4],
+    wing: [[1.0, 0, -1.6], [5.2, 0, .5], [5.2, 0, -.9], [1.0, 0, -5.0]],
+    fins: [{ r0: [0, .55, -2.6], r1: [0, .5, -5.8], t0: [0, 2.9, -4.9], t1: [0, 2.9, -6.3], center: true }],
+    canard: [[.85, .2, 3.9], [2.5, .2, 2.7], [2.5, .2, 2.1], [.85, .2, 2.4]],
+    stab: [[1.0, .05, -4.8], [2.6, 0, -5.8], [2.6, 0, -6.4], [1.0, .05, -6.3]],
+    noz: [[0, .52, -5.85, -7.0]] },
+  bison: { name: 'BISON', role: 'Heavy strike jet', cruise: 166, burn: 272, roll: 1.8, pitch: 1.0, yaw: .25, hp: 150,
+    camo: [[.54, .58, .40], [.30, .35, .26]], cap: [.92, .90, .84], tip: [7.6, 0, -1.2], eye: [0, 1.4, 4.4],
+    nozzles: [[-.8, 0, -8.25, .44], [.8, 0, -8.25, .44]],
+    rails: [[-5.6, -.32, -.7], [5.6, -.32, -.7], [-4.2, -.34, -.5], [4.2, -.34, -.5], [-2.8, -.36, -.3], [2.8, -.36, -.3]],
+    tipZ: 9.6, radome: 7.0,
+    S: [[8.4, .34, .34, .32, 0], [7.0, .68, .60, .55, .02], [5.4, .96, .80, .70, .05], [3.0, 1.30, .92, .80, 0], [0, 1.40, .92, .82, 0],
+      [-4.0, 1.34, .86, .76, 0], [-7.2, 1.12, .62, .62, 0]],
+    C: [[5.8, .1, .06], [5.2, .46, .44], [4.4, .56, .60], [3.6, .52, .52], [2.9, .2, .24]],
+    intake: [1.2, 1.85, -.7, .2, 2.4, -1.8],
+    wing: [[1.35, 0, 1.4], [7.6, -.02, -.2], [7.6, -.02, -2.0], [1.35, 0, -2.9]],
+    fins: [{ r0: [1.05, .7, -4.4], r1: [1.05, .7, -7.4], t0: [1.25, 3.1, -6.2], t1: [1.25, 3.1, -7.6] }],
+    stab: [[1.2, .12, -5.6], [4.0, .12, -6.5], [4.0, .12, -7.5], [1.2, .12, -7.7]],
+    noz: [[.8, .52, -7.0, -8.35]] },
+};
+const PLANE_IDS = Object.keys(PLANES);
+function buildPlane(d) {
   const T = [];
   const tri = (a, b, c, m) => T.push(...a, m, ...b, m, ...c, m);
-  const quad = (a, b, c, d, m) => { tri(a, b, c, m); tri(a, c, d, m); };
-  // fuselage loft: z, halfwidth, top, bottom, yoff
-  const S = [[7.7, .27, .27, .25, 0], [6.4, .52, .50, .45, .02], [5.2, .74, .70, .55, .05], [3.9, 1.25, .78, .60, 0], [2.0, 1.38, .80, .62, 0],
-    [0, 1.46, .76, .65, 0], [-2.5, 1.55, .70, .62, 0], [-5.0, 1.50, .62, .60, 0], [-7.1, 1.36, .50, .50, 0]];
+  const quad = (a, b, c, e, m) => { tri(a, b, c, m); tri(a, c, e, m); };
+  const S = d.S;
   const ring = s => { const [z, w, ht, hb, y] = s; return [[0, y + ht, z], [w * .62, y + ht * .82, z], [w, y + .02, z], [w * .68, y - hb * .86, z], [0, y - hb, z], [-w * .68, y - hb * .86, z], [-w, y + .02, z], [-w * .62, y + ht * .82, z]]; };
-  const tip = [0, .02, 8.9];
+  const tip = [0, .02, d.tipZ];
   let prev = ring(S[0]);
   for (let k = 0; k < 8; k++) tri(tip, prev[k], prev[(k + 1) % 8], 1);
   for (let i = 1; i < S.length; i++) {
-    const cur = ring(S[i]); const mat = S[i][0] > 6.0 ? 1 : 0;
+    const cur = ring(S[i]); const mat = S[i][0] > d.radome ? 1 : 0;
     for (let k = 0; k < 8; k++) quad(prev[k], prev[(k + 1) % 8], cur[(k + 1) % 8], cur[k], mat);
     prev = cur;
   }
   for (let k = 1; k < 7; k++) tri(prev[0], prev[k], prev[k + 1], 4);
-  // canopy bubble
-  const C = [[5.5, .08, .05], [4.9, .40, .40], [4.1, .50, .56], [3.3, .46, .48], [2.6, .18, .22]];
   const topAt = z => { for (let i = 0; i < S.length - 1; i++) { const a = S[i], b = S[i + 1]; if (z <= a[0] && z >= b[0]) { const t = (a[0] - z) / (a[0] - b[0]); return (a[2] + a[4]) * (1 - t) + (b[2] + b[4]) * t; } } return .7; };
   const cr = c => { const [z, w, h] = c, y = topAt(z) - .06; return [[-w, y, z], [-w * .72, y + h * .78, z], [0, y + h, z], [w * .72, y + h * .78, z], [w, y, z]]; };
-  let cp = cr(C[0]);
-  for (let i = 1; i < C.length; i++) { const cc = cr(C[i]); for (let k = 0; k < 4; k++) quad(cp[k], cp[k + 1], cc[k + 1], cc[k], 2); cp = cc; }
+  let cp = cr(d.C[0]);
+  for (let i = 1; i < d.C.length; i++) { const cc = cr(d.C[i]); for (let k = 0; k < 4; k++) quad(cp[k], cp[k + 1], cc[k + 1], cc[k], 2); cp = cc; }
   for (let k = 0; k < 4; k++) tri(cp[0], cp[k], cp[k + 1], 2);
+  const surf = (X, s, th) => { const [rl, tl, tt, rt] = s; const mid = (a, b, k) => V.lerp(a, b, k);
+    const rr = mid(rl, rt, .45), tr = mid(tl, tt, .45), rU = V.add(rr, [0, th, 0]), tU = V.add(tr, [0, th * .2, 0]), rB = V.add(rr, [0, -th * .6, 0]), tB = V.add(tr, [0, -th * .2, 0]);
+    quad(X(rl), X(tl), X(tU), X(rU), 0); quad(X(rU), X(tU), X(tt), X(rt), 0);
+    quad(X(rl), X(tl), X(tB), X(rB), 0); quad(X(rB), X(tB), X(tt), X(rt), 0); quad(X(tl), X(tU), X(tt), X(tB), 0); };
+  const finQ = (X, f) => { const m0 = V.lerp(f.r0, f.t0, .82), m1 = V.lerp(f.r1, f.t1, .82); quad(X(f.r0), X(m0), X(m1), X(f.r1), 0); quad(X(m0), X(f.t0), X(f.t1), X(m1), 3); };
+  for (const f of d.fins) if (f.center) finQ(v => v, f);
   for (const sx of [-1, 1]) {
     const X = v => [v[0] * sx, v[1], v[2]];
-    // intakes
-    const i0 = 1.05, i1 = 1.62, y0 = -.58, y1 = .12, zf = 3.0, zb = -1.6;
+    const [i0, i1, y0, y1, zf, zb] = d.intake;
     quad(X([i0, y1, zf]), X([i1, y1, zf - .5]), X([i1, y0, zf - .5]), X([i0, y0, zf]), 6);
     quad(X([i1, y1, zf - .5]), X([i1, y1, zb]), X([i1, y0, zb]), X([i1, y0, zf - .5]), 0);
     quad(X([i0, y0, zf]), X([i1, y0, zf - .5]), X([i1, y0, zb]), X([i0, y0, zb]), 0);
     quad(X([i0, y1, zf]), X([i1, y1, zf - .5]), X([i1, y1, zb]), X([i0, y1, zb]), 0);
-    // cropped delta wing with ridge
-    const rl = [1.3, 0, 2.4], tl = [5.6, -.05, -3.8], tt = [5.6, -.05, -5.6], rt = [1.3, 0, -5.8];
-    const rr = [1.3, .16, -.9], tr = [5.6, .02, -4.5], rb = [1.3, -.10, -.9], tb = [5.6, -.08, -4.5];
-    quad(X(rl), X(tl), X(tr), X(rr), 0); quad(X(rr), X(tr), X(tt), X(rt), 0);
-    quad(X(rl), X(tl), X(tb), X(rb), 0); quad(X(rb), X(tb), X(tt), X(rt), 0);
-    quad(X(tl), X(tr), X(tt), X(tb), 0);
-    // LERX
-    tri(X([.72, .1, 5.2]), X([1.3, .02, 2.4]), X([1.25, .05, 3.9]), 0);
-    // canted fins with red caps
-    const fr0 = [.95, .55, -3.8], fr1 = [.95, .55, -7.0], ft0 = [1.96, 3.05, -6.0], ft1 = [1.96, 3.05, -7.45];
-    const m0 = V.lerp(fr0, ft0, .82), m1 = V.lerp(fr1, ft1, .82);
-    quad(X(fr0), X(m0), X(m1), X(fr1), 0); quad(X(m0), X(ft0), X(ft1), X(m1), 3);
-    // stabilators
-    quad(X([1.4, .05, -5.6]), X([3.6, 0, -7.0]), X([3.6, 0, -7.9]), X([1.4, .05, -7.8]), 0);
-    // nozzles
-    const nx = .70, nr = .47;
-    for (let k = 0; k < 8; k++) {
-      const a0 = k / 8 * Math.PI * 2, a1 = (k + 1) / 8 * Math.PI * 2;
-      const p = (a, r, z) => X([nx + Math.cos(a) * r, Math.sin(a) * r, z]);
-      quad(p(a0, nr, -6.9), p(a1, nr, -6.9), p(a1, nr * .88, -8.15), p(a0, nr * .88, -8.15), 4);
-      tri(X([nx, 0, -8.0]), p(a0, nr * .82, -8.05), p(a1, nr * .82, -8.05), 5);
+    surf(X, d.wing, .16);
+    if (d.lerx) tri(X(d.lerx[0]), X(d.lerx[1]), X(d.lerx[2]), 0);
+    if (d.canard) surf(X, d.canard, .06);
+    if (d.stab) surf(X, d.stab, .06);
+    for (const f of d.fins) if (!f.center) finQ(X, f);
+    for (const [nx, nr, z0, z1] of d.noz) {
+      if (nx === 0 && sx < 0) continue;
+      for (let k = 0; k < 8; k++) {
+        const a0 = k / 8 * Math.PI * 2, a1 = (k + 1) / 8 * Math.PI * 2;
+        const p = (a, r, z) => X([nx + Math.cos(a) * r, Math.sin(a) * r, z]);
+        quad(p(a0, nr, z0), p(a1, nr, z0), p(a1, nr * .88, z1), p(a0, nr * .88, z1), 4);
+        tri(X([nx, 0, z1 + .15]), p(a0, nr * .82, z1 + .1), p(a1, nr * .82, z1 + .1), 5);
+      }
     }
   }
   return new Float32Array(T);
@@ -839,7 +917,7 @@ function dynVAO(layout, stride) {
 }
 let JET, MSL, CONE, PTS, LINES, LUT, PALT;
 if (gl) {
-  JET = meshVAO(buildJet(), 4, [3, 1]); MSL = meshVAO(buildMissile(), 4, [3, 1]); CONE = meshVAO(buildCone(), 4, [3, 1]);
+  JET = {}; for (const id of PLANE_IDS) JET[id] = meshVAO(buildPlane(PLANES[id]), 4, [3, 1]); MSL = meshVAO(buildMissile(), 4, [3, 1]); CONE = meshVAO(buildCone(), 4, [3, 1]);
   PTS = dynVAO([3, 1, 4], 8); LINES = dynVAO([3, 4], 7);
   LUT = gl.createTexture(); gl.bindTexture(gl.TEXTURE_3D, LUT); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
   gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, 32, 32, 32, 0, gl.RGBA, gl.UNSIGNED_BYTE, buildLUT());
@@ -857,8 +935,8 @@ const S = {
   rollT: -1, rollX: 0, helix: [0, 0, 0], yawRate: 0, pitchRate: 0, G: 1, Gs: 1, vs: 0, pullUp: false, slip: 0,
   view: 1, from: null, blendT0: -10, chaseOff: null,
   mouse: null, lDown: false, lDownT: 0, rDown: false, burnKey: false, touchBurn: false,
-  rails: [{ p: [-4.0, -.32, -3.7], armed: 1, t: 0 }, { p: [4.0, -.32, -3.7], armed: 1, t: 0 }, { p: [-2.6, -.34, -2.0], armed: 1, t: 0 }, { p: [2.6, -.34, -2.0], armed: 1, t: 0 }],
-  missiles: [], parts: [], rings: [], marks: [], trails: [[], []], trailAcc: 0, flash: 0, shake: 0,
+  rails: [], plane: 'kestrel', f: [0, 0, -1], u: [0, 1, 0], alive: true, hp: 100, deadT: 0, respawnAsked: false, yawKey: 0, hitFlash: 0, spawnC: null, deathMsg: '',
+  missiles: [], parts: [], rings: [], marks: [], trails: [[], []], trailAcc: 0, mslSeq: 0, mslWarn: false, kills: 0, deaths: 0, name: 'PILOT', flash: 0, shake: 0,
   frame: { f: [0, 0, -1], r: [1, 0, 0], u: [0, 1, 0] }, cam: null, fps: 60, qLevel: 0,
 };
 const RELOAD = 4.5;
@@ -889,83 +967,141 @@ function cursorWorld() {
   return [cp[0] + d[0] * t, S.pos[1], cp[2] + d[2] * t];
 }
 
-// ---------- flight ----------
+// ---------- flight (full 6-DOF: loops, inverted flight, crashes) ----------
+const plane = () => PLANES[S.plane];
+function rot(a, b, ang) { const c = Math.cos(ang), s = Math.sin(ang); return [V.add(V.mul(a, c), V.mul(b, s)), V.sub(V.mul(b, c), V.mul(a, s))]; }
+function eulerOf(f, u) {
+  const yaw = Math.atan2(f[0], -f[2]), pitch = Math.asin(clamp(f[1], -1, 1));
+  const r0 = [Math.cos(yaw), 0, Math.sin(yaw)], u0 = V.cross(r0, f), r = V.cross(f, u);
+  return { yaw, pitch, roll: Math.atan2(-V.dot(r, u0), V.dot(r, r0)), r, r0, u0 };
+}
+function setOrientation(yaw, pitch, roll) { const fr = jetFrame(yaw, pitch, roll); S.f = fr.f; S.u = fr.u; syncFrame(0); }
+function syncFrame(dt) {
+  const e = eulerOf(S.f, S.u);
+  if (dt > 0) S.yawRate = S.yawRate + (wrapPi(e.yaw - S.yaw) / dt - S.yawRate) * Math.min(1, dt * 6);
+  S.yaw = e.yaw; S.pitch = e.pitch; S.roll = e.roll;
+  S.frame = { f: S.f, r: e.r, u: S.u, r0: e.r0, u0: e.u0 };
+}
 function updateFlight(dt) {
+  if (!S.alive) { S.ab += (0 - S.ab) * Math.min(1, dt * 3); S.pullUp = false; if (S.t - S.deadT > 4 && !S.respawnAsked) respawn(); return; }
+  const P = plane();
   const altHold = tgt => clamp((tgt - S.pos[1]) * 0.0045, -0.32, 0.32);
-  let bankT = 0, pitchT = 0;
-  if (S.auto || !S.started) { bankT = Math.sin(S.t * 0.3) * 0.62; pitchT = altHold(CRUISE + Math.sin(S.t * 0.11) * 60); }
-  else if (S.view === 0) {
-    const T = cursorWorld();
-    if (T) { const dx = T[0] - S.pos[0], dz = T[2] - S.pos[2];
-      if (Math.hypot(dx, dz) > 30) { const e = wrapPi(Math.atan2(dx, -dz) - S.yaw); bankT = clamp(e * 1.9, -1.25, 1.25); } }
-    pitchT = altHold(CRUISE);
-  } else if (S.mouse) {
+  const free = S.started && !S.auto && S.view !== 0 && S.mouse;
+  let pr = 0, rr = 0, yr = 0;
+  // terrain look-ahead along the real flight path
+  let need = -2, warn = false;
+  const look = Math.max(S.v, 150), fh = V.norm([S.f[0], 0, S.f[2]]);
+  for (let k = 1; k <= 14; k++) {
+    const d = (k * 0.22 + k * k * 0.012) * look;
+    const q = V.add(S.pos, V.mul(S.f, d)), h = hAt(q[0], q[2]);
+    if (k * 0.22 < 2.6 && q[1] < Math.max(h, 0) + 25) warn = true;
+    const hx = hAt(S.pos[0] + fh[0] * d, S.pos[2] + fh[2] * d);
+    need = Math.max(need, Math.atan2(Math.max(hx, 0) + (hx < 0 ? 7 : 32) - S.pos[1], d));
+  }
+  if (free) {
     const c = screenCenter(), R = Math.min(H, W) * 0.42;
     let ix = (S.mouse[0] - c[0]) / R, iy = (c[1] - S.mouse[1]) / R;
     const dz = 0.035; ix = Math.abs(ix) < dz ? 0 : ix - Math.sign(ix) * dz; iy = Math.abs(iy) < dz ? 0 : iy - Math.sign(iy) * dz;
-    bankT = clamp(ix, -1, 1) * 1.25; pitchT = clamp(iy, -1, 1) * 0.95;
+    rr = clamp(ix, -1, 1) * P.roll; pr = clamp(iy, -1, 1) * P.pitch;
+    yr = (S.yawKey || 0) * P.yaw;
+    S.pullUp = warn;
+  } else {
+    // assisted flying: autopilot S-turns before you touch the mouse, and the top-down view
+    let bankT = 0, pitchT;
+    if (S.auto || !S.started) { bankT = Math.sin(S.t * 0.3) * 0.62; pitchT = altHold(CRUISE + Math.sin(S.t * 0.11) * 60); }
+    else {
+      const T = cursorWorld();
+      if (T) { const dx = T[0] - S.pos[0], dz = T[2] - S.pos[2];
+        if (Math.hypot(dx, dz) > 30) { const e = wrapPi(Math.atan2(dx, -dz) - S.yaw); bankT = clamp(e * 1.9, -1.25, 1.25); } }
+      pitchT = altHold(CRUISE);
+    }
+    if (pitchT < need) pitchT = need + 0.025;
+    S.pullUp = false;
+    const ph = clamp((pitchT - S.pitch) * 2.4, -1, 1), w = 0.92 * Math.sin(S.roll);
+    rr = clamp(wrapPi(bankT - S.roll) * 4, -P.roll, P.roll);
+    pr = ph * Math.cos(S.roll) + w * Math.sin(S.roll);
+    yr = w * Math.cos(S.roll) - ph * Math.sin(S.roll) * 0.0;
   }
-  // terrain look-ahead: auto pull-up
-  const fx = Math.sin(S.yaw), fz = -Math.cos(S.yaw), y = S.pos[1];
-  let need = -2, pull = false;
-  const look = Math.max(S.v, 150);
-  for (let k = 1; k <= 14; k++) {
-    const d = (k * 0.22 + k * k * 0.012) * look;
-    const gx = S.pos[0] + fx * d, gz = S.pos[2] + fz * d, h = hAt(gx, gz);
-    const req = Math.atan2(Math.max(h, 0) + (h < 0 ? 7 : 32) - y, d);
-    if (req > need) need = req;
-  }
-  if (pitchT < need) { pull = need - pitchT > 0.06 && need > -0.02; pitchT = need + 0.025; }
-  pitchT = Math.min(pitchT, (3200 - y) * 0.002);
-  S.pullUp = pull;
-  const pr = clamp((pitchT - S.pitch) * 2.4, pull ? -1.8 : -1.0, pull ? 1.8 : 1.0);
-  S.pitch = clamp(S.pitch + pr * dt, -1.2, 1.2);
-  const rr = clamp((bankT - S.roll) * 4.2, -2.6, 2.6);
-  S.slip = S.slip + ((bankT - S.roll) * 0.35 - S.slip) * Math.min(1, dt * 3);
-  S.roll += rr * dt;
-  S.yawRate = 0.92 * Math.sin(S.roll) / Math.max(0.5, Math.cos(S.pitch));
-  S.yaw = wrapPi(S.yaw + S.yawRate * dt);
-  // throttle
+  if (S.rollT >= 0) { S.rollT += dt; rr += Math.PI * 2 / 0.95 * (S.rollT < 0.95 ? 1 : 0); if (S.rollT >= 0.95) S.rollT = -1; }
+  S.pitchRate = pr;
+  let r = V.cross(S.f, S.u);
+  [S.f, S.u] = rot(S.f, S.u, pr * dt);
+  r = V.cross(S.f, S.u);
+  { const [u2, r2] = rot(S.u, r, rr * dt); S.u = u2; r = r2; }
+  { const [f2] = rot(S.f, r, yr * dt); S.f = f2; }
+  S.f = V.norm(S.f); r = V.norm(V.cross(S.f, S.u)); S.u = V.cross(r, S.f);
+  // throttle & speed
   const burning = S.burnKey || S.touchBurn || (S.lDown && S.t - S.lDownT > 0.22);
   S.abT = burning && S.started ? 1 : 0;
   S.ab += (S.abT - S.ab) * Math.min(1, dt * 3.2);
-  const vT = 188 + 128 * S.ab;
-  S.v += ((vT - S.v) * 0.55 - 9.81 * Math.sin(S.pitch) * 0.45) * dt; S.v = clamp(S.v, 120, 360);
-  const cp = Math.cos(S.pitch), f = [fx * cp, Math.sin(S.pitch), fz * cp];
-  S.pos = V.add(S.pos, V.mul(f, S.v * dt));
-  const g = hAt(S.pos[0], S.pos[2]), minY = Math.max(g, 0) + (g < 0 ? 4.5 : 11);
-  if (S.pos[1] < minY) { S.pos[1] = minY; S.pitch = Math.max(S.pitch, 0.02); }
-
-  S.vs = S.v * Math.sin(S.pitch);
-  const at = S.v * S.yawRate * cp / 9.81, ap = S.v * pr / 9.81;
-  S.G = Math.min(9.5, Math.hypot(at * 0.8, cp + ap * 0.35)); S.Gs += (S.G - S.Gs) * Math.min(1, dt * 4);
-  // barrel roll
-  if (S.rollT >= 0) {
-    S.rollT += dt; const k = clamp(S.rollT / 0.95, 0, 1), e = k * k * (3 - 2 * k);
-    S.rollX = e * Math.PI * 2;
-    const fr0 = jetFrame(S.yaw, S.pitch, S.roll), R = 7;
-    S.helix = V.add(V.mul(fr0.r0, Math.sin(S.rollX) * R), V.mul(fr0.u0, (1 - Math.cos(S.rollX)) * R));
-    if (k >= 1) { S.rollT = -1; S.rollX = 0; S.helix = [0, 0, 0]; }
+  const vT = P.cruise + (P.burn - P.cruise) * S.ab;
+  S.v += ((vT - S.v) * 0.5 - 9.81 * S.f[1] * 0.7) * dt; S.v = clamp(S.v, 105, P.burn * 1.18);
+  S.pos = V.add(S.pos, V.mul(S.f, S.v * dt));
+  if (S.pos[1] > 4200) { S.pos[1] = 4200; }
+  syncFrame(dt);
+  S.vs = S.v * S.f[1];
+  S.G = clamp(S.v * pr / 9.81 * 0.45 + S.u[1], -4, 9.5); S.Gs += (S.G - S.Gs) * Math.min(1, dt * 4);
+  S.slip = S.slip + (yr * 0.4 - S.slip) * Math.min(1, dt * 3);
+  // crash into terrain or water
+  const g = hAt(S.pos[0], S.pos[2]);
+  if (S.pos[1] < Math.max(g, 0) + (g < 0 ? 0.8 : 2.0)) {
+    if (!S.started || S.auto && S.view === 0) { S.pos[1] = Math.max(g, 0) + 12; setOrientation(S.yaw, Math.max(S.pitch, 0.05), S.roll); }
+    else die('crash', null);
   }
-  S.frame = jetFrame(S.yaw, S.pitch, S.roll + S.rollX);
 }
-function barrelRoll() { if (S.rollT < 0 && S.started) { S.rollT = 0; Snd.whoosh(); } }
+function barrelRoll() { if (S.rollT < 0 && S.started && S.alive) { S.rollT = 0; Snd.whoosh(); } }
+function spawnPoint() {
+  const C = S.spawnC || [TILE * .3, TILE * .6];
+  for (let k = 0; k < 40; k++) {
+    const a = Math.random() * Math.PI * 2, R = 1100 + Math.random() * 1400;
+    const x = C[0] + Math.cos(a) * R, z = C[1] + Math.sin(a) * R;
+    let top = 0; for (let i = 0; i < 12; i++) top = Math.max(top, hAt(x + Math.cos(i) * 300, z + Math.sin(i) * 300));
+    if (top < 500 || k === 39) return { p: [x, Math.max(CRUISE, top + 250), z], yaw: Math.atan2(C[0] - x, -(C[1] - z)) + (Math.random() - .5) * .6 };
+  }
+}
+function die(how, killer) {
+  if (!S.alive) return;
+  S.alive = false; S.deadT = S.t; S.respawnAsked = false; S.hp = 0; S.rollT = -1; S.deaths++;
+  S.mslWarn = false; S.lDown = false; Snd.boom(0, false);
+  const g = hAt(S.pos[0], S.pos[2]);
+  explode([S.pos[0], Math.max(S.pos[1], Math.max(g, 0)), S.pos[2]], how !== 'crash', 2);
+  if (how === 'crash') Net.send({ type: 'pt:crash', p: S.pos });
+  S.deathMsg = how === 'crash' ? 'YOU CRASHED' : 'SHOT DOWN BY ' + ((Net.players.get(killer) || {}).name || 'ENEMY');
+}
+function respawn() {
+  S.respawnAsked = true;
+  const sp = spawnPoint();
+  S.pos = sp.p; setOrientation(sp.yaw, 0, 0); S.v = plane().cruise; S.ab = 0; S.chaseOff = null;
+  S.alive = true; S.hp = plane().hp; S.trails = [[], []];
+  S.rails.forEach(r => { r.armed = 1; r.t = 0; }); updateMslUI();
+  Net.send({ type: 'pt:respawn', p: S.pos, f: S.f, u: S.u });
+}
+function choosePlane(id) {
+  S.plane = PLANES[id] ? id : 'kestrel';
+  S.rails = plane().rails.map(p => ({ p, armed: 1, t: 0 }));
+  S.hp = plane().hp; S.v = plane().cruise;
+  updateMslUI && updateMslUI();
+}
 
 // ---------- cameras ----------
 function viewTarget(i, dt) {
   const fr = S.frame, jp = jetVisPos();
   if (i === 0) return { off: [0, 390, 0], basis: [[1, 0, 0], [0, 0, -1], [0, 1, 0]], fov: 44 * Math.PI / 180, shift: 0 };
   if (i === 1) {
-    const fl = jetFrame(S.yaw, S.pitch, S.roll);
-    const want = V.add(V.mul(fl.f, -40), [0, 9.5, 0]);
+    const fl = S.frame;
+    if (!S.camUp) S.camUp = fl.u;
+    if (S.alive) S.camUp = V.norm(V.lerp(S.camUp, fl.u, Math.min(1, dt * 2.5)));
+    const want = V.add(V.mul(fl.f, -40), V.mul(S.camUp, 9.5));
     if (!S.chaseOff) S.chaseOff = want;
-    S.chaseOff = V.lerp(S.chaseOff, want, Math.min(1, dt * 3.5));
+    if (S.alive) S.chaseOff = V.lerp(S.chaseOff, want, Math.min(1, dt * 3.5));
+    else { const o = S.chaseOff, h = V.norm([o[0], 0, o[2]]), tw = V.add(V.mul(h, 190), [0, 70, 0]);
+      S.chaseOff = V.add(V.lerp(o, tw, Math.min(1, dt * 1.6)), V.mul(V.norm(V.cross(o, [0, 1, 0])), dt * 30)); }
     const camP = V.add(S.pos, S.chaseOff);
-    const look = V.add(S.pos, V.mul(fl.f, 26));
-    const up = V.norm(V.lerp([0, 1, 0], fl.u, 0.32));
+    const look = S.alive ? V.add(S.pos, V.mul(fl.f, 26)) : S.pos;
+    const up = S.alive ? V.norm(V.lerp([0, 1, 0], S.camUp, 0.75)) : [0, 1, 0];
     return { off: V.sub(camP, jp), basis: lookBasis(V.sub(look, camP), up), fov: 58 * Math.PI / 180, shift: 0 };
   }
-  const eye = local(fr, [0, 0, 0], [0, 1.28, 4.25]);
+  const eye = local(fr, [0, 0, 0], plane().eye);
   return { off: eye, basis: [fr.r, fr.u, V.mul(fr.f, -1)], fov: 70 * Math.PI / 180, shift: 0.3 };
 }
 function setView(i) {
@@ -975,11 +1111,11 @@ function setView(i) {
   document.getElementById('view').textContent = VIEWS[i];
 }
 function updateCamera(dt) {
-  const tgt = viewTarget(S.view, dt);
+  const vw = !S.alive && S.view === 2 ? 1 : S.view, tgt = viewTarget(vw, dt);
   const tq = basisToQuat(...tgt.basis);
   let off = tgt.off, q = tq, fov = tgt.fov, shift = tgt.shift, b = 1;
   const k = clamp((S.t - S.blendT0) / 1.05, 0, 1);
-  let cockpit = S.view === 2 ? 1 : 0;
+  let cockpit = vw === 2 ? 1 : 0;
   if (S.from && k < 1) {
     b = k * k * (3 - 2 * k);
     off = V.lerp(S.from.off, tgt.off, b); q = slerp(S.from.q, tq, b);
@@ -1048,43 +1184,76 @@ function aimPoint() {
   const D = f[1] > -0.06 ? 1700 : 3000;
   const x = p[0] + fl[0] * D, z = p[2] + fl[2] * D; return [x, gAt(x, z), z];
 }
+const LOCK_COS = Math.cos(22 * Math.PI / 180), LOCK_RANGE = 5200;
+// the enemy closest to the nose inside the seeker cone
+function lockTarget() {
+  let best = null, bc = LOCK_COS;
+  for (const pl of Net.players.values()) {
+    if (!pl.alive || !pl.pos) continue;
+    const d = V.sub(pl.pos, S.pos), L = V.len(d); if (L > LOCK_RANGE || L < 40) continue;
+    const c = V.dot(d, S.f) / L; if (c > bc) { bc = c; best = pl; }
+  }
+  return best;
+}
 function fire() {
-  if (!S.started) return;
-  const order = [0, 1, 2, 3]; let idx = -1;
-  for (const i of order) if (S.rails[i].armed) { idx = i; break; }
+  if (!S.started || !S.alive) return;
+  let idx = -1;
+  for (let i = 0; i < S.rails.length; i++) if (S.rails[i].armed) { idx = i; break; }
   if (idx < 0) { Snd.click(); return; }
   const rail = S.rails[idx]; rail.armed = 0; rail.t = RELOAD;
   const fr = S.frame, p = local(fr, jetVisPos(), rail.p);
   const vel = V.add(V.mul(fr.f, S.v), V.mul(fr.u, -9));
-  S.missiles.push({ p, v: vel, tgt: aimPoint(), a: 0, f: fr.f, alive: true });
+  const lock = lockTarget(), gp = aimPoint(), mid = Net.id + ':' + (++S.mslSeq);
+  S.missiles.push({ mid, own: true, p, v: vel, tgt: gp, tid: lock ? lock.id : null, a: 0, f: fr.f, alive: true });
+  Net.send({ type: 'pt:fire', mid, p, v: vel, tgt: lock ? lock.id : null, gp });
   Snd.launch(); updateMslUI();
 }
 function updateMissiles(dt) {
   for (const r of S.rails) if (!r.armed) { r.t -= dt; if (r.t <= 0) { r.armed = 1; updateMslUI(); Snd.arm(); } }
+  S.mslWarn = false;
   for (const m of S.missiles) {
     m.a += dt;
+    // live target: a remote player, me (for missiles fired at me), or the ground point
+    let tp = m.tgt, tgtAlive = false;
+    if (m.tid) {
+      if (m.tid === Net.id) { if (S.alive) { tp = S.pos; tgtAlive = true; S.mslWarn = true; } }
+      else { const pl = Net.players.get(m.tid); if (pl && pl.alive && pl.pos) { tp = pl.pos; tgtAlive = true; } }
+      if (!tgtAlive) m.tid = null;
+    }
     let sp = V.len(m.v), dir = V.mul(m.v, 1 / sp);
     if (m.a > 0.22) {
-      const want = V.norm(V.sub(m.tgt, m.p));
-      const ang = Math.acos(clamp(V.dot(dir, want), -1, 1)), maxA = (m.a < 0.5 ? 1.5 : 3.4) * dt;
+      const want = V.norm(V.sub(tp, m.p));
+      const ang = Math.acos(clamp(V.dot(dir, want), -1, 1)), maxA = (m.a < 0.5 ? 1.5 : 3.0) * dt;
       if (ang > 1e-4) { const t = Math.min(1, maxA / ang); dir = V.norm(V.lerp(dir, want, t)); }
-      sp = Math.min(680, sp + 520 * dt);
+      sp = Math.min(640, sp + 500 * dt);
     } else { m.v[1] -= 9.8 * dt; dir = V.norm(m.v); sp = V.len(m.v); }
     m.v = V.mul(dir, sp); m.f = dir;
     const np = V.add(m.p, V.mul(m.v, dt));
-    // smoke trail & flame along the segment
     if (m.a > 0.22) {
       const n = 3; for (let i = 0; i < n; i++) { const q = V.lerp(m.p, np, i / n), tail = V.add(q, V.mul(dir, -1.8));
         emit('smoke', tail, [rnd(-1.5, 1.5), rnd(-1, 2), rnd(-1.5, 1.5)], rnd(2.2, 3.4), 1.6, 7.5); }
       emit('flame', V.add(np, V.mul(dir, -1.9)), V.mul(dir, -40), 0.06, 1.5, 0.8);
     }
+    // proximity fuse: closest approach along this frame's segment
+    if (tgtAlive) {
+      const seg = V.sub(np, m.p), L2 = V.dot(seg, seg) || 1, k = clamp(V.dot(V.sub(tp, m.p), seg) / L2, 0, 1);
+      const close = V.add(m.p, V.mul(seg, k));
+      if (V.len(V.sub(close, tp)) < 24) {
+        m.alive = false; explode(close, true);
+        const vic = Net.players.get(m.tid);
+        if (m.own && vic && vic.bot) Net.botHit(vic, Net.id);
+        else if (m.own && vic) Net.send({ type: 'pt:hit', victim: m.tid, mid: m.mid });
+        else if (m.bot && m.tid === Net.id) Net.selfHit(m.from);
+        continue;
+      }
+    }
     m.p = np;
     const g = gAt(m.p[0], m.p[2]);
-    if (m.p[1] <= g + 0.5 || V.len(V.sub(m.p, m.tgt)) < 12 || m.a > 14) { m.alive = false; explode([m.p[0], Math.max(g, m.p[1] > g + 30 ? m.p[1] : g), m.p[2]], m.p[1] > g + 30); }
+    if (m.p[1] <= g + 0.5 || (!m.tid && V.len(V.sub(m.p, m.tgt)) < 12) || m.a > 12) { m.alive = false; explode([m.p[0], Math.max(g, m.p[1] > g + 30 ? m.p[1] : g), m.p[2]], m.p[1] > g + 30); }
   }
   S.missiles = S.missiles.filter(m => m.alive);
 }
-function explode(p, air) {
+function explode(p, air, big) {
   const water = !air && hAt(p[0], p[2]) < 0.3;
   const dist = S.cam ? V.len(V.sub(p, S.cam.pos)) : 1000;
   S.flash = Math.max(S.flash, clamp(1.1 - dist / 4000, 0.18, 0.75));
@@ -1094,7 +1263,8 @@ function explode(p, air) {
   for (let i = 0; i < 26; i++) emit('bigsmoke', V.add(p, [rnd(-14, 14), rnd(6, 24), rnd(-14, 14)]), [rnd(-6, 6), rnd(4, 12), rnd(-6, 6)], rnd(8, 13), rnd(16, 26), rnd(55, 90));
   S.rings.push({ p: [p[0], p[1], p[2]], a: 0, l: 1.4, R: 230, water });
   S.rings.push({ p: [p[0], p[1], p[2]], a: -0.1, l: 2.4, R: 130, water, dim: 1 });
-  if (air) { for (let i = 0; i < 16; i++) emit('debris', p, [rnd(-40, 40), rnd(0, 40), rnd(-40, 40)], rnd(1.5, 3), 1, 1); }
+  if (big) for (let i = 0; i < 30; i++) emit('fire', p, [rnd(-50, 50), rnd(-10, 50), rnd(-50, 50)], rnd(1.5, 3), 5, 14);
+  if (air) { for (let i = 0; i < (big ? 40 : 16); i++) emit('debris', p, [rnd(-40, 40), rnd(0, 40), rnd(-40, 40)], rnd(1.5, 3), 1, 1); }
   else if (water) {
     for (let i = 0; i < 90; i++) { const a = rnd(0, 6.283), r = rnd(0, 9); emit('spray', [p[0] + Math.cos(a) * r, 1, p[2] + Math.sin(a) * r], [Math.cos(a) * rnd(3, 16), rnd(40, 120), Math.sin(a) * rnd(3, 16)], rnd(2.6, 4.2), rnd(3.5, 6), rnd(8, 14)); }
     for (let i = 0; i < 40; i++) { const a = rnd(0, 6.283); emit('foam', [p[0], .4, p[2]], [Math.cos(a) * rnd(15, 45), 0, Math.sin(a) * rnd(15, 45)], rnd(5, 9), 4, 9); }
@@ -1118,14 +1288,14 @@ function updateFx(dt) {
   // vapour trails
   S.trailAcc += dt;
   const fr = S.frame, jp = jetVisPos();
-  if (S.trailAcc > 1 / 40) {
+  if (S.trailAcc > 1 / 40 && S.alive) {
     S.trailAcc = 0;
-    const tips = [local(fr, jp, [-5.6, -0.05, -4.8]), local(fr, jp, [5.6, -0.05, -4.8])];
+    const tp = plane().tip, tips = [local(fr, jp, [-tp[0], tp[1], tp[2]]), local(fr, jp, tp)];
     tips.forEach((p, i) => { S.trails[i].push({ p, t: S.t, g: S.Gs }); while (S.trails[i].length && S.t - S.trails[i][0].t > 2.6) S.trails[i].shift(); });
   }
   // spray & wake when skimming water
   const g = hAt(jp[0], jp[2]), alt = jp[1] - Math.max(g, 0);
-  if (g < 0 && alt < 32 && S.started) {
+  if (g < 0 && alt < 32 && S.started && S.alive) {
     const k = 1 - alt / 32, n = Math.ceil(k * 6);
     for (let i = 0; i < n; i++) {
       const back = local(fr, [jp[0], 0, jp[2]], [rnd(-3, 3), 0, rnd(-12, -4)]);
@@ -1176,7 +1346,7 @@ function render() {
   gl.uniform2f(P.u.uCloudOff, mod(S.t * 6, CT), mod(S.t * 2.5, CT));
   gl.uniform1f(P.u.uTime, S.t); gl.uniform1f(P.u.uThr, WORLD.thr); gl.uniform1f(P.u.uCMax, WORLD.cmax);
   const fr = S.frame, jr = rel(jetVisPos());
-  gl.uniform3fv(P.u.uJP, jr); gl.uniform3fv(P.u.uJF, fr.f); gl.uniform3fv(P.u.uJR, fr.r); gl.uniform3fv(P.u.uJU, fr.u);
+  gl.uniform3fv(P.u.uJP, S.alive ? jr : [0, 1e6, 0]); gl.uniform3fv(P.u.uJF, fr.f); gl.uniform3fv(P.u.uJR, fr.r); gl.uniform3fv(P.u.uJU, fr.u);
   const mk = new Float32Array(32), mk2 = new Float32Array(32);
   S.marks.forEach((m, i) => { const r = rel([m.x, 0, m.z]); const k = m.a / m.l;
     if (m.type === 1) { mk.set([r[0], r[2], 26, clamp(1.4 - k * 1.2, 0, 1)], i * 4); }
@@ -1185,29 +1355,36 @@ function render() {
   gl.uniform4fv(P.u.uMk, mk); gl.uniform4fv(P.u.uMk2, mk2);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   gl.depthFunc(gl.LEQUAL);
-  // jet + missiles
+  // aircraft (mine + other pilots) and missiles
   P = PR.mesh; gl.useProgram(P.p);
-  gl.uniformMatrix4fv(P.u.uVP, false, c.VP); gl.uniform3fv(P.u.uSun, SUN); gl.uniform1f(P.u.uGlow, S.ab); gl.uniform1f(P.u.uTime, S.t);
-  if (S.jetVisible) {
-    gl.bindVertexArray(JET.vao); gl.uniformMatrix4fv(P.u.uM, false, model(fr.r, fr.u, fr.f, jr)); gl.drawArrays(gl.TRIANGLES, 0, JET.n);
+  gl.uniformMatrix4fv(P.u.uVP, false, c.VP); gl.uniform3fv(P.u.uSun, SUN); gl.uniform1f(P.u.uTime, S.t);
+  const craft = [];
+  if (S.jetVisible && S.alive) craft.push({ type: S.plane, fr, pos: jetVisPos(), ab: S.ab, rails: S.rails, tint: S.hitFlash });
+  for (const pl of Net.players.values()) if (pl.alive && pl.pos && pl.fr) craft.push({ type: pl.plane, fr: pl.fr, pos: pl.pos, ab: pl.ab || 0, rails: null, tint: pl.hitFlash || 0 });
+  for (const k of craft) {
+    const d = PLANES[k.type] || PLANES.kestrel, mm = JET[k.type] || JET.kestrel;
+    gl.uniform3fv(P.u.uCamoA, d.camo[0]); gl.uniform3fv(P.u.uCamoB, d.camo[1]); gl.uniform3fv(P.u.uCap, d.cap);
+    gl.uniform3f(P.u.uTint, k.tint * .9, k.tint * .25, k.tint * .1); gl.uniform1f(P.u.uGlow, k.ab);
+    gl.bindVertexArray(mm.vao); gl.uniformMatrix4fv(P.u.uM, false, model(k.fr.r, k.fr.u, k.fr.f, rel(k.pos))); gl.drawArrays(gl.TRIANGLES, 0, mm.n);
     gl.bindVertexArray(MSL.vao);
-    for (const r of S.rails) if (r.armed) { gl.uniformMatrix4fv(P.u.uM, false, model(fr.r, fr.u, fr.f, rel(local(fr, jetVisPos(), r.p)))); gl.drawArrays(gl.TRIANGLES, 0, MSL.n); }
+    for (const r of (k.rails || d.rails.map(p => ({ p, armed: 1 })))) if (r.armed) { gl.uniformMatrix4fv(P.u.uM, false, model(k.fr.r, k.fr.u, k.fr.f, rel(local(k.fr, k.pos, r.p)))); gl.drawArrays(gl.TRIANGLES, 0, MSL.n); }
   }
+  gl.uniform3f(P.u.uTint, 0, 0, 0);
   gl.bindVertexArray(MSL.vao);
   for (const m of S.missiles) { const [r, u] = lookBasis(m.f, [0, 1, 0]); gl.uniformMatrix4fv(P.u.uM, false, model(r, u, m.f, rel(m.p))); gl.drawArrays(gl.TRIANGLES, 0, MSL.n); }
   // plumes
   gl.colorMask(true, true, true, false); gl.depthMask(false);
-  if (S.jetVisible) {
-    P = PR.plume; gl.useProgram(P.p); gl.bindVertexArray(CONE.vao);
-    gl.uniformMatrix4fv(P.u.uVP, false, c.VP); gl.uniform1f(P.u.uTime, S.t);
-    const L = 1.8 + 10 * S.ab + Math.sin(S.t * 50) * 0.3 * S.ab;
-    for (const sx of [-1, 1]) {
-      const np = rel(local(fr, jetVisPos(), [0.7 * sx, 0, -8.05]));
-      gl.uniformMatrix4fv(P.u.uM, false, model(fr.r, fr.u, fr.f, np, [.4, .4, L]));
-      gl.uniform3f(P.u.uC0, 1, .72, .32); gl.uniform3f(P.u.uC1, .9, .25, .2); gl.uniform1f(P.u.uA, .45 + .55 * S.ab);
+  P = PR.plume; gl.useProgram(P.p); gl.bindVertexArray(CONE.vao);
+  gl.uniformMatrix4fv(P.u.uVP, false, c.VP); gl.uniform1f(P.u.uTime, S.t);
+  for (const k of craft) {
+    const d = PLANES[k.type] || PLANES.kestrel, L = 1.8 + 10 * k.ab + Math.sin(S.t * 50) * 0.3 * k.ab;
+    for (const nz of d.nozzles) {
+      const np = rel(local(k.fr, k.pos, nz)), rad = nz[3];
+      gl.uniformMatrix4fv(P.u.uM, false, model(k.fr.r, k.fr.u, k.fr.f, np, [rad, rad, L]));
+      gl.uniform3f(P.u.uC0, 1, .72, .32); gl.uniform3f(P.u.uC1, .9, .25, .2); gl.uniform1f(P.u.uA, .45 + .55 * k.ab);
       gl.drawArrays(gl.TRIANGLES, 0, CONE.n);
-      if (S.ab > .05) { gl.uniformMatrix4fv(P.u.uM, false, model(fr.r, fr.u, fr.f, np, [.2, .2, L * .55]));
-        gl.uniform3f(P.u.uC0, 1, 1, 1); gl.uniform3f(P.u.uC1, 1, .9, .55); gl.uniform1f(P.u.uA, 1.2 * S.ab); gl.drawArrays(gl.TRIANGLES, 0, CONE.n); }
+      if (k.ab > .05) { gl.uniformMatrix4fv(P.u.uM, false, model(k.fr.r, k.fr.u, k.fr.f, np, [rad * .5, rad * .5, L * .55]));
+        gl.uniform3f(P.u.uC0, 1, 1, 1); gl.uniform3f(P.u.uC1, 1, .9, .55); gl.uniform1f(P.u.uA, 1.2 * k.ab); gl.drawArrays(gl.TRIANGLES, 0, CONE.n); }
     }
   }
   // lines: trails + rings
@@ -1380,6 +1557,10 @@ const Cockpit = {
     const D = makeDraw(ctx), rx = this.G.radar[0] + this.ox, ry = this.G.radar[1];
     D.col(C.amb[2]);
     for (const f of [0.25, 0.5, 0.75]) { const R = sc.R * f; for (let a = -sc.half; a <= sc.half; a += 0.05) D.px(rx + Math.sin(a) * R, ry - Math.cos(a) * R); }
+    for (const pl of Net.players.values()) { if (!pl.alive || !pl.pos) continue;
+      const dx = pl.pos[0] - S.pos[0], dz = pl.pos[2] - S.pos[2], dd = Math.hypot(dx, dz), a = wrapPi(Math.atan2(dx, -dz) - S.yaw);
+      if (dd > 8000 || Math.abs(a) > sc.half) continue; const R = sc.R * dd / 8000, bx = rx + Math.sin(a) * R, by = ry - Math.cos(a) * R;
+      D.col('#1b1020'); D.px(bx - 2, by - 2, 5, 5); D.col(pl.bot ? C.amb[5] : C.red); D.px(bx - 1, by - 1, 3, 3); }
     D.col(C.amb[4]); D.px(rx - 2, ry - 3, 5, 1); D.px(rx, ry - 5, 1, 4);
     D.col(C.amb[3]); D.text(String(Math.round(mod(S.yaw * 180 / Math.PI, 360))).padStart(3, '0'), rx, 20, 'c');
   },
@@ -1436,7 +1617,7 @@ const Cockpit = {
       D.col(C.dark); D.px(x - 9, y - 4, 18, 9); D.col(S.ab > .5 ? C.amber : '#9a92aa'); D.px(x - 8, y - 3, 16, 7); D.col('#d8d0e0'); D.px(x - 8, y - 3, 16, 1); D.col('#4a4458'); D.px(x - 8, y + 3, 16, 1); }
     // warning lamps
     const lowAlt = S.pos[1] - gAt(S.pos[0], S.pos[2]) < 60, overG = S.Gs > 5, rel = S.rails.some(r => !r.armed), blink = (S.t * 3 | 0) % 2 === 0;
-    const L = [['PULL UP', S.pullUp, C.red, C.redD], ['LOW ALT', lowAlt, C.amber, C.ambD], ['BURNER', S.ab > .5, C.grn, C.grnD], ['OVER G', overG, C.amber, C.ambD], ['RELOAD', rel, C.amber, C.ambD], ['CAUTION', (S.pullUp || overG) && blink, C.red, C.redD]];
+    const L = [['PULL UP', S.pullUp, C.red, C.redD], ['LOW ALT', lowAlt, C.amber, C.ambD], ['MISSILE', S.mslWarn && blink, C.red, C.redD], ['OVER G', overG, C.amber, C.ambD], ['RELOAD', rel, C.amber, C.ambD], ['CAUTION', (S.pullUp || overG) && blink, C.red, C.redD]];
     L.forEach(([s, on, c1, c0], i) => { const x = o + 395 + (i % 2) * 40, y = 65 + (i / 2 | 0) * 17; D.col(on ? c1 : c0); D.px(x, y, 38, 14); D.col(on ? '#1b1020' : '#00000060'); if (!on) D.col('#6a5a60'); D.text(s, x + 19, y + 5, 'c'); });
     // compose panel on screen
     const sc = Math.min(1, W / DW, H / 300);
@@ -1499,12 +1680,199 @@ function drawHUD(ctx, panelTop) {
   else if (S.Gs > 5 && (S.t * 4 | 0) % 2 === 0) D.text('OVER G', cx, cy + 16, 'c');
 }
 function drawReticle(ctx) {
-  if (!S.mouse || !S.started) return;
+  if (!S.mouse || !S.started || !S.alive) return;
   const D = makeDraw(ctx), [x, y] = [Math.round(S.mouse[0]), Math.round(S.mouse[1])];
   D.col('#1b1530'); D.px(x - 5, y, 4, 1); D.px(x + 2, y, 4, 1); D.px(x, y - 5, 1, 4); D.px(x, y + 2, 1, 4);
   D.col('#ffe0a0'); D.px(x - 4, y - 1, 3, 1); D.px(x + 2, y - 1, 3, 1); D.px(x - 1, y - 4, 1, 3); D.px(x - 1, y + 2, 1, 3);
   if (S.view !== 0) { const c = screenCenter(); D.col('#ffe0a0'); D.px(c[0] - 1, c[1] - 1, 2, 2); }
 }
+
+// other aircraft: brackets, names, range, lock; my HP, missile warning, hit flash, death banner
+function projPt(p) { return S.cam ? projDir(V.sub(p, S.cam.pos)) : null; }
+function drawTargets(ctx, panelTop) {
+  const D = makeDraw(ctx), lock = S.alive ? lockTarget() : null, blink = (S.t * 4 | 0) % 2 === 0;
+  for (const pl of Net.players.values()) {
+    if (!pl.alive || !pl.pos) continue;
+    const q = projPt(pl.pos); if (!q) continue;
+    const [x, y] = [Math.round(q[0]), Math.round(q[1])]; if (x < -20 || y < -20 || x > W + 20 || y > panelTop) continue;
+    const dist = V.len(V.sub(pl.pos, S.cam.pos)), r = Math.round(clamp(S.cam.px * 9 / dist, 5, 26)), me = pl === lock;
+    const col = me ? '#ff5a4a' : pl.bot ? '#ffd890' : '#ff9a7a';
+    D.col('#1b1530');
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { D.px(x + sx * r - (sx > 0 ? 3 : -1) - 1, y + sy * r, 5, 1); D.px(x + sx * r, y + sy * r - (sy > 0 ? 3 : -1) - 1, 1, 5); }
+    D.col(col);
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { D.px(x + sx * r - (sx > 0 ? 3 : 0), y + sy * r, 4, 1); D.px(x + sx * r, y + sy * r - (sy > 0 ? 3 : 0), 1, 4); }
+    const tag = pl.name + ' ' + (dist < 1000 ? Math.round(dist) + 'M' : (dist / 1000).toFixed(1) + 'KM');
+    const tw = tag.length * 4 + 3; D.col('rgba(27,21,48,.72)'); D.px(x - Math.ceil(tw / 2), y - r - 11, tw, 9); D.col(col); D.text(tag, x, y - r - 9, 'c');
+    const hpw = 20, f = clamp(pl.hp / PLANES[pl.plane].hp, 0, 1);
+    D.col('#1b1530'); D.px(x - hpw / 2 - 1, y + r + 3, hpw + 2, 4); D.col(pl.hitFlash > .3 ? '#ffffff' : f > .5 ? '#9ef08a' : '#f0a030'); D.px(x - hpw / 2, y + r + 4, Math.round(hpw * f), 2);
+    if (me) { D.col('#ff5a4a'); D.ring(x, y, r + 5); if (blink) { D.col('rgba(27,21,48,.72)'); D.px(x - 9, y + r + 8, 19, 9); D.col('#ff5a4a'); D.text('LOCK', x, y + r + 10, 'c'); } }
+  }
+  if (!S.started) return;
+  // my health
+  const f = clamp(S.hp / plane().hp, 0, 1), bw = 60, bx = Math.round(W / 2 - bw / 2), by = 8;
+  D.col('#1b1530'); D.px(bx - 14, by - 1, bw + 16, 7); D.col('#ffd890'); D.text('HP', bx - 12, by);
+  D.col('#3a2a52'); D.px(bx, by, bw, 5); D.col(f > .5 ? '#9ef08a' : f > .25 ? '#f0a030' : '#e03a3a'); D.px(bx, by, Math.round(bw * f), 5);
+  if (S.mslWarn && S.alive) {
+    if (blink) { D.col('#1b1530'); D.px(W / 2 - 34, by + 10, 68, 11); D.col('#ff5a4a'); D.text('MISSILE', W / 2, by + 13, 'c'); D.px(W / 2 - 33, by + 10, 66, 1); D.px(W / 2 - 33, by + 20, 66, 1); }
+    if (S.t - (S.warnT || 0) > .45) { S.warnT = S.t; Snd.warn(); }
+  }
+  if (S.hitFlash > 0.01) { ctx.fillStyle = 'rgba(224,58,58,' + (S.hitFlash * 0.38).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H); }
+  const bn = $('banner');
+  if (!S.alive) { bn.style.display = 'block'; bn.innerHTML = esc(S.deathMsg) + '<small>RESPAWN IN ' + Math.max(1, Math.ceil(4 - (S.t - S.deadT))) + '</small>'; }
+  else if (bn.style.display !== 'none') bn.style.display = 'none';
+}
+
+// ================= MULTIPLAYER (WebSocket "pt:" rooms) + practice drones =================
+const MISSILE_DMG = 55;
+const unwrapNear = (p, ref) => [p[0] + Math.round((ref[0] - p[0]) / TILE) * TILE, p[1], p[2] + Math.round((ref[2] - p[2]) / TILE) * TILE];
+const Net = {
+  ws: null, on: false, id: 'me-' + Math.random().toString(36).slice(2, 10), room: 'SKY', players: new Map(), sendAcc: 0, retryT: 0, wanted: false,
+  feed: [], me: { kills: 0, deaths: 0 }, humans: 0,
+  connect() {
+    this.wanted = true;
+    if (!/^https?:$/.test(location.protocol) || !window.WebSocket) { this.status(); return; }
+    try { this.ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host); } catch (e) { this.status(); return; }
+    const ws = this.ws;
+    ws.onopen = () => { ws.send(JSON.stringify({ type: 'pt:join', room: this.room, name: S.name, plane: S.plane, id: this.id })); };
+    ws.onmessage = ev => { let m; try { m = JSON.parse(ev.data); } catch (e) { return; } if (typeof m.type === 'string' && m.type.startsWith('pt:')) this.recv(m); };
+    ws.onclose = () => { const was = this.on; this.on = false; this.ws = null;
+      for (const [id, p] of this.players) if (!p.bot) this.players.delete(id);
+      if (was) this.addFeed('CONNECTION LOST'); this.retryT = 4; this.status(); };
+    ws.onerror = () => {};
+  },
+  send(m) { if (this.on && this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(m)); },
+  addPlayer(pl) {
+    const p = { id: pl.id, name: pl.name, plane: PLANES[pl.plane] ? pl.plane : 'kestrel', alive: pl.alive !== false, hp: pl.hp, kills: pl.kills || 0, deaths: pl.deaths || 0, hitFlash: 0, pos: null, fr: null, ab: 0, s: null };
+    this.players.set(p.id, p); if (pl.s) this.state(p, pl.s); return p;
+  },
+  state(p, s) {
+    p.s = { p: unwrapNear(s.p, S.pos), f: V.norm(s.f), u: V.norm(s.u), v: s.v, ab: s.ab }; p.recvT = S.t;
+    if (!p.pos || V.len(V.sub(p.pos, p.s.p)) > 300) { p.pos = p.s.p.slice(); p.fr = { f: p.s.f, u: p.s.u, r: V.cross(p.s.f, p.s.u) }; }
+  },
+  recv(m) {
+    switch (m.type) {
+      case 'pt:welcome':
+        this.on = true; this.id = m.id; this.room = m.room;
+        for (const pl of m.players) this.addPlayer(pl);
+        this.addFeed('JOINED ROOM ' + m.room); break;
+      case 'pt:join': this.addPlayer(m.pl); this.addFeed(m.pl.name + ' JOINED IN ' + (PLANES[m.pl.plane] || PLANES.kestrel).name); break;
+      case 'pt:gone': { const p = this.players.get(m.id); if (p) { this.addFeed(p.name + ' LEFT'); this.players.delete(m.id); } break; }
+      case 'pt:s': { const p = this.players.get(m.id); if (p && p.alive) this.state(p, m); break; }
+      case 'pt:fire': {
+        const p = this.players.get(m.id);
+        S.missiles.push({ mid: m.mid, own: false, from: m.id, p: unwrapNear(m.p, S.pos), v: m.v, tgt: unwrapNear(m.gp, S.pos), tid: m.tgt, a: 0, f: V.norm(m.v), alive: true });
+        if (p && p.pos && S.cam) Snd.launch(V.len(V.sub(p.pos, S.cam.pos)));
+        break;
+      }
+      case 'pt:hp':
+        if (m.id === this.id) { S.hp = m.hp; S.hitFlash = 1; S.shake = Math.max(S.shake, 1.5); }
+        else { const p = this.players.get(m.id); if (p) { p.hp = m.hp; p.hitFlash = 1; } }
+        break;
+      case 'pt:kill': {
+        const killer = m.killer === this.id ? 'YOU' : ((this.players.get(m.killer) || {}).name || '');
+        const vp = this.players.get(m.victim);
+        const victim = m.victim === this.id ? 'YOU' : (vp ? vp.name : '?');
+        this.addFeed(m.how === 'crash' ? victim + ' CRASHED' : killer + ' SHOT DOWN ' + victim);
+        if (m.victim === this.id) { if (S.alive) die('shot', m.killer); }
+        else if (vp) { if (vp.alive && vp.pos) explode(vp.pos, true, true); vp.alive = false; }
+        if (m.killer === this.id) Snd.tone(1320, .2, .08);
+        if (m.score) for (const sc of m.score) { if (sc.id === this.id) { this.me.kills = sc.kills; this.me.deaths = sc.deaths; } const q = this.players.get(sc.id); if (q) { q.kills = sc.kills; q.deaths = sc.deaths; } }
+        break;
+      }
+      case 'pt:respawn': { const p = this.players.get(m.id); if (p) { p.alive = true; p.hp = m.hp; p.pos = null; this.state(p, m.s); } break; }
+      case 'pt:error': this.addFeed(String(m.message || 'ERROR').toUpperCase()); break;
+    }
+    this.status();
+  },
+  addFeed(t) { this.feed.push({ t, at: performance.now() }); if (this.feed.length > 5) this.feed.shift(); this.drawBoard(); },
+  status() {
+    const el = document.getElementById('net'); if (!el) return;
+    this.humans = [...this.players.values()].filter(p => !p.bot).length;
+    el.textContent = this.on ? 'ROOM ' + this.room + ' · ' + (this.humans + 1) + ' PILOT' + (this.humans ? 'S' : '') : (this.wanted ? 'OFFLINE · PRACTICE' : '');
+    this.drawBoard();
+  },
+  drawBoard() {
+    const el = document.getElementById('board'); if (!el || !S.started) return;
+    const rows = [{ name: S.name + ' (YOU)', plane: S.plane, kills: this.on ? this.me.kills : S.kills, deaths: this.on ? this.me.deaths : S.deaths, me: 1 }]
+      .concat([...this.players.values()].map(p => ({ name: p.name, plane: p.plane, kills: p.kills, deaths: p.deaths, bot: p.bot })))
+      .sort((a, b) => b.kills - a.kills || a.deaths - b.deaths);
+    const now = performance.now();
+    el.innerHTML = rows.map(r => `<div class="${r.me ? 'me' : ''}"><span>${esc(r.name)}</span><i>${PLANES[r.plane].name}</i><b>${r.kills}</b><em>${r.deaths}</em></div>`).join('') +
+      this.feed.filter(f => now - f.at < 9000).map(f => `<p>${esc(f.t)}</p>`).join('');
+  },
+  update(dt) {
+    if (this.wanted && !this.on && !this.ws && this.retryT > 0) { this.retryT -= dt; if (this.retryT <= 0) this.connect(); }
+    // remote aircraft: dead reckoning toward the newest snapshot
+    for (const p of this.players.values()) {
+      p.hitFlash = Math.max(0, (p.hitFlash || 0) - dt * 3);
+      if (p.bot) { this.botStep(p, dt); continue; }
+      if (!p.s || !p.alive) continue;
+      p.s.p = unwrapNear(p.s.p, S.pos);
+      if (p.pos) p.pos = unwrapNear(p.pos, S.pos);
+      const age = Math.min(1, S.t - p.recvT), pred = V.add(p.s.p, V.mul(p.s.f, p.s.v * age));
+      p.pos = p.pos ? V.lerp(p.pos, pred, Math.min(1, dt * 10)) : pred;
+      const f = V.norm(V.lerp(p.fr.f, p.s.f, Math.min(1, dt * 10))), u0 = V.norm(V.lerp(p.fr.u, p.s.u, Math.min(1, dt * 10)));
+      const r = V.norm(V.cross(f, u0)); p.fr = { f, r, u: V.cross(r, f) }; p.ab = p.s.ab; p.v = p.s.v;
+    }
+    S.hitFlash = Math.max(0, S.hitFlash - dt * 2.5);
+    // practice drones whenever nobody else is in the sky
+    const humans = [...this.players.values()].some(p => !p.bot);
+    if (S.started && !humans) { if (![...this.players.values()].some(p => p.bot)) { this.addBot(1); this.addBot(2); this.addFeed('PRACTICE DRONES IN THE AIR'); } }
+    else if (humans) for (const [id, p] of this.players) if (p.bot) this.players.delete(id);
+    // send my state ~12 times a second
+    this.sendAcc += dt;
+    if (this.on && S.started && S.alive && this.sendAcc > 1 / 12) { this.sendAcc = 0; this.send({ type: 'pt:s', p: S.pos, f: S.f, u: S.u, v: S.v, ab: S.ab }); }
+  },
+  addBot(n) {
+    const sp = spawnPoint(), types = ['heron', 'bison', 'wasp', 'kestrel'];
+    const b = this.addPlayer({ id: 'bot' + n, name: 'DRONE ' + n, plane: types[(n + PLANE_IDS.indexOf(S.plane)) % 4] });
+    b.bot = true; b.hp = PLANES[b.plane].hp; b.yaw = sp.yaw; b.pitch = 0; b.roll = 0; b.pos = sp.p; b.v = PLANES[b.plane].cruise * .95; b.fireT = 8 + n * 5; b.seed = n * 3.7;
+    b.fr = jetFrame(b.yaw, 0, 0); return b;
+  },
+  botStep(b, dt) {
+    if (!b.alive) { b.deadT -= dt; if (b.deadT <= 0) { const sp = spawnPoint(); Object.assign(b, { alive: true, hp: PLANES[b.plane].hp, pos: sp.p, yaw: sp.yaw, pitch: 0, roll: 0 }); } return; }
+    b.pos = unwrapNear(b.pos, S.pos);
+    const C = S.spawnC ? unwrapNear([S.spawnC[0], 0, S.spawnC[1]], b.pos) : [b.pos[0], 0, b.pos[2]];
+    const toC = Math.atan2(C[0] - b.pos[0], -(C[2] - b.pos[2])), dC = Math.hypot(C[0] - b.pos[0], C[2] - b.pos[2]);
+    let want = b.yaw + Math.sin(S.t * 0.23 + b.seed) * 0.8;
+    if (dC > 2600) want = toC;
+    const e = wrapPi(want - b.yaw), bankT = clamp(e * 1.4, -1, 1);
+    let pitchT = clamp((CRUISE + 120 * Math.sin(b.seed + S.t * .07) - b.pos[1]) * .004, -.3, .3);
+    const fx = Math.sin(b.yaw), fz = -Math.cos(b.yaw);
+    for (let k = 1; k <= 10; k++) { const d = k * 160, h = gAt(b.pos[0] + fx * d, b.pos[2] + fz * d); pitchT = Math.max(pitchT, Math.atan2(h + 60 - b.pos[1], d)); }
+    b.roll += clamp((bankT - b.roll) * 3, -1.8, 1.8) * dt;
+    b.pitch += clamp((pitchT - b.pitch) * 2, -.8, .8) * dt;
+    b.yaw = wrapPi(b.yaw + 0.85 * Math.sin(b.roll) * dt);
+    b.fr = jetFrame(b.yaw, b.pitch, b.roll);
+    b.pos = V.add(b.pos, V.mul(b.fr.f, b.v * dt));
+    b.pos[1] = Math.max(b.pos[1], gAt(b.pos[0], b.pos[2]) + 20);
+    b.ab = .5 + .5 * Math.sin(S.t * .4 + b.seed) > .8 ? 1 : 0;
+    // drones occasionally fire back
+    b.fireT -= dt;
+    if (b.fireT <= 0 && S.alive && S.started) {
+      const d = V.sub(S.pos, b.pos), L = V.len(d);
+      if (L < 3800 && V.dot(d, b.fr.f) / L > 0.6) {
+        b.fireT = 14 + Math.random() * 10;
+        const p = local(b.fr, b.pos, [3, -.4, -2]);
+        S.missiles.push({ mid: b.id + ':' + S.t, own: false, bot: true, from: b.id, p, v: V.mul(b.fr.f, b.v), tgt: S.pos.slice(), tid: this.id, a: 0, f: b.fr.f, alive: true });
+        Snd.launch(L);
+      } else b.fireT = 2;
+    }
+  },
+  botHit(b, by) {
+    if (!b.alive) return;
+    b.hp -= MISSILE_DMG; b.hitFlash = 1;
+    if (b.hp <= 0) { b.alive = false; b.deadT = 6; b.deaths++; S.kills++; explode(b.pos, true, true); this.addFeed('YOU SHOT DOWN ' + b.name); Snd.tone(1320, .2, .08); }
+    this.drawBoard();
+  },
+  selfHit(from) {
+    if (!S.alive) return;
+    S.hp -= MISSILE_DMG; S.hitFlash = 1; S.shake = Math.max(S.shake, 1.5);
+    const b = this.players.get(from);
+    if (S.hp <= 0) { if (b) b.kills++; die('shot', from); this.addFeed((b ? b.name : 'DRONE') + ' SHOT DOWN YOU'); }
+  },
+};
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // ================= SOUND (Web Audio, synthesised, off by default) =================
 const Snd = {
@@ -1565,7 +1933,8 @@ const Snd = {
     const o = c.createOscillator(); o.type = type || 'square'; o.frequency.value = hz; const g = c.createGain();
     g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur); o.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + .02);
   },
-  launch() { this.burst(1.1, 3000, 400, .5, 'bandpass'); this.burst(.25, 900, 120, .4); },
+  launch(dist) { const a = dist ? clamp(1.1 - dist / 4000, .12, 1) : 1; this.burst(1.1, 3000, 400, .5 * a, 'bandpass'); this.burst(.25, 900, 120, .4 * a); },
+  warn() { this.tone(1560, .07, .05); this.tone(1560, .07, .05, .1); },
   boom(dist, water) {
     const dl = Math.min(2.4, dist / 340), att = clamp(1.2 - dist / 5000, .15, 1);
     this.burst(water ? 2.2 : 2.6, 1400, 40, .9 * att, 'lowpass', dl);
@@ -1583,15 +1952,33 @@ const Snd = {
 const $ = id => document.getElementById(id);
 function updateMslUI() { $('msl').innerHTML = S.rails.map(r => r.armed ? '&#9646;' : '<i>&#9647;</i>').join(''); }
 function toInternal(e) { return [e.clientX / SCALE, e.clientY / SCALE]; }
-const isUI = t => t && t.closest && t.closest('button,#title,#hints');
+const isUI = t => t && t.closest && t.closest('button,#title,#hints,input');
+// title card: pilot name, plane picker, room code
+function buildPicker() {
+  let saved = {}; try { saved = JSON.parse(localStorage.getItem('patrol.pilot') || '{}') || {}; } catch (e) {}
+  if (saved.name) $('pname').value = saved.name; if (saved.room) $('proom').value = saved.room;
+  const rng = k => { const v = PLANE_IDS.map(i => k(PLANES[i])); return [Math.min(...v), Math.max(...v)]; };
+  const bar = (k, d) => { const [lo, hi] = rng(k); return '<u>' + '&#9632;'.repeat(1 + Math.round((k(d) - lo) / (hi - lo || 1) * 4)) + '</u>'; };
+  const spd = d => d.burn, trn = d => d.roll + d.pitch * 2, arm = d => d.hp;
+  $('planes').innerHTML = PLANE_IDS.map(id => { const d = PLANES[id];
+    return `<button data-id="${id}" class="mono"><b>${d.name}</b><em>${d.role}</em><span>SPD ${bar(spd, d)}</span><span>TURN ${bar(trn, d)}</span><span>ARMOR ${bar(arm, d)}</span><span>MSL ${'&#9646;'.repeat(d.rails.length)}</span></button>`; }).join('');
+  for (const b of $('planes').children) b.addEventListener('click', e => { e.stopPropagation(); pick(b.dataset.id); });
+  pick(PLANES[saved.plane] ? saved.plane : 'kestrel');
+}
+function pick(id) { choosePlane(id); for (const b of $('planes').children) b.classList.toggle('sel', b.dataset.id === id); Snd.click(); }
 function start() {
   if (S.started || !WORLD.ready) return;
-  S.started = true; $('title').classList.add('gone'); setTimeout(() => $('title').style.display = 'none', 700); $('hints').style.display = 'flex'; document.body.classList.add('flying');
+  const nm = ($('pname').value || '').replace(/[^\p{L}\p{N} _.-]/gu, '').trim().slice(0, 14).toUpperCase();
+  S.name = nm || 'PILOT'; Net.room = ($('proom').value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) || 'SKY';
+  try { localStorage.setItem('patrol.pilot', JSON.stringify({ name: S.name, plane: S.plane, room: Net.room })); } catch (e) {}
+  choosePlane(S.plane);
+  S.started = true; $('title').classList.add('gone'); $('board').style.display = 'block'; $('net').style.display = 'block';
+  Net.connect(); setTimeout(() => $('title').style.display = 'none', 700); $('hints').style.display = 'flex'; document.body.classList.add('flying');
   S.mouse = screenCenter();
 }
 addEventListener('mousemove', e => { if (!S.started) return; const m = toInternal(e); if (S.mouse && (Math.abs(m[0] - S.mouse[0]) + Math.abs(m[1] - S.mouse[1]) > 1.5)) S.auto = false; S.mouse = m; });
 addEventListener('mousedown', e => {
-  if (!S.started) { if (WORLD.ready && e.button === 0 && !(e.target && e.target.id === 'snd')) start(); return; }
+  if (!S.started) { if (WORLD.ready && e.button === 0 && !(e.target && e.target.closest && e.target.closest('#snd,#pick,#planes'))) start(); return; }
   if (isUI(e.target)) return;
   S.mouse = toInternal(e);
   if (e.button === 0) { S.lDown = true; S.lDownT = S.t; }
@@ -1602,15 +1989,17 @@ addEventListener('mouseup', e => {
   if (e.button === 2) S.rDown = false;
 });
 addEventListener('contextmenu', e => e.preventDefault());
-addEventListener('blur', () => { S.lDown = false; S.rDown = false; S.burnKey = false; S.touchBurn = false; });
+addEventListener('blur', () => { S.yawKey = 0; S.lDown = false; S.rDown = false; S.burnKey = false; S.touchBurn = false; });
 addEventListener('keydown', e => {
+  if (e.target && e.target.tagName === 'INPUT') { if (e.code === 'Enter') start(); return; }
+  if (e.code === 'KeyQ') S.yawKey = -1; else if (e.code === 'KeyE') S.yawKey = 1;
   if (e.code === 'Space') { e.preventDefault(); if (!S.started) { start(); return; } if (!e.repeat) setView((S.view + 1) % 3); }
   else if (e.code === 'KeyF' && !e.repeat) fire();
   else if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight')) S.burnKey = true;
   else if (e.code === 'KeyR' && !e.repeat) barrelRoll();
   else if (e.code === 'Enter') start();
 });
-addEventListener('keyup', e => { if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') S.burnKey = false; });
+addEventListener('keyup', e => { if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') S.burnKey = false; if ((e.code === 'KeyQ' && S.yawKey < 0) || (e.code === 'KeyE' && S.yawKey > 0)) S.yawKey = 0; });
 $('snd').addEventListener('click', e => { e.stopPropagation(); Snd.toggle(); $('snd').textContent = Snd.on ? 'SOUND ON' : 'SOUND OFF'; $('snd').classList.toggle('on', Snd.on); $('snd').blur(); });
 $('go').addEventListener('click', e => { e.stopPropagation(); start(); });
 // touch
@@ -1645,6 +2034,7 @@ function adapt(ms, dt) {
 function step(dt) {
   S.t += dt;
   updateFlight(dt);
+  Net.update(dt);
   updateMissiles(dt);
   updateParts(dt);
   updateFx(dt);
@@ -1657,6 +2047,7 @@ function draw() {
   const ctx = ovc.getContext('2d'); ctx.imageSmoothingEnabled = false; ctx.clearRect(0, 0, W, H);
   const pres = S.cam.cockpit;
   if (pres > 0.01) { const top = Cockpit.draw(ctx, pres); if (pres > 0.97) drawHUD(ctx, top); }
+  drawTargets(ctx, pres > 0.01 ? H - Math.round(DH * Math.min(1, W / DW, H / 300)) * pres : H);
   drawReticle(ctx);
 }
 function frame(now) {
@@ -1666,10 +2057,10 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 // test & debug hook
-window.__patrol = { S, ERR, step, draw, setView, fire, barrelRoll, start, explode, hAt, resize, get W() { return W; }, get H() { return H; } };
+window.__patrol = { S, ERR, Net, PLANES, choosePlane, pick, die, respawn, setOrientation, lockTarget, step, draw, setView, fire, barrelRoll, start, explode, hAt, resize, get W() { return W; }, get H() { return H; } };
 
 if (gl) {
-  resize(); updateMslUI();
+  resize(); buildPicker();
   const bar = $('bar').firstElementChild, st = $('status');
   st.textContent = 'Generating terrain 0%';
   genWorld(p => { bar.style.width = (p * 100).toFixed(1) + '%'; st.textContent = (p < 0.36 ? 'Raising hills ' : p < 0.7 ? 'Planting autumn forests ' : p < 0.98 ? 'Baking long shadows ' : 'Gathering clouds ') + Math.round(p * 100) + '%'; })
@@ -1682,7 +2073,8 @@ if (gl) {
         let mx = 0, w = 0; for (let a = 0; a < 16; a++) { const r = 400 + (a % 4) * 500, an = a * 2.4; const h = hAt(x + Math.cos(an) * r, z + Math.sin(an) * r); mx = Math.max(mx, h); if (h < 0) w++; }
         const sc = mx + Math.abs(w - 6) * 30; if (!best || sc < best[0]) best = [sc, x, z];
       }
-      if (best) { S.pos[0] = best[1]; S.pos[2] = best[2]; }
+      if (best) { S.pos[0] = best[1]; S.pos[2] = best[2]; S.spawnC = [best[1], best[2]]; }
+      setOrientation(S.yaw, 0, 0);
       st.textContent = 'Ready'; bar.style.width = '100%'; $('go').classList.add('ready');
       updateCamera(0); last = performance.now(); requestAnimationFrame(frame);
     })
