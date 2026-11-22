@@ -31,6 +31,9 @@ class Arena {
     this.lastHpDelta = 0;
     this.eligible = new Set();
     this.outcome = null;
+    // Mỗi đội giữ một thanh Tinh thần riêng: đội nào trên mức thắng thì xem kết có hậu
+    this.teamHp = this.D.teams.map(() => this.D.settings.hpStart);
+    this.teamOutcome = null;
     for (const p of this.players.values()) {
       p.score = 0;
       p.answers = [];
@@ -135,6 +138,10 @@ class Arena {
     });
     this.lastHpDelta = AR.hpDelta(this.cfg, q, choices);
     this.hp = Math.max(0, Math.min(100, this.hp + this.lastHpDelta));
+    this.teamHp = this.teamHp.map((h, t) => {
+      const mine = [...this.eligible].map((id) => this.players.get(id)).filter((p) => p && p.team === t).map((p) => (p.answers[this.qIndex] == null ? null : p.answers[this.qIndex]));
+      return mine.length ? Math.max(0, Math.min(100, h + AR.hpDelta(this.cfg, q, mine))) : h;
+    });
     this.phase = 'reveal';
   }
 
@@ -142,12 +149,22 @@ class Arena {
   next() {
     if (this.phase === 'question') { this.reveal(); return; }
     if (this.phase !== 'reveal') return;
-    if (this.hp <= 0 || this.qIndex >= this.questions.length - 1) {
+    // Kết thúc sớm khi mọi đội đang chơi đều đã để Tinh thần về 0
+    const active = this.activeTeams();
+    const allDown = active.length ? active.every((t) => this.teamHp[t] <= 0) : this.hp <= 0;
+    if (allDown || this.qIndex >= this.questions.length - 1) {
       this.phase = 'end';
       this.outcome = AR.arenaOutcome(this.hp, this.D.settings.winHp);
+      this.teamOutcome = this.teamHp.map((h, t) => (active.includes(t) ? AR.arenaOutcome(h, this.D.settings.winHp) : null));
       return;
     }
     this.openQuestion(this.qIndex + 1);
+  }
+
+  /** Các đội đang có người chơi. */
+  activeTeams() {
+    const set = new Set([...this.players.values()].map((p) => p.team));
+    return this.D.teams.map((_, i) => i).filter((i) => set.has(i));
   }
 
   /** Gọi định kỳ: tự công bố đáp án khi hết giờ. Trả về true nếu trạng thái đổi. */
@@ -201,7 +218,10 @@ class Arena {
       hpDelta: showAnswer ? this.lastHpDelta : 0,
       winHp: this.D.settings.winHp,
       outcome: this.outcome,
-      teams: AR.teamStandings(this.D.teams, [...this.players.values()]),
+      teams: AR.teamStandings(this.D.teams, [...this.players.values()]).map((r) => Object.assign(r, {
+        hp: this.teamHp[r.team],
+        outcome: this.teamOutcome ? this.teamOutcome[r.team] : null,
+      })),
     };
   }
 
@@ -232,6 +252,8 @@ class Arena {
       answer: mine == null ? null : mine,
       lastPoints: this.phase === 'question' ? 0 : p.lastPoints,
       correct: this.phase === 'question' || mine == null ? null : AR.isCorrect(this.question, mine),
+      teamHp: this.teamHp[p.team],
+      outcome: this.teamOutcome ? this.teamOutcome[p.team] : null,
     };
     return s;
   }

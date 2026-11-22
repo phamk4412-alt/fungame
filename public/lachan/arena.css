@@ -126,3 +126,9 @@
 .lce-cons .podium { margin: 0.4rem 0; }
 .lce-cons .pod .blk { font-size: 1.6rem; }
 .lce-cons .pod.p1 .blk { height: 5rem; } .lce-cons .pod.p2 .blk { height: 3.6rem; } .lce-cons .pod.p3 .blk { height: 2.6rem; } .lce-cons .pod.p4 .blk { height: 1.8rem; }
+/* Kết riêng của từng đội */
+.pod .pod-res { font-style: normal; font-size: 0.85rem; font-weight: 700; margin-top: 0.2rem; padding: 0.1rem 0.6rem; border-radius: 999px; }
+.pod .pod-res.win { background: rgba(70, 200, 120, 0.18); color: #8ef0b0; }
+.pod .pod-res.lose { background: rgba(120, 140, 170, 0.2); color: #c3cbe0; }
+.end-note { margin: 0.6rem auto 0; max-width: 46rem; color: #c9d0e8; font-size: 0.95rem; }
+.lce-btns button.sad { background: linear-gradient(90deg, #4a5878, #2f3a55); }

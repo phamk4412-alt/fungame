@@ -20,6 +20,7 @@
   let deadline = 0;
   let retry = 0;
   let shownKey = '';
+  let ending = null; // cảnh kết thúc đang chiếu
 
   let pid = store.get('lcnt.pid');
   if (!pid) { pid = 'p' + Math.random().toString(36).slice(2) + Date.now().toString(36); store.set('lcnt.pid', pid); }
@@ -72,6 +73,12 @@
     const key = `${s.phase}:${s.qIndex}:${me.answer}:${me.team}`;
     if (key === shownKey && s.phase !== 'question') return;
     shownKey = key;
+    if (s.phase !== 'end' && ending) {
+      ending.stop();
+      ending = null;
+      $('lceRoot').classList.remove('show', 'good');
+      $('lceRoot').innerHTML = '';
+    }
     if (s.phase === 'lobby') {
       view('vWait');
       $('waitTitle').textContent = 'Đã vào phòng!';
@@ -115,15 +122,29 @@
       $('endRank').textContent = `${me.rank}/${me.of}`;
       $('endTeam').textContent = `#${teamRank}`;
       const cq = D.endings.consequences;
-      if (s.outcome === 'win') {
+      const teamWin = (s.me.outcome || s.outcome) === 'win';
+      // Chiếu cảnh kết thúc của đội mình, xong thì hiện bảng tóm tắt bên dưới
+      if (window.LCEnding && !ending) {
+        ending = window.LCEnding.play($('lceRoot'), D, {
+          kind: teamWin ? 'good' : 'bad',
+          onDone(btns) {
+            btns.innerHTML = '<button id="lceMine">Xem kết quả của bạn ▶</button>';
+            btns.querySelector('#lceMine').onclick = () => {
+              if (ending) ending.stop();
+              $('lceRoot').classList.remove('show', 'good');
+            };
+          },
+        });
+      }
+      if (teamWin) {
         $('endIc').textContent = teamRank === 1 ? '🏆' : '🛡️';
         $('endTitle').textContent = D.endings.win.title;
-        $('endText').textContent = `${D.endings.goodScene.closing} ${s.teams[0].name} dẫn đầu.`;
+        $('endText').textContent = `${D.teams[me.team]} đã giữ được Tinh thần cho Minh Anh (${me.teamHp}%). ${D.endings.goodScene.closing}`;
         $('endHelp').innerHTML = '';
       } else {
         $('endIc').textContent = '🌧️';
-        $('endTitle').textContent = 'Cả lớp chưa giữ được Minh Anh';
-        $('endText').textContent = 'Nhìn lên màn hình lớn. ' + D.meta.finalMessage;
+        $('endTitle').textContent = 'Đội bạn chưa giữ được Minh Anh';
+        $('endText').textContent = `Tinh thần đội ${D.teams[me.team]}: ${me.teamHp}%. ` + D.meta.finalMessage;
         $('endHelp').innerHTML = `<div class="hot"><a href="tel:${esc(cq.hotline)}">${esc(cq.hotline)}</a><span>${esc(cq.hotlineLabel)}</span></div>${esc(cq.help)}<br>${esc(cq.police)}`;
       }
     }
@@ -132,7 +153,7 @@
   function stats(s) {
     $('resScore').textContent = s.me.score.toLocaleString('vi-VN');
     $('resRank').textContent = `${s.me.rank}/${s.me.of}`;
-    $('resHp').textContent = s.hp + '%';
+    $('resHp').textContent = (s.me.teamHp != null ? s.me.teamHp : s.hp) + '%';
   }
 
   function showQuestion(s) {

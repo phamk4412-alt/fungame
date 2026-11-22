@@ -148,6 +148,28 @@ test('cả phòng trả lời sai liên tục thì Tinh thần về 0 và kết 
   assert.ok(asked < a.questions.length, 'phải kết thúc trước câu cuối');
 });
 
+test('mỗi đội có kết riêng: đội trả lời đúng thắng, đội trả lời sai thua', () => {
+  const { a } = makeArena(4);
+  for (const p of a.players.values()) p.team = Number(p.id.slice(1)) % 2;
+  a.start();
+  while (a.phase !== 'end') {
+    if (a.phase === 'question') {
+      const q = a.question;
+      const wrong = q.options.findIndex((o, i) => i !== q.answer && (o.hp == null || o.hp < 0));
+      for (const p of a.players.values()) a.answer(p.id, a.qIndex, p.team === 0 ? q.answer : wrong);
+    }
+    a.next();
+  }
+  assert.strictEqual(a.teamOutcome[0], 'win');
+  assert.strictEqual(a.teamOutcome[1], 'lose');
+  assert.strictEqual(a.teamOutcome[2], null, 'đội không có người thì không có kết');
+  assert.strictEqual(a.stateForPlayer('p0').me.outcome, 'win');
+  assert.strictEqual(a.stateForPlayer('p1').me.outcome, 'lose');
+  const rows = a.stateForHost().teams;
+  assert.strictEqual(rows.find((r) => r.team === 1).hp, 0);
+  assert.ok(a.qIndex === a.questions.length - 1, 'còn một đội đang giữ được thì chơi tiếp tới câu cuối');
+});
+
 test('chơi lại xóa điểm nhưng giữ người chơi', () => {
   const { a } = makeArena(2);
   a.start();
@@ -157,6 +179,8 @@ test('chơi lại xóa điểm nhưng giữ người chơi', () => {
   assert.strictEqual(a.players.size, 2);
   assert.strictEqual(a.players.get('p0').score, 0);
   assert.strictEqual(a.hp, D.settings.hpStart);
+  assert.deepStrictEqual(a.teamHp, D.teams.map(() => D.settings.hpStart));
+  assert.strictEqual(a.teamOutcome, null);
 });
 
 test('MC mời người chơi ra khỏi phòng', () => {
