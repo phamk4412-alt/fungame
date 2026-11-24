@@ -9,7 +9,7 @@ Hiện có 2 game, chọn khi tạo phòng mới:
 
 Vào phòng bằng link mời thì tự vào đúng game của phòng đó.
 
-Ngoài ra có **🎣 Câu Cá 3D** (mở ở `/fish.html` hoặc bấm link ở sảnh) và **✈️ Patrol** (mở ở `/patrol.html`).
+Ngoài ra có **🎣 Câu Cá 3D** (mở ở `/fish.html` hoặc bấm link ở sảnh) **✈️ Patrol** (mở ở `/patrol.html`) và **🛩️ Sải Cánh** (mô phỏng bay chân thực, mở ở `/flight.html`).
 
 ## Tính năng Poker
 
@@ -42,6 +42,18 @@ Ngoài ra có **🎣 Câu Cá 3D** (mở ở `/fish.html` hoặc bấm link ở 
 - Hết chip phải chờ 3 phút rồi mới mua lại được, như bên Poker.
 
 Muốn đổi mức cược, thời gian hay tỉ lệ ăn, sửa các hằng số ở đầu file `xidach.js`.
+
+## Sải Cánh
+
+Mô phỏng bay máy bay cánh quạt 4 chỗ SC-4 (thiết kế riêng), góc nhìn buồng lái là mặc định. Mã ở `public/flight.html` và `public/flight/`:
+
+- `physics.js` — mô hình bay 6 bậc tự do: lực nâng/lực cản theo góc tấn, thất tốc, cánh tà, trim, luồng gió cánh quạt qua đuôi, ba bánh xe có giảm xóc, phanh và lái bánh mũi; rơi khi hạ cánh mạnh hơn 4,5 m/s, chạm cánh/mũi xuống đất hoặc xuống nước. Thông số nằm trong `SPEC`.
+- `terrain.js` — một hàm độ cao dùng chung cho vẽ và va chạm: thung lũng ruộng đồng, núi tuyết phía bắc, biển phía nam, hồ phía tây, sân bay ở gốc toạ độ (đường băng 36/18 dài 1 800 m).
+- `world.js` — địa hình chia ô theo cây tứ phân, tô màu kiểu ảnh vệ tinh trong shader, bầu trời vật lý, mây, nước phản chiếu, rừng cây, thị trấn; 3 mức đồ hoạ và 3 thời điểm trong ngày.
+- `plane.js`, `cockpit.js`, `gauges.js` — máy bay 3D có cánh lái chuyển động; buồng lái với 15 đồng hồ vẽ bằng Canvas, bản đồ GPS, cần lái kép, cần ga, la bàn từ.
+- `airport.js`, `audio.js`, `main.js` — sân bay (vạch sơn, đèn PAPI, ống gió, nhà chứa), âm thanh tổng hợp, điều khiển bằng phím/chuột/cảm ứng/tay cầm.
+
+Phím: `W`/`S` chúi/ngóc, `A`/`D` nghiêng, `Q`/`E` bánh lái hướng, `R`/`F` ga, `C`/`X` cánh tà, `[`/`]` trim, `Space` phanh, `V` đổi góc nhìn, kéo chuột để nhìn quanh. Kiểm thử: `tests/flight.test.js`.
 
 ## Patrol
 
