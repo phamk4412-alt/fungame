@@ -1,0 +1,286 @@
+# 1. Giới thiệu SC-4
+Sải Cánh SC-4 (số đăng ký VN-A4K) là máy bay huấn luyện 4 chỗ, cánh trên có thanh chống, càng mũi cố định, một động cơ pít-tông 4 xi-lanh 160 mã lực dùng chế hoà khí, cánh quạt 2 lá bước cố định. Mô hình bay dựng theo đạo hàm khí động của một máy bay huấn luyện cánh trên phổ biến, nên cảm giác lái, tốc độ thất tốc và quãng đường cất hạ cánh gần với thực tế.
+
+## Số liệu chính
+- Sải cánh 11,0 m, diện tích cánh 16,2 m², khối lượng cất cánh 1100 kg
+- Hai bình xăng trong cánh, mỗi bình 26 gallon (dùng được 24 gallon)
+- Tiêu thụ: khoảng 8–9 gallon/giờ khi bay bằng 2300 v/ph
+- Hệ thống điện 28 V: ắc quy + máy phát (ALT)
+- Đồng hồ chân trời và con quay hướng chạy bằng CHÂN KHÔNG (bơm do động cơ kéo). Đồng hồ rẽ & trượt chạy bằng ĐIỆN.
+
+## Sân bay nhà
+Cảng hàng không Sải Cánh, cao 62 m (203 ft). Một đường băng 18/36 dài 1800 m rộng 30 m. Đường lăn A chạy song song phía đông, nối với đường băng ở A1 (đầu 36, phía nam), A2 (giữa) và A3 (đầu 18, phía bắc). Sân đỗ và nhà chứa ở phía đông đường lăn.
+
+# 2. Bắt đầu nhanh và điều khiển
+## Cài đặt
+- Cài Unity Hub, rồi cài Unity 6 (6000.0 LTS) trong Unity Hub
+- Unity Hub → Add → Add project from disk → chọn thư mục unity/SaiCanh của kho mã
+- Mở dự án, mở cảnh bất kỳ (hoặc menu Sải Cánh → Tạo cảnh bay) rồi bấm Play. Game tự dựng toàn bộ thế giới trong khoảng 10–30 giây.
+
+## Phím
+- Mũi tên hoặc W A S D (hoặc cần lái thật): cánh lái độ cao và cánh liệng
+- Z / X: bánh lái hướng (trên mặt đất: lái bánh mũi)
+- Q / E (hoặc PageDown / PageUp): giảm / tăng ga
+- [ / ]: hỗn hợp nghèo hơn / giàu hơn
+- Home / End: trim mũi xuống / mũi lên
+- F6 / F7: thu / hạ cánh tà một nấc
+- B (giữ): phanh hai bánh. Shift+B: kéo/nhả phanh đỗ
+- T: nhấn nói (gọi đài trên tần số COM đang dùng)
+- K: bật/tắt danh sách kiểm tra. M: sổ tay này. H: bảng thông số. Esc: menu
+- C: chuyển buồng lái / nhìn từ ngoài. Y: ẩn cần lái
+- 1 nhìn thẳng, 2 bảng đồng hồ, 3 van xăng dưới sàn, 4 radio + GPS, 5 hàng công tắc, 6 nhìn trái, 7 nhìn phải
+- Shift+R: bắt đầu lại bài bay. R: bay lại sau tai nạn
+
+## Chuột
+- Giữ chuột phải và kéo: nhìn quanh buồng lái (ở ngoài: xoay quanh máy bay)
+- Lăn chuột: phóng to/thu nhỏ; khi trỏ vào núm thì xoay núm
+- Nhấp chuột trái vào công tắc/núm: bật, hoặc xoay theo chiều kim đồng hồ
+- Nhấp chuột phải (nhấp nhanh, không kéo): xoay ngược chiều
+- Kéo chuột trái lên/xuống trên cần ga, hỗn hợp, bánh trim: di chuyển cần
+- Khoá từ trường ở BOTH: GIỮ chuột trái = ĐỀ MÁY, thả ra khoá tự về BOTH
+- Rê chuột lên bất kỳ bộ phận nào để xem tên, trạng thái và cách dùng
+
+# 3. Buồng lái
+## Sáu đồng hồ bay (trước mặt phi công)
+- Hàng trên: TỐC ĐỘ (kt) — CHÂN TRỜI NHÂN TẠO — CAO ĐỘ
+- Hàng dưới: RẼ & TRƯỢT — CON QUAY HƯỚNG — LÊN XUỐNG (×1000 ft/ph)
+- Tốc độ: cung trắng 40–85 kt (dùng cánh tà), cung xanh 48–129, cung vàng 129–163 (chỉ khi trời êm), vạch đỏ 163 kt
+- Cao độ kế: kim dài = trăm ft, kim ngắn = nghìn ft, kim mảnh = vạn ft. Núm dưới-trái chỉnh áp suất Kollsman (ô số bên phải). Phải chỉnh bằng QNH của ATIS, nếu không đồng hồ sai 1000 ft cho mỗi 1 inHg chênh.
+- Con quay hướng: núm trái = khớp lại với la bàn từ (nhấp trái), núm phải cam = vạch hướng (HDG bug). Con quay trôi dần, cứ 15 phút khớp lại một lần.
+- Chân trời và con quay hướng cần chân không 4,5–5,5 inHg. Khi máy chưa nổ hoặc bơm hỏng, chúng chậm, nghiêng và đổ dần.
+
+## Cột trái
+- Đồng hồ giờ, đồng hồ CHÂN KHÔNG (vạch xanh 4,5–5,5), AMPE (dương = đang sạc)
+- Khoá từ trường OFF – R – L – BOTH – START, bên dưới là BƠM MỒI
+
+## Bên phải sáu đồng hồ
+- VOR/CDI: núm OBS chọn hướng, kim dọc lệch về phía cần bay tới, cờ TO/FR, OFF khi không thu được đài
+- VÒNG TUA (×100 v/ph): vạch xanh 2100–2700, đỏ 2700. Ô số Hobbs đếm giờ máy chạy.
+
+## Cụm giữa
+- Dải đèn cảnh báo: ĐIỆN THẤP, ÁP DẦU, CHÂN KHÔNG, XĂNG T, XĂNG P, PHANH ĐỖ, ĐỀ MÁY, BĂNG CHK. Nút THỬ ĐÈN (giữ chuột) để kiểm tra bóng đèn.
+- COM/NAV: số trái = tần số đang dùng, số phải = tần số chờ. Núm ngoài đổi MHz, núm trong đổi kHz (COM bước 0,025; NAV bước 0,05). Nút ⇆ đổi tần số chờ thành đang dùng.
+- GPS: bản đồ hướng bắc lên trên, nút − / + đổi tầm 2/5/12 km. Hiện tốc độ đất GS, hướng bay TRK, cao độ, khoảng cách và phương vị về sân bay SC.
+- Bộ phát đáp (XPDR): núm chế độ TẮT – CHỜ – BẬT – ALT; bốn nút dưới màn hình đổi từng chữ số squawk (0–7).
+- Công tắc ĐIỆN TỬ (xanh dương) cấp điện cho radio, GPS, bộ phát đáp.
+
+## Cột phải
+- XĂNG T, XĂNG P (cần điện mới chỉ), NHIỆT DẦU, ÁP DẦU, EGT, VÔN, GAL/GIỜ, ô HOBBS
+- Hàng cầu chì, hộc đựng đồ
+
+## Hàng công tắc dưới (trái sang phải)
+- MASTER đỏ hai nửa: ALT (máy phát) và BAT (ắc quy). Tắt BAT thì ALT cũng tắt.
+- BƠM XĂNG phụ, ĐÈN HIỆU (beacon đỏ trên đuôi), ĐÈN ĐÁP (đèn hạ cánh), ĐÈN LĂN, ĐÈN HH (hàng hải đỏ/xanh/trắng), ĐÈN CHỚP (strobe), SẤY PITOT, ĐÈN BẢNG (đèn chiếu buồng lái về đêm)
+
+## Cụm cần ga (dưới bảng giữa)
+- SẤY CHK (xám): kéo ra = BẬT, đưa khí nóng vào chế hoà khí để làm tan băng. Làm vòng tua giảm khoảng 80–100 v/ph.
+- GA (đen): đẩy vào = tăng công suất
+- HỖN HỢP (đỏ, có khía): đẩy hết vào = GIÀU, kéo hết ra = CẮT nhiên liệu (cách tắt máy chuẩn)
+- CÁNH TÀ (tay gạt trắng bên phải): 0°, 10°, 20°, 30°. Cánh tà chạy điện, cần điện mới chạy.
+
+## Dưới sàn và hai bên
+- PHANH ĐỖ: tay kéo chữ T đỏ dưới bảng bên trái
+- VAN XĂNG giữa hai ghế: TRÁI – CẢ HAI – PHẢI – TẮT. Luôn để CẢ HAI khi cất cánh, hạ cánh. Chuyển sang TẮT thì máy còn chạy khoảng 25 giây bằng xăng trong ống rồi chết máy.
+- BÁNH TRIM giữa hai ghế, kim cam chỉ vị trí trim. Vạch cất cánh khoảng +15%.
+- La bàn từ trên đỉnh kính chắn gió: đọc ngược như la bàn thật, chao đảo khi nghiêng cánh.
+
+# 4. Tốc độ giới hạn
+- Vs0 40 kt — thất tốc khi hạ cánh tà 30°
+- Vs1 48 kt — thất tốc khi thu cánh tà
+- Vr 55 kt — nâng mũi khi cất cánh
+- Vx 62 kt — góc leo lớn nhất (vượt chướng ngại)
+- Vy 74 kt — tốc độ leo nhanh nhất
+- Lượn tốt nhất 65 kt (khi hỏng động cơ)
+- Va 99 kt — tốc độ cơ động (không lái hết cỡ khi nhanh hơn)
+- Vfe 85 kt — không bay nhanh hơn khi có cánh tà
+- Vno 129 kt — tốc độ bay tối đa trong không khí xáo động
+- Vne 163 kt — tuyệt đối không vượt
+- Tiếp cận hạ cánh: 70 kt (cánh tà 10–20°), chặng cuối 60–65 kt (cánh tà 30°)
+- Lăn bánh: tối đa khoảng 15 kt. Gió ngang tối đa đã thử: 15 kt.
+
+# 5. Trước khi khởi động và khởi động
+Bài bay 1 bắt đầu trong buồng lái nguội: mọi thứ tắt, phanh đỗ kéo. Làm theo đúng thứ tự dưới đây (danh sách kiểm tra phím K tự đánh dấu từng mục khi bạn làm đúng).
+
+## Trước khi khởi động
+- Phanh đỗ — KÉO
+- Van xăng — CẢ HAI (phím 3 để nhìn xuống sàn)
+- Công tắc ĐIỆN TỬ — TẮT (bảo vệ radio khỏi xung điện lúc đề)
+- Cầu chì — KIỂM TRA (nhấp vào mục trong danh sách để xác nhận)
+- Master BAT — BẬT. Kiểm tra vôn kế và đèn ĐIỆN THẤP, ÁP DẦU sáng.
+- Đồng hồ xăng — kiểm tra hai bình
+- Đèn hiệu (beacon) — BẬT, báo cho mọi người là sắp nổ máy
+
+## Khởi động động cơ (máy nguội)
+- Hỗn hợp — GIÀU (đẩy hết vào)
+- Sấy chế hoà khí — TẮT
+- Bơm mồi — 2 đến 3 lần (nhấp vào núm BƠM MỒI). Máy nóng thì không cần bơm.
+- Ga — HÉ khoảng 1 cm (5–15%). Ga đóng kín rất khó nổ; ga mở quá nửa thì máy không nổ.
+- Khu vực cánh quạt — QUANG (nhấp xác nhận trong danh sách)
+- Khoá từ: xoay sang BOTH, rồi GIỮ chuột trái để ĐỀ (START). Thả ra ngay khi máy nổ. Không đề liên tục quá 10 giây.
+- Áp dầu — phải lên vạch xanh trong 30 giây. Nếu không: tắt máy ngay.
+
+## Máy không nổ?
+- Chưa bơm mồi: máy nguội cần đề rất lâu (khoảng 7 giây). Bơm 2–3 lần rồi đề lại.
+- Ga đóng kín: hé ga 1 cm.
+- Hỗn hợp đang CẮT, van xăng TẮT, khoá ở OFF, hoặc ắc quy yếu.
+- Bơm mồi quá 6 lần: động cơ NGẬP XĂNG. Cách xử lý: hỗn hợp CẮT, ga mở HẾT, đề khoảng 3 giây để thổi xăng thừa ra; sau đó ga về hé 1 cm, hỗn hợp GIÀU, đề lại (không bơm thêm).
+
+# 6. Sau khi nổ máy và lăn bánh
+## Sau khi nổ máy
+- Ga — 1000 v/ph
+- Master ALT — BẬT, ampe kế lên dương, đèn ĐIỆN THẤP tắt
+- Công tắc ĐIỆN TỬ — BẬT
+- Nghe ATIS: đặt COM đang dùng thành 127.55 (xoay núm, bấm ⇆) và nghe ít nhất 5 giây. Ghi lại gió và QNH.
+- Áp kế — chỉnh theo QNH (hôm nay 30.12). Kiểm tra: đồng hồ chỉ xấp xỉ độ cao sân 203 ft.
+- Con quay hướng — đợi con quay quay đủ tốc (khoảng 1 phút), rồi nhấp núm trái để khớp với la bàn từ
+- Đèn hàng hải — BẬT
+- Đặt COM 118.30 (đài Sải Cánh), nhấn T để xin lăn. Đài cho mã squawk: nhập vào bộ phát đáp.
+
+## Lăn bánh
+- Đèn lăn — BẬT
+- Nhả phanh đỗ (Shift+B hoặc nhấp tay phanh), tăng ga nhẹ cho máy lăn, rồi giảm ga và thử phanh (B)
+- Lái bằng bánh lái hướng (Z/X), không dùng cánh liệng để rẽ trên mặt đất
+- Tốc độ lăn ≤ 15 kt. Khi rẽ, kiểm tra la bàn, con quay hướng và đồng hồ rẽ đều chỉ đúng chiều.
+- Khi có gió: gió từ phía trước — cánh liệng nghiêng VỀ PHÍA gió; gió từ phía sau — cánh liệng nghiêng RA XA gió và đẩy cần lái tới
+- Đường lăn: từ sân đỗ lăn về phía tây vào đường lăn A, rẽ trái về phía nam, đến A1 thì rẽ phải và DỪNG trước vạch vàng kép (điểm chờ). Không được vượt vạch khi chưa được phép.
+
+# 7. Chạy thử động cơ và trước cất cánh
+## Chạy thử (tại điểm chờ A1, quay mũi lên gió)
+- Phanh đỗ — KÉO
+- Cánh lái — lái hết bốn phía, kiểm tra tự do và đúng chiều
+- Trim — vạch CẤT CÁNH (+10…+20%)
+- Ga — 1700 v/ph
+- Từ trường: xoay khoá sang L, xem vòng tua giảm (không quá 125 v/ph), về BOTH; sang R, xem giảm, về BOTH. Hai bên chênh nhau không quá 50 v/ph.
+- Sấy chế hoà khí: kéo ra, vòng tua phải giảm, rồi đẩy vào
+- Chân không, áp dầu, nhiệt dầu — trong vạch xanh; ampe dương
+- Ga — kéo về chạy chậm, máy phải chạy êm, không tắt
+- Ga — 1000 v/ph
+
+## Trước khi cất cánh
+- Cửa, cửa sổ, dây an toàn — ĐÓNG, CÀI
+- Cánh tà — 0° (đường băng dài) hoặc 10°
+- Bộ phát đáp — ALT, đúng mã squawk đài cho
+- Đèn đáp, đèn chớp — BẬT
+- Bơm xăng phụ — BẬT
+- Nhấn T: báo đài sẵn sàng, chờ "được phép cất cánh"
+- Nhả phanh đỗ
+
+# 8. Cất cánh, leo cao, bay bằng
+## Cất cánh thường
+- Lăn vào tim đường băng 36, thẳng hàng với vạch giữa
+- Ga — HẾT CỠ, nhịp nhàng trong 3 giây. Hỗn hợp GIÀU.
+- Kiểm tra: vòng tua trên 2200, áp dầu xanh, tốc độ tăng
+- Giữ tim đường bằng bánh lái hướng (động cơ làm mũi lệch trái: thường phải đạp phải một chút)
+- 55 kt: kéo nhẹ nâng mũi khoảng 8–10°, để máy tự rời đất
+- Hạ mũi để tăng tốc tới Vy 74 kt rồi leo. Chỉnh trim để không phải giữ cần.
+
+## Leo cao
+- Trên 500 ft: thu cánh tà (nếu dùng)
+- Trên 1000 ft: tắt bơm xăng phụ; có thể tắt đèn đáp
+- Leo 74–85 kt, ga hết cỡ, hỗn hợp giàu (trên 3000 ft thì chỉnh nghèo cho máy chạy êm)
+- Theo dõi nhiệt dầu không vào vạch đỏ
+
+## Bay bằng
+- Hạ mũi xuống đường chân trời, để tốc độ tăng, rồi giảm ga còn 2200–2400 v/ph
+- Trim cho máy tự giữ độ cao khi buông tay
+- Hỗn hợp: kéo chậm ra cho tới khi EGT cao nhất, rồi đẩy vào lại một chút (giàu hơn đỉnh khoảng 50°F)
+- Cứ 15 phút: khớp con quay hướng với la bàn, kiểm tra xăng và đồng hồ động cơ
+
+# 9. Vòng lượn và hạ cánh
+## Vòng lượn trái đường băng 36 (cao 1000 ft trên sân = khoảng 1200 ft trên cao độ kế)
+- Gọi đài trước khi vào vòng lượn (nhấn T) để xin hạ cánh
+- Trước khi hạ cánh: ATIS và áp kế, hỗn hợp GIÀU, van xăng CẢ HAI, bơm xăng phụ và đèn đáp BẬT
+- Chặng gió xuôi (bay hướng nam, song song đường băng, cách khoảng 1 km): sấy chế hoà khí BẬT
+- Ngang đầu đường băng 36 (khi đầu đường băng ở ngay sau vai trái): giảm ga còn khoảng 1500 v/ph, giữ 75 kt, hạ cánh tà 10°
+- Chặng ngang (rẽ trái hướng đông): cánh tà 20°, giảm tốc còn 70 kt
+- Chặng cuối (rẽ trái hướng bắc, thẳng hàng đường băng): cánh tà 30°, 60–65 kt
+
+## Giữ đường trượt 3°
+- PAPI: bốn đèn bên trái đường băng. Hai trắng hai đỏ = đúng. Nhiều trắng = cao. Nhiều đỏ = thấp.
+- Điều chỉnh tốc độ bằng góc ngóc mũi, điều chỉnh độ cao bằng ga
+- Nhắm vào vạch điểm ngắm (hai vạch trắng lớn cách đầu đường băng 300 m)
+
+## Chạm đất
+- Qua đầu đường băng khoảng 15 ft: ga về CHẠY CHẬM
+- Từ từ kéo cần để mũi nâng dần (flare), giữ máy bay lơ lửng sát đường băng cho tốc độ giảm
+- Chạm bằng hai bánh chính trước, mũi vẫn ngóc. Sau đó hạ bánh mũi nhẹ nhàng.
+- Giữ tim đường bằng bánh lái hướng, phanh nhẹ khi dưới 40 kt
+- Chạm êm: dưới 200 ft/ph. Mạnh: trên 500 ft/ph. Trên 900 ft/ph: gãy càng.
+
+## Bay vòng lại (go-around)
+- Ga HẾT CỠ, sấy chế hoà khí TẮT, thu cánh tà về 20° ngay, nâng mũi, khi tốc độ trên 60 kt và đang leo thì thu dần về 0°
+
+# 10. Sau hạ cánh và tắt máy
+## Sau khi ra khỏi đường băng (qua vạch vàng)
+- Sấy chế hoà khí — TẮT
+- Cánh tà — THU
+- Bộ phát đáp — CHỜ (SBY)
+- Đèn đáp, đèn chớp — TẮT; đèn lăn — BẬT
+- Bơm xăng phụ — TẮT
+- Nhấn T báo đài và xin lăn về sân đỗ
+
+## Tắt máy (trên sân đỗ)
+- Phanh đỗ — KÉO
+- Công tắc ĐIỆN TỬ — TẮT
+- Ga — 1000 v/ph, rồi hỗn hợp — CẮT (kéo hết ra). Máy tắt vì hết xăng.
+- Khoá từ — OFF khi cánh quạt đã dừng
+- Đèn, Master BAT — TẮT (beacon tắt sau cùng)
+- Khi xong cả 12 giai đoạn, game báo HOÀN THÀNH CHUYẾN BAY và điểm quy trình.
+
+# 11. Dẫn đường
+## La bàn từ và con quay hướng
+- La bàn từ luôn đúng khi bay thẳng đều, nhưng chao đảo khi rẽ hoặc tăng giảm tốc
+- Con quay hướng ổn định nhưng trôi dần: khớp lại với la bàn khi bay thẳng
+- Rẽ chuẩn: kim máy bay trên đồng hồ rẽ chạm vạch L/R = 3°/giây, 2 phút quay 360°. Giữ bi ở giữa bằng bánh lái hướng.
+
+## VOR "SCV" 113.70
+- Đài VOR nằm cách sân bay khoảng 1,3 km về phía bắc-tây bắc
+- Đặt NAV đang dùng 113.70, xoay OBS. Kim ở giữa với cờ TO = bay theo hướng OBS sẽ tới đài; cờ FR = đang bay ra xa đài trên đường hướng đó.
+- Kim lệch phải: hướng đúng ở bên phải, lái sang phải để về lại
+
+## GPS
+- Bản đồ hiện đường bờ biển (phía nam), hồ (phía tây), núi (phía bắc), thị trấn (phía đông) và sân bay
+- "SC 3.2 nm BRG 175°" nghĩa là sân bay cách 3,2 hải lý theo phương vị 175°
+
+# 12. Tình huống khẩn cấp
+## Hỏng động cơ khi đang bay (bài bay 6)
+- Tốc độ lượn tốt nhất 65 kt — giữ ngay, trim theo
+- Chọn bãi đáp: sân bay nếu với tới, nếu không thì ruộng bằng, tránh rừng và nhà
+- Thử khởi động lại: van xăng CẢ HAI, hỗn hợp GIÀU, sấy chế hoà khí BẬT, bơm xăng phụ BẬT, khoá từ BOTH (hoặc START nếu cánh quạt dừng)
+- Nếu không nổ: báo đài (nhấn T), squawk 7700, cánh tà khi chắc chắn với tới bãi, trước khi chạm: hỗn hợp CẮT, van xăng TẮT, Master TẮT
+
+## Băng chế hoà khí
+- Dấu hiệu: vòng tua giảm dần không rõ lý do, máy rung; đèn BĂNG CHK sáng
+- Thường xảy ra khi độ ẩm cao và ga nhỏ (hạ độ cao, vòng lượn)
+- Xử lý: SẤY CHK — BẬT hết. Vòng tua sẽ giảm thêm một chút (băng tan thành nước) rồi tăng trở lại.
+- Không xử lý: máy sẽ chết
+
+## Mất máy phát (đèn ĐIỆN THẤP, ampe âm)
+- Kiểm tra Master ALT BẬT. Tắt bớt thiết bị không cần (đèn đáp, sấy pitot) để ắc quy dùng lâu hơn. Hạ cánh sớm.
+
+## Mất chân không (đèn CHÂN KHÔNG)
+- Chân trời nhân tạo và con quay hướng sẽ dần đổ và sai. Dùng đồng hồ rẽ & trượt, la bàn từ và nhìn ra ngoài.
+
+## Thất tốc
+- Còi báo thất tốc kêu khi gần thất tốc
+- Xử lý: đẩy cần tới để giảm góc tấn, ga HẾT CỠ, giữ cánh bằng bằng bánh lái hướng (không dùng cánh liệng mạnh), phục hồi khi tốc độ tăng
+
+# 13. Tần số và sân bay
+- ATIS Sải Cánh: 127.55 (chỉ nghe: gió, tầm nhìn, QNH, đường băng đang dùng)
+- Đài Sải Cánh (TWR): 118.30 — xin lăn, cất cánh, hạ cánh
+- Mặt đất (GND): 121.90 — cũng nhận gọi xin lăn
+- VOR SCV: 113.70
+- Đường băng 18/36: 1800 × 30 m, cao 62 m (203 ft), PAPI 3° bên trái đường băng 36
+- QNH hôm nay: 30.12 inHg. Gió mặc định 340° 6 kt (đổi trong menu).
+
+# 14. Chấm điểm quy trình
+Mỗi chuyến bay bắt đầu với 100 điểm. Mỗi lỗi chỉ trừ một lần và hiện ở cuối danh sách kiểm tra.
+- Đề máy khi ĐIỆN TỬ bật −5; đề quá 10 giây −5; ngập xăng −3
+- Lăn khi chưa được phép −5; lăn quá 20 kt −5; máy chạy mà beacon tắt −3
+- Tăng ga lớn khi phanh đỗ còn kéo −2
+- Vào đường băng khi chưa được phép −10
+- Cất cánh khi chưa được phép −10, chưa chạy thử −10, cánh tà quá 10° −5, sấy CHK bật −5, van xăng không ở CẢ HAI −5, hỗn hợp chưa giàu −5, bộ phát đáp chưa ALT −3, chưa chỉnh áp kế −3
+- Vượt Vfe −5, vượt Vne −10, thất tốc −5
+- Giảm ga thấp khi gần đất mà chưa bật sấy CHK −2
+- Hạ cánh khi chưa được phép −10, ngoài đường băng −10, chạm đất mạnh −5
+- Gọi đài khi chưa nghe ATIS −2

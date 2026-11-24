@@ -55,6 +55,17 @@ Mô phỏng bay máy bay cánh quạt 4 chỗ SC-4 (thiết kế riêng), góc n
 
 Phím: `W`/`S` chúi/ngóc, `A`/`D` nghiêng, `Q`/`E` bánh lái hướng, `R`/`F` ga, `C`/`X` cánh tà, `[`/`]` trim, `Space` phanh, `V` đổi góc nhìn, kéo chuột để nhìn quanh. Kiểm thử: `tests/flight.test.js`.
 
+### Sải Cánh bản Unity (`unity/SaiCanh/`)
+
+Bản dựng trên Unity 6 với đồ hoạ chân thực hơn và **phải bay đúng quy trình**: bắt đầu từ buồng lái nguội, tự bật điện, bơm mồi, đề máy, nghe ATIS, gọi đài xin lăn, chạy thử động cơ, xin cất cánh… Toàn bộ thế giới được dựng bằng mã khi bấm Play, không cần tải tài nguyên.
+
+- **Cài đặt:** Unity Hub → cài Unity 6 (6000.0 LTS) → *Add project from disk* → chọn `unity/SaiCanh` → mở rồi bấm Play (hoặc menu **Sải Cánh → Bay ngay**).
+- **Thế giới:** 7×7 ô Unity Terrain (28 km), 8 lớp kết cấu (cỏ, ruộng, đất cày, rừng, đá, tuyết, cát), cây rừng 3 loài, cỏ chi tiết quanh sân bay, bầu trời vật lý, sương mù, mây tích, mặt nước có sóng và phản chiếu, thị trấn, sân bay đầy đủ vạch sơn, đèn, PAPI, đài VOR.
+- **Buồng lái:** hơn 40 bộ phận bấm được bằng chuột (Master BAT/ALT, 8 công tắc đèn/bơm/sấy, điện tử, khoá từ có đề máy, bơm mồi, ga, hỗn hợp, sấy chế hoà khí, cánh tà, phanh đỗ, van xăng 4 vị trí, bánh trim, núm Kollsman, con quay hướng, HDG bug, OBS, COM/NAV, GPS, bộ phát đáp, thử đèn cảnh báo). 20 đồng hồ cơ học có kim thật.
+- **Hệ thống:** điện 28 V, ắc quy hao khi không sạc, nhiên liệu trong ống, bơm mồi và ngập xăng, băng chế hoà khí, bơm chân không cho con quay, con quay trôi, áp kế theo QNH, VOR, ATIS 127.55, đài 118.30.
+- **Quy trình:** 12 giai đoạn danh sách kiểm tra tự đánh dấu (phím K), chấm điểm lỗi quy trình, sổ tay bay trong game (phím M, nội dung ở `Assets/SaiCanh/Resources/SoTayBay.txt`).
+- **Mã:** `Assets/SaiCanh/Scripts/` — `FlightModel.cs` (bản C# của `physics.js`), `AircraftSystems.cs`, `Cockpit.cs`, `Gauges.cs`, `TerrainBuilder.cs`, `AirportBuilder.cs`, `Environment.cs`, `Procedures.cs`, `EngineAudio.cs`, `FlightGame.cs`, `Hud.cs`. Shader ở `Assets/SaiCanh/Resources/`.
+
 ## Patrol
 
 Đồ chơi lái chiến đấu cơ pixel art, một file duy nhất `public/patrol.html` (không thư viện, không ảnh; chỉ tải font Google). Thế giới là height field lặp liền mạch sinh bằng web worker lúc tải, ray-march trong fragment shader WebGL2; buồng lái và HUD vẽ bằng Canvas 2D. Chữ trong game bằng tiếng Anh.
