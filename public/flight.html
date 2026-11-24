@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Sải Cánh — Mô phỏng bay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+</script>
+<style>
+:root{--ink:#eef3f7;--dim:#9fb0bf;--glass:rgba(12,18,26,.62);--line:rgba(255,255,255,.14);--acc:#4fc3ff;--warn:#ffb020;--bad:#ff4d3d}
+html,body{margin:0;height:100%;overflow:hidden;background:#0b1118;color:var(--ink);font-family:Barlow,system-ui,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;position:fixed;inset:0}
+button{font-family:inherit}
+#menu{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 30% 20%,rgba(10,20,30,.35),rgba(4,8,12,.82))}
+#menu.show{display:flex}
+#card{width:min(640px,92vw);max-height:92vh;overflow:auto;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid var(--line);border-radius:18px;padding:30px 34px 26px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+#card h1{margin:0;font:700 clamp(40px,7vw,60px)/1 'Barlow Condensed',sans-serif;letter-spacing:6px}
+#card h1 span{color:var(--acc)}
+#card .sub{margin:6px 0 22px;color:var(--dim);font-size:15px;letter-spacing:.4px}
+.row{margin:0 0 16px}
+.row label{display:block;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:rgba(255,255,255,.06);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-size:15px;cursor:pointer;transition:.15s}
+.chip:hover{background:rgba(255,255,255,.12)}
+.chip.sel{background:var(--acc);border-color:var(--acc);color:#04121c;font-weight:600}
+.actions{display:flex;gap:10px;margin:22px 0 8px;flex-wrap:wrap}
+.big{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:12px;padding:14px 26px;font-size:18px;font-weight:700;letter-spacing:.5px;cursor:pointer}
+#fly{background:linear-gradient(180deg,#5fd0ff,#2a9fe0);color:#03131f}
+#fly:disabled{opacity:.5;cursor:wait}
+#resume{display:none;background:rgba(255,255,255,.1);color:var(--ink);border:1px solid var(--line)}
+#status{color:var(--dim);font-size:14px;min-height:18px}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:14px;color:#c9d4dd;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.keys b{display:inline-block;min-width:22px;text-align:center;background:rgba(255,255,255,.1);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-size:12.5px;color:#fff;margin-right:3px}
+.back{display:block;margin-top:14px;color:var(--dim);font-size:13px;text-decoration:none}
+#hud{position:fixed;left:14px;bottom:14px;z-index:5;display:flex;gap:2px;background:var(--glass);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-family:'Barlow Condensed',sans-serif;pointer-events:none}
+#hud.hide{display:none}
+body.inside #hud{bottom:auto;top:12px;left:12px;transform:scale(.82);transform-origin:top left}
+#hud .c{padding:0 10px;border-left:1px solid var(--line);text-align:center;min-width:52px}
+#hud .c:first-child{border-left:0}
+#hud small{display:block;font-size:11px;letter-spacing:1.5px;color:var(--dim);font-family:Barlow,sans-serif}
+#hud b{font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+#hud .thr{display:flex;align-items:flex-end;gap:6px}
+#hud .tb{width:6px;height:28px;background:rgba(255,255,255,.12);border-radius:3px;position:relative;overflow:hidden}
+#hThrBar{position:absolute;left:0;right:0;bottom:0;background:var(--acc)}
+#hBrake{color:var(--dim);font-size:15px;align-self:center;padding:0 8px;font-weight:700;letter-spacing:1px}
+#hBrake.on{color:var(--bad)}
+#top{position:fixed;right:12px;top:12px;z-index:6;display:flex;gap:8px;align-items:center}
+#top span,#top button{background:var(--glass);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:6px 12px;font-size:14px}
+#top button{cursor:pointer}
+#fps{color:var(--dim)!important;font-size:12px!important}
+#msg{position:fixed;left:50%;top:16%;transform:translate(-50%,-8px);z-index:6;background:var(--glass);border:1px solid var(--line);border-radius:12px;
+  padding:10px 20px;font-size:19px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;white-space:nowrap}
+#msg.show{opacity:1;transform:translate(-50%,0)}
+.warn{position:fixed;left:50%;top:9%;transform:translateX(-50%);z-index:6;font:700 22px 'Barlow Condensed',sans-serif;letter-spacing:4px;
+  padding:6px 18px;border-radius:8px;display:none;pointer-events:none}
+.warn.show{display:block;animation:pulse .5s infinite alternate}
+#stall{background:rgba(255,77,61,.85);color:#fff}
+#overspeed{background:rgba(255,176,32,.9);color:#1a1000;top:15%}
+@keyframes pulse{to{opacity:.55}}
+#crash{position:fixed;inset:0;z-index:15;display:none;align-items:center;justify-content:center;background:rgba(40,0,0,.35)}
+#crash.show{display:flex}
+#crash div{background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:26px 34px;text-align:center}
+#crash h2{margin:0 0 6px;font:700 34px 'Barlow Condensed',sans-serif;letter-spacing:3px;color:var(--bad)}
+#crash p{margin:0 0 18px;color:#dfe6ec}
+#again{background:var(--acc);color:#03131f}
+#help{position:fixed;right:14px;bottom:14px;z-index:5;background:var(--glass);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:13px;line-height:1.7;color:#cfd9e1;pointer-events:none;transition:opacity .6s}
+#help.hide{opacity:0}
+#help b{color:#fff;background:rgba(255,255,255,.1);border-radius:4px;padding:0 5px;font-size:12px}
+#touchUi{display:none}
+body.touch #touchUi{display:block}
+body.touch #help{display:none}
+#stick{position:fixed;left:22px;bottom:90px;width:140px;height:140px;border-radius:50%;background:rgba(12,18,26,.45);border:2px solid var(--line);z-index:7}
+#knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(79,195,255,.7)}
+#thr{position:fixed;right:22px;bottom:90px;width:56px;height:170px;border-radius:14px;background:rgba(12,18,26,.45);border:2px solid var(--line);z-index:7}
+.tbtn{position:fixed;z-index:7;background:rgba(12,18,26,.55);color:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px}
+#tView{right:92px;bottom:90px}#tFlap{right:92px;bottom:140px}#tBrake{right:92px;bottom:190px}#tPause{left:14px;top:12px}
+@media (max-width:640px){#hud{left:6px;right:6px;bottom:6px;justify-content:space-between;padding:6px}#hud .c{padding:0 4px;min-width:0}#hud b{font-size:18px}#stick{bottom:84px}#thr{bottom:84px}}
+</style>
+</head>
+<body>
+<div id="top"><span id="viewName">Buồng lái</span><span id="fps"></span><button id="snd">🔊</button></div>
+<div id="hud">
+  <div class="c"><small>TỐC ĐỘ KT</small><b id="hIas">0</b></div>
+  <div class="c"><small>ĐỘ CAO FT</small><b id="hAlt">0</b></div>
+  <div class="c"><small>TRÊN ĐẤT</small><b id="hAgl">0</b></div>
+  <div class="c"><small>LÊN/XUỐNG</small><b id="hVs">0</b></div>
+  <div class="c"><small>HƯỚNG</small><b id="hHdg">000°</b></div>
+  <div class="c"><small>GA</small><div class="thr"><div class="tb"><i id="hThrBar"></i></div><b id="hThr">0%</b></div></div>
+  <div class="c"><small>CÁNH TÀ</small><b id="hFlap">0°</b></div>
+  <div class="c"><small>TRIM</small><b id="hTrim">0</b></div>
+  <div class="c" id="hBrake">PHANH</div>
+</div>
+<div id="msg"></div>
+<div id="stall" class="warn">THẤT TỐC</div>
+<div id="overspeed" class="warn">VƯỢT TỐC ĐỘ</div>
+<div id="help" class="hide">
+  <b>W</b><b>S</b> chúi / ngóc mũi · <b>A</b><b>D</b> nghiêng · <b>Q</b><b>E</b> bánh lái hướng<br>
+  <b>R</b><b>F</b> tăng / giảm ga · <b>C</b><b>X</b> thả / thu cánh tà · <b>Space</b> phanh<br>
+  <b>V</b> đổi góc nhìn · kéo chuột: nhìn quanh · <b>H</b> ẩn bảng · <b>P</b> tạm dừng
+</div>
+<div id="crash"><div><h2>MÁY BAY RƠI</h2><p id="crashWhy"></p><button id="again" class="big">Bay lại (Enter)</button></div></div>
+<div id="touchUi">
+  <div id="stick"><div id="knob"></div></div>
+  <div id="thr"></div>
+  <button class="tbtn" id="tView">Góc nhìn</button>
+  <button class="tbtn" id="tFlap">Cánh tà</button>
+  <button class="tbtn" id="tBrake">Phanh</button>
+  <button class="tbtn" id="tPause">☰</button>
+</div>
+<div id="menu" class="show"><div id="card">
+  <h1>SẢI <span>CÁNH</span></h1>
+  <div class="sub">Mô phỏng bay máy bay cánh quạt SC-4 · buồng lái thật, vật lý bay thật</div>
+  <div class="row"><label>Xuất phát</label><div class="chips" id="startPick"></div></div>
+  <div class="row"><label>Thời gian</label><div class="chips" id="timePick"></div></div>
+  <div class="row"><label>Đồ hoạ</label><div class="chips" id="qualPick"></div></div>
+  <div class="actions">
+    <button class="big" id="fly" disabled>Đang tải…</button>
+    <button class="big" id="resume">Tiếp tục</button>
+  </div>
+  <div id="status">Đang tải…</div>
+  <div class="keys">
+    <span><b>W</b><b>S</b> / <b>↑</b><b>↓</b></span><span>Đẩy cần (chúi mũi) / kéo cần (ngóc mũi)</span>
+    <span><b>A</b><b>D</b> / <b>←</b><b>→</b></span><span>Nghiêng cánh trái / phải</span>
+    <span><b>Q</b><b>E</b></span><span>Bàn đạp bánh lái hướng — lái bánh mũi khi chạy trên đất</span>
+    <span><b>R</b><b>F</b></span><span>Tăng / giảm ga</span>
+    <span><b>C</b><b>X</b></span><span>Thả / thu cánh tà (0°, 10°, 20°, 30°)</span>
+    <span><b>[</b><b>]</b></span><span>Trim mũi xuống / lên</span>
+    <span><b>Space</b></span><span>Phanh bánh</span>
+    <span><b>V</b> · chuột</span><span>Đổi góc nhìn · kéo chuột để nhìn quanh, lăn chuột để phóng to</span>
+    <span>Mẹo</span><span>Cất cánh: ga tối đa, tới 55 kt thì kéo nhẹ <b>S</b>. Hạ cánh: thả cánh tà, giữ 65 kt, đèn PAPI 2 trắng 2 đỏ là đúng góc.</span>
+  </div>
+  <a class="back" href="/">← Về trang chính</a>
+</div></div>
+<script type="module" src="/flight/main.js"></script>
+</body>
+</html>
