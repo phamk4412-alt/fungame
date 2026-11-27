@@ -138,7 +138,7 @@
     // from: giây trong video tại thời điểm t0 của AudioContext
     const at = (s) => t0 + (s - from);
     const master = ctx.createGain();
-    master.gain.value = 0.55;
+    master.gain.value = 1.0;
     const lp = ctx.createBiquadFilter();
     lp.type = 'lowpass'; lp.frequency.value = 2200;
     master.connect(lp); lp.connect(out);
