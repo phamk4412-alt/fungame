@@ -85,6 +85,12 @@ Gameshow chống bạo lực mạng cho sân khấu: laptop nối máy chiếu, 
 - **Màn 3 · 5 Giây Đảo Ngược:** vào vai bạn cùng lớp, 3 tình huống trong nhóm chat, chọn 1 trong 3 cách phản hồi (phím 1–3) để hồi Tinh thần cho Minh Anh.
 - HP về 0 thì phát cảnh kết thúc: tin nhắn cuối của Minh Anh không ai trả lời, sáng hôm sau chỗ ngồi của bạn ấy trong lớp bỏ trống, rồi tới màn **Hậu quả của bạo lực mạng** (với người bị bắt nạt, với người bắt nạt) kèm Tổng đài 111. Cảnh này cố ý không mô tả chuyện gì đã xảy ra. Hết game với HP trên 50% thì phát **kết thúc có hậu**: cả lớp nhắn động viên, sáng hôm sau Minh Anh đi học, cô điểm danh "Dạ, có ạ!", bạn ấy cười nói vui vẻ với mọi người, rồi tới màn vinh danh (vỗ tay, pháo giấy). Nội dung hai cảnh nằm ở `endings.scene` và `endings.goodScene` trong `data.json`.
 
+### Video mở đầu
+
+Mở `/lachan/intro.html` (hoặc bấm **🎬 VIDEO MỞ ĐẦU** ở màn hình chính, hay nút cùng tên ở phòng chờ Đấu Trường) để chiếu video 80 giây trước khi chơi: vụ "bóc phốt" sai sự thật, cơn mưa bình luận làm Tinh thần của Minh Anh tụt, rồi trò chơi này để làm gì (Nhận ra, Tự vệ, Lên tiếng), cách chơi ba màn và đếm ngược 5 giây. Space tạm dừng, ← → tua 5 giây, M tắt tiếng, F toàn màn hình. Nội dung chữ lấy từ `data.json`.
+
+Xuất thành file MP4 (1920×1080, có nhạc nền) để gửi trước hoặc chiếu không cần mạng: `node tools/lachan-intro-video.js la-chan-ngon-tu-mo-dau.mp4` (cần Playwright và ffmpeg).
+
 ### Đấu Trường (cả lớp chơi bằng điện thoại)
 
 Mở `/lachan/arena.html` trên máy chiếu (hoặc bấm **👥 ĐẤU TRƯỜNG** ở màn hình chính). Màn hình hiện mã QR và mã phòng 4 ký tự; khán giả quét QR hoặc vào `/lachan/play.html` trên điện thoại, nhập tên, chọn đội (hoặc để tự xếp cho đều). Cần server đang chạy (bản trên Render) và điện thoại có mạng.

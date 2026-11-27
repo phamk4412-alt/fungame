@@ -70,4 +70,14 @@ assert.ok(C.failReviveHp + heal > C.winHp, 'không thể thắng sau khi hồi s
 const js = fs.readFileSync(path.join(dir, 'data.js'), 'utf8');
 const copy = JSON.parse(js.slice(js.indexOf('=') + 1).trim().replace(/;$/, ''));
 assert.deepStrictEqual(copy, D, 'data.js lệch data.json — chạy: node public/lachan/build-data.js');
+
+// Video mở đầu: các file tồn tại, và không đưa lên màn chiếu câu đe dọa hay kích động tự hại
+const introHtml = fs.readFileSync(path.join(dir, 'intro.html'), 'utf8');
+for (const f of ['intro.css', 'intro.js', 'data.js', 'avatar.js']) {
+  assert.ok(introHtml.includes(f) && fs.existsSync(path.join(dir, f)), 'intro.html thiếu ' + f);
+}
+const introJs = fs.readFileSync(path.join(dir, 'intro.js'), 'utf8');
+for (const bad of ['biến khỏi đời', 'tự tử', 'ban công', 'Biết nhà mày', 'số của bố mẹ']) {
+  assert.ok(!introJs.includes(bad) && !introHtml.includes(bad), 'Video mở đầu không được có: ' + bad);
+}
 console.log('✓ Lá Chắn Ngôn Từ: dữ liệu hợp lệ');
