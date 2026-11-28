@@ -1,0 +1,153 @@
+/* LÁ CHẮN NGÔN TỪ — "video" vẽ bằng HTML (video.js). Sân khấu 1920×1080 co giãn vừa khung chứa. */
+.lcv { position: absolute; inset: 0; overflow: hidden; background: #03050c; color: #eef1ff;
+  font-family: "Segoe UI", "Be Vietnam Pro", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; user-select: none;
+  --acc: #ff4d8d; --bgA: #16204a; --bgB: #3a1240; --bgC: #070a14; --b1: #3a5bff; --b2: #ff3d8b; --b3: #19d3c5; }
+.lcv *, .lcv *::before, .lcv *::after { box-sizing: border-box; }
+.lcv-stage { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; transform-origin: 50% 50%; overflow: hidden;
+  background: radial-gradient(1400px 900px at 15% 0%, var(--bgA) 0%, transparent 60%), radial-gradient(1200px 800px at 100% 100%, var(--bgB) 0%, transparent 55%), var(--bgC); }
+.lcv .bg i { position: absolute; border-radius: 50%; filter: blur(120px); opacity: .3; }
+.lcv .bg .b1 { width: 820px; height: 820px; background: var(--b1); left: -200px; top: -240px; }
+.lcv .bg .b2 { width: 860px; height: 860px; background: var(--b2); right: -260px; bottom: -300px; }
+.lcv .bg .b3 { width: 520px; height: 520px; background: var(--b3); left: 700px; top: 420px; opacity: .14; }
+.lcv .fx { position: absolute; inset: 0; pointer-events: none; }
+.lcv .flashfx { position: absolute; inset: 0; background: #e9e4ff; opacity: 0; pointer-events: none; mix-blend-mode: screen; }
+
+/* Giao diện riêng của từng màn */
+.lcv[data-theme="1"] { --acc: #38d9ff; --bgA: #0b2a3a; --bgB: #04121c; --bgC: #02070c; --b1: #1aa7d6; --b2: #0d3b66; --b3: #38d9ff; }
+.lcv[data-theme="1"] .fx { background: repeating-linear-gradient(0deg, rgba(56,217,255,.05) 0 2px, transparent 2px 6px), radial-gradient(900px 700px at 50% 45%, transparent 40%, rgba(0,0,0,.65) 100%); }
+.lcv[data-theme="2"] { --acc: #ffcf4a; --bgA: #2a1060; --bgB: #120830; --bgC: #07041a; --b1: #6a2bff; --b2: #3b1a7a; --b3: #ffcf4a; }
+.lcv[data-theme="2"] .fx { background: repeating-linear-gradient(105deg, rgba(200,210,255,.07) 0 2px, transparent 2px 38px); }
+.lcv[data-theme="3"] { --acc: #ff8fb1; --bgA: #5a2440; --bgB: #5a3010; --bgC: #1c0c16; --b1: #ff6f91; --b2: #ffb347; --b3: #3ee39b; }
+.lcv[data-theme="3"] .fx { background: radial-gradient(1000px 500px at 50% 110%, rgba(255,179,71,.25), transparent 70%); }
+
+.lcv .sc { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; }
+.lcv .a { opacity: 0; will-change: transform, opacity; }
+.lcv .pink { color: #ff4d8d; }
+.lcv h1 { margin: 24px 0 0; font-size: 150px; font-weight: 900; letter-spacing: 6px; text-align: center;
+  background: linear-gradient(90deg, #8fb4ff, #fff 45%, #ff8fbd); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lcv h2 { margin: 0 0 70px; font-size: 92px; font-weight: 900; text-align: center; }
+.lcv .title-wrap { text-align: center; }
+.lcv .shield, .lcv .ricon { font-size: 180px; line-height: 1; filter: drop-shadow(0 0 60px var(--acc)); display: inline-block; }
+.lcv .sub { margin: 18px 0 0; font-size: 56px; color: #c9d0f2; font-weight: 600; }
+.lcv .rno { margin: 20px 0 0; font-size: 54px; font-weight: 900; letter-spacing: 18px; color: var(--acc); }
+.lcv h1.rname { margin-top: 0; font-size: 140px; background: linear-gradient(90deg, #fff, var(--acc) 60%, #fff); -webkit-background-clip: text; background-clip: text; }
+.lcv .hot { margin: 70px auto 0; font-size: 34px; color: #9aa3c7; max-width: 1300px; }
+.lcv .hot b { color: #3ee39b; }
+.lcv .story { position: absolute; top: 70px; left: 0; right: 0; text-align: center; font-size: 52px; font-weight: 700; margin: 0; }
+.lcv .story b, .lcv .hl { color: var(--acc); }
+
+/* Video mở đầu */
+.lcv .phone { position: absolute; left: 250px; top: 70px; width: 760px; height: 940px; border-radius: 56px; padding: 26px;
+  background: #0e1326; border: 3px solid rgba(160,180,255,.25); box-shadow: 0 40px 120px rgba(0,0,0,.6), inset 0 0 0 10px #05070f; overflow: hidden; }
+.lcv .post { background: #161c34; border-radius: 28px; padding: 26px 28px 18px; }
+.lcv .post-head { display: flex; gap: 16px; align-items: center; }
+.lcv .post-head .page-ico { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #ff4b5c, #ff9a3c); display: grid; place-items: center; font-size: 32px; }
+.lcv .post-head b { font-size: 28px; display: block; }
+.lcv .post-head small { font-size: 22px; color: #9aa3c7; }
+.lcv .post-text { font-size: 27px; line-height: 1.4; margin: 18px 0; min-height: 152px; }
+.lcv .post-img { position: relative; height: 150px; border-radius: 18px; background: repeating-linear-gradient(0deg, #e9edf7 0 28px, #d9dff0 28px 30px); color: #24305a;
+  display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; }
+.lcv .post-img span { font-weight: 800; font-size: 24px; letter-spacing: 2px; }
+.lcv .post-img b { font-size: 54px; color: #d63b5c; }
+.lcv .stamp { position: absolute; padding: 8px 26px; border: 6px solid #ff2a4f; color: #ff2a4f; font-weight: 900; font-size: 44px; border-radius: 12px; background: rgba(255,255,255,.85); font-style: normal; white-space: nowrap; }
+.lcv .post-stats { display: flex; justify-content: space-between; font-size: 23px; color: #9aa3c7; margin-top: 14px; }
+.lcv .post-stats b { color: #fff; }
+.lcv .cmts { position: relative; height: 470px; margin-top: 20px; overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 60px); mask-image: linear-gradient(to bottom, transparent 0, #000 60px); }
+.lcv .cmt { position: absolute; left: 0; right: 0; display: flex; gap: 14px; align-items: flex-start; }
+.lcv .cav { flex: 0 0 56px; height: 56px; border-radius: 50%; overflow: hidden; }
+.lcv .cav svg, .lcv .av svg { width: 100%; height: 100%; display: block; }
+.lcv .bub { background: #222a48; border-radius: 22px; padding: 12px 18px; font-size: 24px; line-height: 1.35; }
+.lcv .bub b { display: block; font-size: 20px; color: #ff8fb1; }
+.lcv .victim { position: absolute; right: 260px; top: 170px; width: 560px; text-align: center; }
+.lcv .victim .av { width: 300px; height: 300px; margin: 0 auto 20px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 8px rgba(255,255,255,.08), 0 0 90px rgba(255,77,141,.35); }
+.lcv .victim > b { font-size: 54px; display: block; }
+.lcv .victim > small { font-size: 28px; color: #9aa3c7; }
+.lcv .hp { margin-top: 40px; display: grid; grid-template-columns: auto 1fr auto; gap: 18px; align-items: center; font-size: 28px; }
+.lcv .hp span { color: #9aa3c7; }
+.lcv .hp .bar { height: 26px; border-radius: 13px; background: rgba(255,255,255,.1); overflow: hidden; }
+.lcv .hp .bar i { display: block; height: 100%; width: 100%; border-radius: 13px; }
+.lcv .hp em { font-style: normal; font-weight: 800; font-size: 40px; min-width: 110px; text-align: right; }
+.lcv .cap { position: absolute; right: 80px; bottom: 120px; width: 790px; font-size: 40px; line-height: 1.4; font-weight: 600; padding: 28px 36px; border-radius: 26px; background: rgba(10,14,30,.88); border-left: 8px solid #ff4d8d; }
+.lcv .big-line { text-align: center; }
+.lcv .big-line p { margin: 0 0 34px; font-size: 92px; font-weight: 800; }
+.lcv .big-line p.small { font-size: 44px; font-weight: 500; color: #c9d0f2; margin-top: 50px; }
+.lcv .send { display: inline-block; padding: 6px 40px; border-radius: 60px; background: linear-gradient(90deg, #4f8cff, #a77bff); color: #fff; }
+.lcv .cards3 { display: flex; gap: 50px; }
+.lcv .card { width: 480px; padding: 50px 40px; border-radius: 36px; text-align: center; background: rgba(20,26,46,.85); border-top: 10px solid var(--c); }
+.lcv .card i { font-style: normal; font-size: 100px; display: block; }
+.lcv .card b { display: block; font-size: 60px; color: var(--c); margin: 16px 0; }
+.lcv .card span { font-size: 32px; color: #c9d0f2; line-height: 1.4; }
+.lcv .foot { margin-top: 70px; font-size: 38px; color: #c9d0f2; }
+.lcv .foot b { color: #ffcf4a; }
+.lcv .rounds { display: flex; gap: 40px; }
+.lcv .round { width: 520px; padding: 40px; border-radius: 32px; background: rgba(20,26,46,.85); border: 2px solid rgba(140,160,255,.16); border-top: 10px solid var(--c); }
+.lcv .round em { font-style: normal; font-weight: 800; font-size: 28px; letter-spacing: 3px; color: var(--c); }
+.lcv .round b { display: block; font-size: 52px; margin: 12px 0; }
+.lcv .round span { font-size: 30px; color: #c9d0f2; }
+.lcv .howto { display: flex; gap: 22px; margin-top: 70px; }
+.lcv .howto div { white-space: nowrap; font-size: 30px; padding: 20px 28px; border-radius: 22px; background: rgba(255,255,255,.06); }
+.lcv .howto i { font-style: normal; margin-right: 12px; }
+.lcv .howto b { color: #ff8fbd; }
+.lcv .count-wrap { text-align: center; }
+.lcv .count-wrap p { font-size: 64px; font-weight: 700; margin: 0; }
+.lcv .count-wrap p.small { font-size: 46px; font-weight: 500; color: #c9d0f2; max-width: 1500px; line-height: 1.4; }
+.lcv .count { font-size: 380px; font-weight: 900; line-height: 1.15; color: #fff; text-shadow: 0 0 80px rgba(79,140,255,.8); }
+
+/* Nhiệm vụ + đếm ngược (cuối mỗi video màn) */
+.lcv .task { text-align: center; }
+.lcv .tk-h { margin: 0 0 30px; font-size: 44px; font-weight: 900; letter-spacing: 14px; color: var(--acc); }
+.lcv .tk-l { margin: 0 0 26px; font-size: 52px; font-weight: 600; }
+.lcv .tk-l b { color: var(--acc); }
+.lcv .tk-l b.g { color: #3ee39b; } .lcv .tk-l b.r { color: #ff4b5c; } .lcv .tk-l b.y { color: #ffcf4a; } .lcv .tk-l b.p { color: #ff8fb1; }
+.lcv .cd { margin-top: 40px; height: 260px; font-size: 230px; line-height: 260px; font-weight: 900; color: #fff; text-shadow: 0 0 70px var(--acc); opacity: 0; }
+
+/* Màn 1: dòng bình luận + kính lúp */
+.lcv .feed { position: relative; width: 1240px; margin-top: 90px; display: flex; flex-direction: column; gap: 26px; }
+.lcv .fcard { position: relative; display: flex; gap: 22px; align-items: center; padding: 24px 30px; border-radius: 26px; background: rgba(10,30,44,.9); border: 2px solid rgba(56,217,255,.2); }
+.lcv .fcard .cav { flex-basis: 76px; height: 76px; }
+.lcv .fcard p { margin: 0; font-size: 34px; line-height: 1.35; padding-right: 300px; }
+.lcv .fcard p b { display: block; font-size: 26px; color: var(--acc); }
+.lcv .fcard .stamp { right: 30px; top: 50%; margin-top: -40px; font-size: 36px; }
+.lcv .fcard .stamp.ok { color: #12a66a; border-color: #12a66a; }
+.lcv .lens { position: absolute; left: 0; top: 0; width: 220px; height: 220px; border-radius: 50%; opacity: 0;
+  border: 10px solid #cfefff; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.35), rgba(56,217,255,.08) 60%); box-shadow: 0 0 60px rgba(56,217,255,.7), inset 0 0 40px rgba(56,217,255,.4); }
+.lcv .lens span { position: absolute; right: -60px; bottom: -60px; font-size: 90px; }
+.lcv .vs { display: flex; gap: 60px; }
+.lcv .vcol { width: 640px; padding: 46px; border-radius: 34px; background: rgba(10,22,34,.9); border-top: 12px solid var(--c); display: flex; flex-direction: column; gap: 18px; }
+.lcv .vcol b { font-size: 56px; color: var(--c); margin-bottom: 10px; }
+.lcv .vcol span { font-size: 38px; color: #d7e6f2; }
+.lcv .vcol span::before { content: '• '; color: var(--c); }
+
+/* Màn 2: bão bình luận */
+.lcv .storm span { position: absolute; left: 0; top: 0; padding: 12px 24px; border-radius: 20px; font-size: 34px; font-weight: 700; white-space: nowrap;
+  background: rgba(40,20,90,.85); border: 2px solid rgba(255,207,74,.35); color: #fff; opacity: 0; }
+.lcv .buzz { position: absolute; left: 50%; top: 50%; width: 360px; height: 360px; margin: -150px 0 0 -180px; }
+.lcv .buzz .av { width: 360px; height: 360px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 10px rgba(255,207,74,.25), 0 0 120px rgba(255,207,74,.35); }
+.lcv .buzz .badge { position: absolute; right: -20px; top: -10px; min-width: 120px; height: 90px; padding: 0 20px; border-radius: 45px; background: #ff3b4f; font-size: 54px; font-weight: 900; text-align: center; line-height: 90px; box-shadow: 0 10px 40px rgba(255,59,79,.6); }
+.lcv .skills { display: flex; gap: 34px; }
+.lcv .skill { width: 400px; padding: 40px 30px; border-radius: 30px; text-align: center; background: rgba(30,16,70,.9); border: 3px solid rgba(255,207,74,.45); }
+.lcv .skill i { font-style: normal; font-size: 96px; display: block; }
+.lcv .skill b { display: block; font-size: 44px; color: var(--acc); margin: 14px 0; }
+.lcv .skill span { font-size: 28px; color: #d9d2f5; line-height: 1.35; }
+
+/* Màn 3: nhóm chat + người chứng kiến */
+.lcv .chat { width: 1100px; margin-top: 110px; padding: 34px; border-radius: 34px; background: rgba(40,16,28,.9); border: 2px solid rgba(255,143,177,.3); }
+.lcv .ch-head { font-size: 30px; color: #ffcfdc; margin-bottom: 22px; }
+.lcv .msg { display: flex; gap: 18px; align-items: flex-start; margin-bottom: 18px; }
+.lcv .msg .cav { flex-basis: 64px; height: 64px; }
+.lcv .msg p { margin: 0; padding: 14px 22px; border-radius: 22px; background: rgba(255,255,255,.08); font-size: 34px; }
+.lcv .msg p b { display: block; font-size: 24px; color: #ffb3c8; }
+.lcv .msg.v p { background: rgba(255,143,177,.22); border: 2px solid rgba(255,143,177,.5); }
+.lcv .seen { margin: 10px 0 0; text-align: right; font-size: 28px; color: #c9a8b6; font-style: italic; }
+.lcv .witness { display: flex; align-items: center; gap: 40px; }
+.lcv .witness .av { width: 260px; height: 260px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 10px rgba(255,143,177,.25), 0 0 100px rgba(255,179,71,.4); }
+.lcv .witness p { margin: 0; font-size: 70px; font-weight: 800; }
+.lcv .witness p b { color: var(--acc); }
+.lcv .witness small { display: block; font-size: 36px; font-weight: 500; color: #ffd9c2; }
+.lcv .story2 { font-size: 54px; font-weight: 700; margin: 60px 0 40px; }
+.lcv .story2 b { color: #ffb347; }
+.lcv .ways { display: flex; gap: 36px; }
+.lcv .ways span { font-size: 56px; font-weight: 800; padding: 24px 50px; border-radius: 60px; border: 4px solid var(--c); color: var(--c); background: rgba(0,0,0,.25); }
+
+.lcv .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: rgba(255,255,255,.06); }
+.lcv .progress i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--acc), #ff4d8d); }

@@ -133,3 +133,45 @@
 .pod .pod-res.lose { background: rgba(120, 140, 170, 0.2); color: #c3cbe0; }
 .end-note { margin: 0.6rem auto 0; max-width: 46rem; color: #c9d0e8; font-size: 0.95rem; }
 .lce-btns button.sad { background: linear-gradient(90deg, #4a5878, #2f3a55); }
+
+/* ---------- Video của màn ---------- */
+.story { padding: 0; }
+.story-video { position: absolute; inset: 0; }
+.story-skip { position: absolute; right: 1.2rem; bottom: 1.2rem; z-index: 2; padding: 0.6rem 1.2rem; border-radius: 999px; border: 1px solid rgba(255,255,255,0.25); background: rgba(0,0,0,0.45); color: #fff; font-weight: 700; font-size: 1rem; opacity: 0.75; }
+.story-skip:hover { opacity: 1; }
+
+/* ---------- Giao diện riêng của từng màn (body[data-round]) ---------- */
+.round-fx { position: fixed; inset: 0; z-index: 0; pointer-events: none; display: none; overflow: hidden; }
+body[data-round] .round-fx { display: block; }
+.round-fx b { position: absolute; right: -3vw; bottom: -8vh; font-size: 42vh; line-height: 1; opacity: 0.08; }
+body[data-round] .q-badge { background: var(--rc); color: #0a0a16; font-size: 1.35rem; font-weight: 900; letter-spacing: 0.04em; padding: 0.45rem 1.1rem; box-shadow: 0 0 1.6rem color-mix(in srgb, var(--rc) 55%, transparent); }
+body[data-round] .panel { border-color: color-mix(in srgb, var(--rc) 30%, transparent); }
+body[data-round] .a-top { border-bottom: 0.2rem solid var(--rc); }
+body[data-round] .q-prompt { color: color-mix(in srgb, var(--rc) 35%, #fff); }
+
+/* Màn 1 · Soi Bóng Tối: xanh lạnh, đèn soi, vạch quét */
+body[data-round="1"] { --rc: #38d9ff; background: radial-gradient(1200px 800px at 15% 0%, #0b2a3a 0%, transparent 60%), radial-gradient(1000px 700px at 100% 100%, #04121c 0%, transparent 55%), #02070c; }
+body[data-round="1"] .bg-blobs i:nth-child(1) { background: #1aa7d6; }
+body[data-round="1"] .bg-blobs i:nth-child(2) { background: #0d3b66; }
+body[data-round="1"] .round-fx { background: repeating-linear-gradient(0deg, rgba(56,217,255,0.045) 0 2px, transparent 2px 6px), radial-gradient(70vw 70vh at 50% 45%, transparent 40%, rgba(0,0,0,0.6) 100%); }
+body[data-round="1"] .round-fx::after { content: ''; position: absolute; width: 40vw; height: 40vw; border-radius: 50%; background: radial-gradient(circle, rgba(56,217,255,0.12), transparent 65%); animation: r1spot 9s ease-in-out infinite alternate; }
+@keyframes r1spot { from { transform: translate(5vw, 5vh); } to { transform: translate(55vw, 40vh); } }
+body[data-round="1"] .q-card { border-left: 0.45rem solid #38d9ff; background: rgba(6, 28, 40, 0.9); }
+
+/* Màn 2 · Cơn Bão Bình Luận: tím bão, mưa xiên, chớp sét */
+body[data-round="2"] { --rc: #ffcf4a; background: radial-gradient(1200px 800px at 15% 0%, #2a1060 0%, transparent 60%), radial-gradient(1000px 700px at 100% 100%, #120830 0%, transparent 55%), #07041a; }
+body[data-round="2"] .bg-blobs i:nth-child(1) { background: #6a2bff; }
+body[data-round="2"] .bg-blobs i:nth-child(2) { background: #3b1a7a; }
+body[data-round="2"] .round-fx { background: repeating-linear-gradient(105deg, rgba(200,210,255,0.07) 0 2px, transparent 2px 38px); background-size: 200% 200%; animation: r2rain 0.6s linear infinite; }
+body[data-round="2"] .round-fx::after { content: ''; position: absolute; inset: 0; background: #e9e4ff; opacity: 0; animation: r2bolt 7s infinite; }
+@keyframes r2rain { from { background-position: 0 0; } to { background-position: -40px 120px; } }
+@keyframes r2bolt { 0%, 91%, 94%, 100% { opacity: 0; } 92% { opacity: 0.18; } 95% { opacity: 0.1; } }
+body[data-round="2"] .q-card { border: 0.15rem solid #ffcf4a; background: rgba(30, 14, 70, 0.92); box-shadow: 0 0 2rem rgba(255,207,74,0.2); }
+
+/* Màn 3 · 5 Giây Đảo Ngược: hồng cam ấm, như hoàng hôn */
+body[data-round="3"] { --rc: #ff8fb1; background: radial-gradient(1200px 800px at 15% 0%, #5a2440 0%, transparent 60%), radial-gradient(1000px 700px at 100% 100%, #5a3010 0%, transparent 55%), #1c0c16; }
+body[data-round="3"] .bg-blobs i:nth-child(1) { background: #ff6f91; }
+body[data-round="3"] .bg-blobs i:nth-child(2) { background: #ffb347; }
+body[data-round="3"] .round-fx { background: radial-gradient(80vw 40vh at 50% 110%, rgba(255,179,71,0.25), transparent 70%); animation: r3glow 5s ease-in-out infinite alternate; }
+@keyframes r3glow { from { opacity: 0.7; } to { opacity: 1; } }
+body[data-round="3"] .q-chat { background: rgba(48, 18, 34, 0.92); border: 0.12rem solid rgba(255,143,177,0.45); }

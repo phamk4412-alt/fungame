@@ -1,6 +1,7 @@
 // Ghi video mở đầu Lá Chắn Ngôn Từ thành MP4 (1920×1080, 30 khung/giây, có nhạc nền).
 // Cần: Playwright (chromium) và ffmpeg.
-//   node tools/lachan-intro-video.js [ra.mp4] [--fps 30] [--frames 2.5,12,40]  (--frames: chỉ chụp ảnh PNG các giây đó)
+//   node tools/lachan-intro-video.js [ra.mp4] [--video intro|r1|r2|r3] [--fps 30] [--frames 2.5,12,40]
+//   (--video: video mở đầu hoặc video trước Màn 1/2/3; --frames: chỉ chụp ảnh PNG các giây đó)
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -11,7 +12,7 @@ const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] :
 const out = path.resolve(args.find((a) => a.endsWith('.mp4')) || 'la-chan-ngon-tu-mo-dau.mp4');
 const fps = Number(opt('--fps', 30));
 const frames = opt('--frames', null);
-const page = 'file://' + path.resolve(__dirname, '../public/lachan/intro.html');
+const page = 'file://' + path.resolve(__dirname, '../public/lachan/intro.html') + '?v=' + opt('--video', 'intro');
 
 (async () => {
   const browser = await chromium.launch();

@@ -8,9 +8,11 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="arena.css" />
   <link rel="stylesheet" href="ending.css" />
+  <link rel="stylesheet" href="video.css" />
 </head>
 <body>
   <div class="bg-blobs" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="round-fx" aria-hidden="true"><b id="roundMark"></b></div>
   <div id="flash" class="flash" aria-hidden="true"></div>
 
   <header class="a-top">
@@ -90,6 +92,12 @@
     </aside>
   </main>
 
+  <!-- Video của màn (chiếu trước câu đầu của mỗi màn) -->
+  <main class="a-screen story" id="story">
+    <div class="story-video" id="storyVideo"></div>
+    <button class="story-skip" id="storySkip">Bỏ qua video, vào chơi ▶ <kbd>Space</kbd></button>
+  </main>
+
   <!-- Kết thúc khi thắng -->
   <main class="a-screen final" id="final">
     <section class="panel final-card" id="finalCard"></section>
@@ -106,6 +114,7 @@
   <script src="vendor/qrcode.js"></script>
   <script src="ending.js"></script>
   <script type="module" src="ending3d.js"></script>
+  <script src="video.js"></script>
   <script src="arena-host.js"></script>
 </body>
 </html>
