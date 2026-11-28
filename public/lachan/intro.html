@@ -3,108 +3,70 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Lá Chắn Ngôn Từ · Video mở đầu</title>
+  <title>Lá Chắn Ngôn Từ · Video</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
-  <link rel="stylesheet" href="intro.css" />
+  <link rel="stylesheet" href="video.css" />
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #03050c; color: #eef1ff; font-family: "Segoe UI", "Be Vietnam Pro", Roboto, Arial, sans-serif; }
+    #screen { position: fixed; inset: 0; }
+    #ui { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: rgba(3,5,12,.93); z-index: 5; }
+    #ui.hide { display: none; }
+    #playBtn { font: inherit; font-size: 30px; font-weight: 800; padding: 22px 54px; border: 0; border-radius: 60px; color: #fff; cursor: pointer; background: linear-gradient(90deg, #ff4d8d, #a77bff); box-shadow: 0 10px 40px rgba(255,77,141,.4); }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+    .row a { color: #c9d0f2; text-decoration: none; padding: 10px 20px; border-radius: 30px; border: 1px solid rgba(255,255,255,.2); }
+    .row a.on { border-color: #ff8fbd; color: #fff; }
+    #ui small { color: #9aa3c7; }
+    body.rec #ui, body.rec .progress { display: none !important; }
+  </style>
 </head>
 <body>
-  <!-- Sân khấu cố định 1920×1080, co giãn vừa màn hình. Mọi chuyển động do intro.js tính theo thời gian t (giây). -->
-  <div id="stage">
-    <div class="bg"><i class="b1"></i><i class="b2"></i><i class="b3"></i></div>
-
-    <!-- 1. Tựa đề -->
-    <section class="sc" data-from="0" data-to="5.6">
-      <div class="title-wrap">
-        <div class="a pop shield" data-in="0.4">🛡️</div>
-        <h1 class="a up" data-in="1.0" id="tTitle">LÁ CHẮN NGÔN TỪ</h1>
-        <p class="a up sub" data-in="1.8" id="tSub">5 giây trước nút Gửi</p>
-      </div>
-    </section>
-
-    <!-- 2. Bài bóc phốt và cơn mưa bình luận -->
-    <section class="sc" data-from="5.6" data-to="21">
-      <div class="phone a up" data-in="5.9">
-        <div class="post">
-          <div class="post-head"><span class="page-ico">📢</span><div><b>Tin Nóng Sinh Viên</b><small>2 giờ · 🌐 Công khai</small></div></div>
-          <p class="post-text" id="postText"></p>
-          <div class="post-img"><span>BẢNG ĐIỂM GIỮA KỲ</span><b>5.0 → 9.5</b><em class="a stamp" data-in="17.6">ẢNH CẮT GHÉP</em></div>
-          <div class="post-stats"><span>👍😡😂 <b id="cReact">0</b></span><span><b id="cCmt">0</b> bình luận · <b id="cShare">0</b> chia sẻ</span></div>
-        </div>
-        <div class="cmts" id="cmts"></div>
-      </div>
-      <div class="victim a up" data-in="7.2">
-        <div class="av" id="victimAv"></div>
-        <b>Minh Anh</b><small>Sinh viên năm 2</small>
-        <div class="hp"><span>Tinh thần</span><div class="bar"><i id="hpFill"></i></div><em id="hpNum">100%</em></div>
-      </div>
-      <div class="cap a up" data-in="17.8" data-out="21">Bảng điểm là <b class="pink">ảnh cắt ghép</b>. Minh Anh không gian lận.<br>Nhưng <b id="capCount">1.900</b> bình luận thì là thật.</div>
-    </section>
-
-    <!-- 3. Bạo lực mạng không cần nắm đấm -->
-    <section class="sc" data-from="21" data-to="30.5">
-      <div class="big-line">
-        <p class="a up" data-in="21.4">Bạo lực mạng không cần nắm đấm.</p>
-        <p class="a up pink" data-in="23.4">Chỉ cần một cú nhấn <span class="send">Gửi ➤</span></p>
-        <p class="a up small" data-in="26.2">Người viết quên ngay sau vài giây. Người đọc có thể mang theo rất lâu.</p>
-      </div>
-    </section>
-
-    <!-- 4. Trò chơi này để làm gì -->
-    <section class="sc" data-from="30.5" data-to="44.5">
-      <h2 class="a up" data-in="30.8">Trò chơi này để làm gì?</h2>
-      <div class="goals">
-        <div class="goal a pop" data-in="32.4" style="--c:#4f8cff"><i>🔍</i><b>Nhận ra</b><span>Phân biệt góp ý xây dựng và bạo lực mạng</span></div>
-        <div class="goal a pop" data-in="34.4" style="--c:#ffcf4a"><i>🛡️</i><b>Tự vệ</b><span>Biết lưu bằng chứng, chặn, khóa bình luận, tìm người giúp</span></div>
-        <div class="goal a pop" data-in="36.4" style="--c:#3ee39b"><i>💬</i><b>Lên tiếng</b><span>Chọn lời nói đồng cảm khi thấy bạn mình bị tấn công</span></div>
-      </div>
-      <p class="a up foot" data-in="39.4">Không có ai bị chấm là “người xấu” ở đây. Chúng ta chỉ tập <b>dừng lại 5 giây</b> trước khi viết.</p>
-    </section>
-
-    <!-- 5. Cách chơi -->
-    <section class="sc" data-from="44.5" data-to="60.5">
-      <h2 class="a up" data-in="44.8">Cách chơi</h2>
-      <div class="rounds" id="rounds"></div>
-      <div class="howto a up" data-in="53.6">
-        <div><i>📱</i>Quét mã QR trên màn hình</div>
-        <div><i>👥</i>Vào một đội, trả lời thật nhanh</div>
-        <div><i>💗</i>Cả lớp cùng giữ <b>Tinh thần</b> của Minh Anh trên <b>50%</b></div>
-      </div>
-    </section>
-
-    <!-- 6. Đếm ngược 5 giây -->
-    <section class="sc" data-from="60.5" data-to="71">
-      <div class="count-wrap">
-        <p class="a up" data-in="60.8">Trước khi nhấn Gửi, hãy dừng lại</p>
-        <div class="count" id="count">5</div>
-        <p class="a up small" data-in="66.4" id="finalMsg"></p>
-      </div>
-    </section>
-
-    <!-- 7. Vào chơi -->
-    <section class="sc" data-from="71" data-to="99">
-      <div class="title-wrap">
-        <div class="a pop shield" data-in="71.3">🛡️</div>
-        <h1 class="a up" data-in="71.8">Sẵn sàng chưa?</h1>
-        <p class="a up sub" data-in="72.6">Cầm điện thoại lên. Cả lớp là lá chắn của Minh Anh.</p>
-        <p class="a up hot" data-in="74">Nếu bạn đang bị bắt nạt trên mạng: kể với người bạn tin, hoặc gọi <b>111</b> (miễn phí, 24/7).</p>
-      </div>
-    </section>
-
-    <div class="progress"><i id="prog"></i></div>
-  </div>
-
-  <!-- Lớp điều khiển (ẩn khi ghi hình) -->
+  <div id="screen"></div>
   <div id="ui">
-    <button id="playBtn">▶ Phát video mở đầu</button>
-    <div class="ui-row">
-      <a href="index.html">⌂ Chơi trên máy chiếu</a>
-      <a href="arena.html">👥 Mở Đấu Trường</a>
-    </div>
+    <button id="playBtn">▶ Phát video</button>
+    <div class="row" id="pick"></div>
+    <div class="row"><a href="index.html">⌂ Chơi trên máy chiếu</a><a href="arena.html">👥 Mở Đấu Trường</a></div>
     <small>Phím: Space tạm dừng · ← → tua 5 giây · M tắt tiếng · F toàn màn hình</small>
   </div>
-
   <script src="data.js"></script>
   <script src="avatar.js"></script>
-  <script src="intro.js"></script>
+  <script src="video.js"></script>
+  <script>
+  // Trang xem riêng từng video: intro.html (mở đầu), intro.html?v=r1 | r2 | r3 (video trước mỗi màn).
+  (function () {
+    'use strict';
+    const $ = (id) => document.getElementById(id);
+    const q = new URLSearchParams(location.search);
+    const id = LCVideo.ids.includes(q.get('v')) ? q.get('v') : 'intro';
+    const T = LCVideo.THEMES;
+    const NAMES = { intro: '🎬 Mở đầu', r1: `${T[1].icon} Màn 1`, r2: `${T[2].icon} Màn 2`, r3: `${T[3].icon} Màn 3` };
+    $('pick').innerHTML = LCVideo.ids.map((k) => `<a href="?v=${k}" class="${k === id ? 'on' : ''}">${NAMES[k]}</a>`).join('');
+    $('playBtn').textContent = '▶ Phát video ' + (id === 'intro' ? 'mở đầu' : NAMES[id].slice(NAMES[id].indexOf(' ') + 1) + ' · ' + T[id[1]].name);
+    const v = LCVideo.create($('screen'), id, {
+      onEnd() {
+        // Xem hết video mở đầu thì vào thẳng Đấu Trường (cùng tab: MC quay lại đúng phòng cũ)
+        if (id === 'intro') { $('playBtn').textContent = '👥 Đang vào Đấu Trường…'; $('ui').classList.remove('hide'); setTimeout(() => { location.href = 'arena.html'; }, 1200); }
+        else { $('playBtn').textContent = '↺ Xem lại'; $('ui').classList.remove('hide'); }
+      },
+    });
+    v.seek(2.6);
+    let muted = false;
+    const play = () => { $('ui').classList.add('hide'); if (v.time >= v.duration - 0.01 || v.time === 2.6) v.seek(0); v.play(); };
+    $('playBtn').onclick = play;
+    $('screen').onclick = () => (v.playing ? v.pause() : play());
+    addEventListener('keydown', (e) => {
+      if (e.code === 'Space') { e.preventDefault(); if (v.playing) v.pause(); else { $('ui').classList.add('hide'); v.play(); } }
+      else if (e.key === 'ArrowRight') v.seek(v.time + 5);
+      else if (e.key === 'ArrowLeft') v.seek(v.time - 5);
+      else if (e.key === 'm' || e.key === 'M') { muted = !muted; v.setMuted(muted); }
+      else if (e.key === 'f' || e.key === 'F') { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); }
+    });
+    // Móc cho công cụ ghi MP4 (tools/lachan-intro-video.js)
+    window.__intro = {
+      duration: v.duration,
+      seek(s) { document.body.classList.add('rec'); v.pause(); v.seek(s); },
+      renderAudio: () => v.renderAudio(),
+    };
+  })();
+  </script>
 </body>
 </html>

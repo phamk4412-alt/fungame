@@ -89,7 +89,9 @@ Gameshow chống bạo lực mạng cho sân khấu: laptop nối máy chiếu, 
 
 Mở `/lachan/intro.html` (hoặc bấm **🎬 VIDEO MỞ ĐẦU** ở màn hình chính, hay nút cùng tên ở phòng chờ Đấu Trường) để chiếu video 80 giây trước khi chơi. Xem hết video sẽ tự vào thẳng Đấu Trường (mở từ phòng chờ thì quay lại đúng phòng cũ, mã phòng giữ nguyên). Video gồm: vụ "bóc phốt" sai sự thật, cơn mưa bình luận làm Tinh thần của Minh Anh tụt, rồi trò chơi này để làm gì (Nhận ra, Tự vệ, Lên tiếng), cách chơi ba màn và đếm ngược 5 giây. Space tạm dừng, ← → tua 5 giây, M tắt tiếng, F toàn màn hình. Nội dung chữ lấy từ `data.json`.
 
-Xuất thành file MP4 (1920×1080, có nhạc nền) để gửi trước hoặc chiếu không cần mạng: `node tools/lachan-intro-video.js la-chan-ngon-tu-mo-dau.mp4` (cần Playwright và ffmpeg).
+**Video riêng của từng màn:** trong Đấu Trường, câu đầu của mỗi màn mở bằng một video khoảng 30 giây trên máy chiếu (điện thoại hiện "Nhìn lên màn hình lớn"): Màn 1 kính lúp soi từng bình luận, Màn 2 bình luận đổ về như bão kèm 4 kỹ năng, Màn 3 nhóm chat lớp lúc nửa đêm và bạn là Hoàng Nam. Hết video tự vào câu hỏi; MC bấm Space để bỏ qua. Tắt bằng `settings.arena.roundVideos: false`. Xem riêng: `intro.html?v=r1` (r2, r3). Mỗi màn có giao diện riêng trên cả máy chiếu và điện thoại: Màn 1 xanh lạnh như đèn soi 🔍, Màn 2 tím bão có mưa và chớp ⛈️, Màn 3 hồng cam hoàng hôn ⏪.
+
+Xuất thành file MP4 (1920×1080, có nhạc nền) để gửi trước hoặc chiếu không cần mạng: `node tools/lachan-intro-video.js la-chan-ngon-tu-mo-dau.mp4` (thêm `--video r1|r2|r3` cho video từng màn; cần Playwright và ffmpeg).
 
 ### Đấu Trường (cả lớp chơi bằng điện thoại)
 

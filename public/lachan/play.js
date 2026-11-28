@@ -4,6 +4,8 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const TEAM_COLORS = ['#4f8cff', '#ff4b5c', '#ffcf4a', '#b07cff'];
+  // Biểu tượng + màu riêng của từng màn (khớp video.js trên máy chiếu)
+  const ROUND_ICONS = { 1: '🔍', 2: '⛈️', 3: '⏪' };
   const OPTS = [{ c: '#e8475f', s: '▲' }, { c: '#2f7bff', s: '◆' }, { c: '#d99a00', s: '●' }, { c: '#1fa463', s: '■' }];
 
   const store = {
@@ -73,6 +75,8 @@
     const key = `${s.phase}:${s.qIndex}:${me.answer}:${me.team}`;
     if (key === shownKey && s.phase !== 'question') return;
     shownKey = key;
+    if (s.phase === 'lobby' || s.phase === 'end' || !s.round) delete document.body.dataset.round;
+    else document.body.dataset.round = s.round;
     if (s.phase !== 'end' && ending) {
       ending.stop();
       ending = null;
@@ -84,6 +88,14 @@
       $('waitTitle').textContent = 'Đã vào phòng!';
       $('waitText').innerHTML = `Bạn ở <b style="color:${TEAM_COLORS[me.team]}">${esc(D.teams[me.team])}</b>. Nhìn lên màn hình lớn và chờ MC bắt đầu. Có thể đổi đội:`;
       teamButtons($('teamSwitch'), me.team, false);
+    } else if (s.phase === 'story') {
+      // Máy chiếu đang chiếu video của màn
+      view('vStory');
+      const r = D['round' + s.round];
+      $('stIcon').textContent = ROUND_ICONS[s.round];
+      $('stNo').textContent = 'MÀN ' + s.round;
+      $('stName').textContent = r.name;
+      $('stGoal').textContent = r.goal;
     } else if (s.phase === 'question') {
       deadline = performance.now() + s.endsIn;
       if (me.answer == null) {
@@ -159,7 +171,7 @@
   function showQuestion(s) {
     view('vQ');
     const q = s.question;
-    $('qBadge').textContent = `Màn ${q.round} · Câu ${s.qIndex + 1}/${s.total}`;
+    $('qBadge').textContent = `${ROUND_ICONS[q.round]} Màn ${q.round} · ${D['round' + q.round].name} · Câu ${s.qIndex + 1}/${s.total}`;
     $('qPrompt').textContent = q.prompt;
     const quote = q.card ? q.card.author + ': "' + q.card.text + '"' : '';
     $('qQuote').textContent = quote;

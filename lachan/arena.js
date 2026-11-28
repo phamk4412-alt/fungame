@@ -23,7 +23,7 @@ class Arena {
   reset() {
     const seed = this.seed != null ? this.seed : Math.floor(Math.random() * 0xffffffff);
     this.questions = AR.buildQuestions(this.D, seed);
-    this.phase = 'lobby'; // lobby | question | reveal | end
+    this.phase = 'lobby'; // lobby | story | question | reveal | end
     this.qIndex = -1;
     this.startedAt = 0;
     this.deadline = 0;
@@ -95,8 +95,22 @@ class Arena {
     this.openQuestion(0);
   }
 
+  /**
+   * Sang câu i. Câu đầu của mỗi màn mở pha 'story': máy chiếu chiếu video của màn,
+   * điện thoại chờ; MC (hoặc video tự hết) bấm tiếp mới bắt đầu tính giờ.
+   */
   openQuestion(i) {
+    const prev = this.questions[i - 1];
     this.qIndex = i;
+    if (this.cfg.roundVideos !== false && (!prev || prev.round !== this.questions[i].round)) {
+      this.phase = 'story';
+      for (const p of this.players.values()) p.lastPoints = 0;
+      return;
+    }
+    this.beginQuestion();
+  }
+
+  beginQuestion() {
     this.phase = 'question';
     this.startedAt = this.now();
     this.deadline = this.startedAt + this.cfg.secondsPerQuestion * 1000;
@@ -147,6 +161,7 @@ class Arena {
 
   /** MC bấm tiếp: câu sau, hoặc kết thúc khi hết câu / Tinh thần về 0. */
   next() {
+    if (this.phase === 'story') { this.beginQuestion(); return; }
     if (this.phase === 'question') { this.reveal(); return; }
     if (this.phase !== 'reveal') return;
     // Kết thúc sớm khi mọi đội đang chơi đều đã để Tinh thần về 0
@@ -213,7 +228,9 @@ class Arena {
       total: this.questions.length,
       endsIn: this.phase === 'question' ? Math.max(0, this.deadline - this.now()) : 0,
       seconds: this.cfg.secondsPerQuestion,
-      question: this.publicQuestion(showAnswer),
+      round: this.question ? this.question.round : null,
+      // Trong lúc chiếu video của màn, chưa gửi câu hỏi
+      question: this.phase === 'story' ? null : this.publicQuestion(showAnswer),
       hp: this.hp,
       hpDelta: showAnswer ? this.lastHpDelta : 0,
       winHp: this.D.settings.winHp,

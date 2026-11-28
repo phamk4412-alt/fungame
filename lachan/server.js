@@ -108,7 +108,11 @@ function handle(ws, msg) {
   const a = room.arena;
   if (msg.type === 'lc:cmd' && ws.lcRole === 'host') {
     if (msg.cmd === 'start') a.start();
-    else if (msg.cmd === 'next') a.next();
+    else if (msg.cmd === 'next') {
+      // Bấm tiếp hai lần cùng lúc (video vừa hết + MC bấm Space) chỉ được tính một lần
+      if ((msg.from && msg.from !== a.phase) || (msg.q != null && Number(msg.q) !== a.qIndex)) return;
+      a.next();
+    }
     else if (msg.cmd === 'reset') a.reset();
     else if (msg.cmd === 'kick') {
       const id = String(msg.id || '');

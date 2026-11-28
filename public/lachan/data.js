@@ -48,7 +48,8 @@ window.LCNT_DATA = {
       "hitHp": 4,
       "missHp": -16,
       "timeoutHp": -10,
-      "maxPlayers": 200
+      "maxPlayers": 200,
+      "roundVideos": true
     }
   },
   "teams": [

@@ -24,6 +24,12 @@ function makeArena(n) {
   return { a, clock };
 }
 
+/** Bắt đầu và bỏ qua video Màn 1 để vào câu hỏi đầu tiên. */
+function startPlay(a) {
+  a.start();
+  if (a.phase === 'story') a.next();
+}
+
 console.log('Đấu Trường Lá Chắn Ngôn Từ:');
 
 test('bộ câu hỏi có đủ 3 màn và đáp án hợp lệ', () => {
@@ -85,7 +91,7 @@ test('tên trùng được đánh số, phòng chờ mới cho đổi đội', (
 
 test('điện thoại không thấy đáp án trước khi công bố', () => {
   const { a } = makeArena(2);
-  a.start();
+  startPlay(a);
   const s = a.stateForPlayer('p0');
   assert.strictEqual(s.question.answer, undefined);
   assert.strictEqual(s.question.explain, undefined);
@@ -96,7 +102,7 @@ test('điện thoại không thấy đáp án trước khi công bố', () => {
 
 test('mỗi câu chỉ trả lời một lần, mọi người trả lời xong thì tự công bố', () => {
   const { a, clock } = makeArena(2);
-  a.start();
+  startPlay(a);
   const q = a.question;
   clock.t += 2000;
   assert.ok(a.answer('p0', 0, q.answer));
@@ -111,7 +117,7 @@ test('mỗi câu chỉ trả lời một lần, mọi người trả lời xong 
 
 test('hết giờ thì tự công bố, người không trả lời làm Tinh thần tụt', () => {
   const { a, clock } = makeArena(3);
-  a.start();
+  startPlay(a);
   clock.t += C.secondsPerQuestion * 1000 - 1;
   assert.ok(!a.tick());
   clock.t += 1;
@@ -170,9 +176,40 @@ test('mỗi đội có kết riêng: đội trả lời đúng thắng, đội t
   assert.ok(a.qIndex === a.questions.length - 1, 'còn một đội đang giữ được thì chơi tiếp tới câu cuối');
 });
 
+test('đầu mỗi màn có video: chưa lộ câu hỏi, chưa tính giờ, MC bấm tiếp mới bắt đầu', () => {
+  const { a, clock } = makeArena(2);
+  a.start();
+  assert.strictEqual(a.phase, 'story');
+  assert.strictEqual(a.stateForPlayer('p0').round, 1);
+  assert.strictEqual(a.stateForPlayer('p0').question, null);
+  assert.strictEqual(a.stateForHost().question, null);
+  assert.ok(!a.answer('p0', 0, 0), 'không trả lời được khi đang chiếu video');
+  clock.t += 120000;
+  assert.ok(!a.tick(), 'video không có hạn giờ');
+  a.next();
+  assert.strictEqual(a.phase, 'question');
+  assert.strictEqual(a.deadline, clock.t + C.secondsPerQuestion * 1000);
+  const stories = [];
+  while (a.phase !== 'end') {
+    if (a.phase === 'story') stories.push(a.question.round);
+    if (a.phase === 'question') for (const id of a.players.keys()) a.answer(id, a.qIndex, a.question.answer);
+    a.next();
+  }
+  assert.deepStrictEqual(stories, [2, 3], 'Màn 2 và Màn 3 cũng mở bằng video');
+});
+
+test('tắt roundVideos thì vào thẳng câu hỏi', () => {
+  const D2 = JSON.parse(JSON.stringify(D));
+  D2.settings.arena.roundVideos = false;
+  const a = new Arena('T2', D2, { seed: 1 });
+  a.join('x', 'X', null);
+  a.start();
+  assert.strictEqual(a.phase, 'question');
+});
+
 test('chơi lại xóa điểm nhưng giữ người chơi', () => {
   const { a } = makeArena(2);
-  a.start();
+  startPlay(a);
   a.answer('p0', 0, a.question.answer);
   a.reset();
   assert.strictEqual(a.phase, 'lobby');

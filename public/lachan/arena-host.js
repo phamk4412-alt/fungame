@@ -20,6 +20,8 @@
   let lastSec = -1;
   let ending = null;
   let retry = 0;
+  let video = null; // video của màn đang chiếu
+  let videoQ = -1;
 
   // ---------- Kết nối ----------
   function saved() {
@@ -65,7 +67,7 @@
 
   // ---------- Hiển thị ----------
   function screen(id) {
-    ['lobby', 'play', 'final'].forEach((s) => $(s).classList.toggle('on', s === id));
+    ['lobby', 'play', 'story', 'final'].forEach((s) => $(s).classList.toggle('on', s === id));
   }
 
   function moodFor(hp) {
@@ -127,7 +129,7 @@
 
   function buildQuestion(s) {
     const q = s.question;
-    $('qBadge').textContent = `MÀN ${q.round} · ${ROUND_NAMES[q.round]}`;
+    $('qBadge').textContent = `${window.LCVideo.THEMES[q.round].icon} MÀN ${q.round} · ${ROUND_NAMES[q.round]}`;
     $('qCount').textContent = `Câu ${s.qIndex + 1}/${s.total}`;
     $('qPrompt').textContent = q.prompt;
     $('qBody').innerHTML = q.card ? cardHtml(q.card) : chatHtml(q.chat);
@@ -201,13 +203,24 @@
     $('topPeople').textContent = s.players.length;
     const changed = s.phase !== prev.phase || s.qIndex !== prev.qIndex;
     if (s.phase !== 'end' && ending) { ending.stop(); ending = null; }
+    setRound(s.phase === 'lobby' || s.phase === 'end' ? null : s.round);
+    if (s.phase !== 'story') stopVideo();
     if (s.phase === 'lobby') {
       screen('lobby');
       renderLobby(s);
       stopConfetti();
+    } else if (s.phase === 'story') {
+      // Đầu mỗi màn: chiếu video của màn, hết video thì tự vào câu hỏi
+      screen('story');
+      if (!video || videoQ !== s.qIndex) {
+        stopVideo();
+        videoQ = s.qIndex;
+        video = window.LCVideo.create($('storyVideo'), 'r' + s.round, { muted: S.isMuted(), onEnd: () => cmd('next', { from: 'story', q: s.qIndex }) });
+        video.play();
+      }
     } else if (s.phase === 'question' || s.phase === 'reveal') {
       screen('play');
-      if (s.qIndex !== prev.qIndex || prev.phase === 'lobby' || prev.phase === 'end' || prev.phase === null) {
+      if (s.qIndex !== prev.qIndex || prev.phase === 'lobby' || prev.phase === 'end' || prev.phase === 'story' || prev.phase === null) {
         buildQuestion(s);
         S.whoosh();
       }
@@ -234,6 +247,16 @@
       renderEnd(s, 'good');
     }
     prev = { phase: s.phase, qIndex: s.qIndex };
+  }
+
+  function stopVideo() {
+    if (video) { video.stop(); video = null; videoQ = -1; }
+  }
+
+  /** Giao diện riêng của từng màn: màu nền, hiệu ứng, biểu tượng mờ phía sau. */
+  function setRound(r) {
+    if (r) document.body.dataset.round = r; else delete document.body.dataset.round;
+    $('roundMark').textContent = r ? window.LCVideo.THEMES[r].icon : '';
   }
 
   function flash(color) {
@@ -291,14 +314,15 @@
     S.unlock();
     if (!st) return;
     if (st.phase === 'lobby') cmd('start');
-    else if (st.phase === 'question' || st.phase === 'reveal') cmd('next');
+    else if (st.phase === 'story' || st.phase === 'question' || st.phase === 'reveal') cmd('next', { from: st.phase, q: st.qIndex });
     else if (st.phase === 'end' && ending) ending.skip();
   }
 
   function bind() {
     $('startBtn').addEventListener('click', primary);
     $('nextBtn').addEventListener('click', primary);
-    $('muteBtn').addEventListener('click', () => { S.setMuted(!S.isMuted()); $('muteBtn').textContent = S.isMuted() ? '🔇' : '🔊'; });
+    $('storySkip').addEventListener('click', primary);
+    $('muteBtn').addEventListener('click', () => { S.setMuted(!S.isMuted()); $('muteBtn').textContent = S.isMuted() ? '🔇' : '🔊'; if (video) video.setMuted(S.isMuted()); });
     $('fsBtn').addEventListener('click', toggleFs);
     let armed = null;
     $('teamCols').addEventListener('click', (e) => {

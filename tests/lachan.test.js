@@ -73,10 +73,10 @@ assert.deepStrictEqual(copy, D, 'data.js lệch data.json — chạy: node publi
 
 // Video mở đầu: các file tồn tại, và không đưa lên màn chiếu câu đe dọa hay kích động tự hại
 const introHtml = fs.readFileSync(path.join(dir, 'intro.html'), 'utf8');
-for (const f of ['intro.css', 'intro.js', 'data.js', 'avatar.js']) {
+for (const f of ['video.css', 'video.js', 'data.js', 'avatar.js']) {
   assert.ok(introHtml.includes(f) && fs.existsSync(path.join(dir, f)), 'intro.html thiếu ' + f);
 }
-const introJs = fs.readFileSync(path.join(dir, 'intro.js'), 'utf8');
+const introJs = fs.readFileSync(path.join(dir, 'video.js'), 'utf8');
 for (const bad of ['biến khỏi đời', 'tự tử', 'ban công', 'Biết nhà mày', 'số của bố mẹ']) {
   assert.ok(!introJs.includes(bad) && !introHtml.includes(bad), 'Video mở đầu không được có: ' + bad);
 }

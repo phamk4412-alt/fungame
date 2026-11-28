@@ -51,3 +51,20 @@ form input:focus { border-color: #6f93ff; }
 .help .hot { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.6rem; }
 .help .hot a { flex: none; background: var(--green); color: #04281a; font-weight: 900; font-size: 2rem; text-decoration: none; padding: 0.2rem 1rem; border-radius: 0.8rem; }
 .q-quote { margin: -0.3rem 0 0.9rem; padding: 0.7rem 0.9rem; background: var(--panel); border-left: 0.25rem solid #ff4d8d; border-radius: 0.6rem; font-size: 0.95rem; line-height: 1.4; color: #d8dcf2; }
+
+/* Video của màn đang chiếu trên máy chiếu */
+#vStory { text-align: center; padding-top: 3rem; }
+.st-icon { font-size: 5.5rem; line-height: 1; filter: drop-shadow(0 0 1.6rem var(--rc, #ff4d8d)); }
+.st-no { margin: 1rem 0 0; font-weight: 900; letter-spacing: 0.4em; color: var(--rc, #ff4d8d); }
+.st-name { margin: 0.3rem 0 0.4rem; font-size: 2.2rem; }
+.st-goal { margin: 0; color: var(--muted); }
+.st-look { margin: 2rem auto 0; padding: 0.9rem 1rem; border-radius: 1rem; background: rgba(255,255,255,0.06); border: 1px solid color-mix(in srgb, var(--rc, #ff4d8d) 45%, transparent); max-width: 22rem; animation: stPulse 1.6s ease-in-out infinite alternate; }
+@keyframes stPulse { from { opacity: 0.7; } to { opacity: 1; } }
+
+/* Giao diện riêng của từng màn */
+body[data-round] .bar { border-bottom: 0.2rem solid var(--rc); }
+body[data-round] #qBadge { color: var(--rc); font-weight: 800; }
+body[data-round] .q-quote { border-left-color: var(--rc); }
+body[data-round="1"] { --rc: #38d9ff; background: repeating-linear-gradient(0deg, rgba(56,217,255,0.04) 0 2px, transparent 2px 6px), radial-gradient(700px 500px at 20% 0%, #0b2a3a 0%, transparent 60%), #02070c; }
+body[data-round="2"] { --rc: #ffcf4a; background: repeating-linear-gradient(105deg, rgba(200,210,255,0.06) 0 2px, transparent 2px 30px), radial-gradient(700px 500px at 20% 0%, #2a1060 0%, transparent 60%), #07041a; }
+body[data-round="3"] { --rc: #ff8fb1; background: radial-gradient(600px 400px at 50% 105%, rgba(255,179,71,0.3), transparent 70%), radial-gradient(700px 500px at 20% 0%, #5a2440 0%, transparent 60%), #1c0c16; }
