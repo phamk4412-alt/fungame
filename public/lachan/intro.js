@@ -210,9 +210,16 @@
   function loop(now) {
     if (!playing) return;
     t += (now - lastNow) / 1000; lastNow = now;
-    if (t >= DURATION) { t = DURATION; playing = false; stopAudio(); $('ui').classList.remove('hide'); $('playBtn').textContent = '↺ Xem lại'; }
+    if (t >= DURATION) { t = DURATION; playing = false; stopAudio(); goArena(); }
     render(t);
     if (playing) requestAnimationFrame(loop);
+  }
+  // Xem hết video thì vào thẳng Đấu Trường. Cùng một tab nên nếu MC mở video từ phòng chờ,
+  // arena.html tự nối lại đúng phòng cũ (mã phòng lưu trong sessionStorage).
+  function goArena() {
+    $('playBtn').textContent = '👥 Đang vào Đấu Trường…';
+    $('ui').classList.remove('hide');
+    setTimeout(() => { location.href = 'arena.html'; }, 1200);
   }
   function play() { if (t >= DURATION) t = 0; playing = true; lastNow = performance.now(); $('ui').classList.add('hide'); startAudio(); requestAnimationFrame(loop); }
   function pause() { playing = false; stopAudio(); }
