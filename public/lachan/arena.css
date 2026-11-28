@@ -34,6 +34,7 @@
 @keyframes chipIn { from { transform: scale(0.3); opacity: 0; } }
 .lobby-foot { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .lobby-foot p { margin: 0; color: var(--muted); font-size: 1rem; }
+.intro-link { margin-left: 1rem; color: #ff8fbd; text-decoration: none; font-weight: 700; padding: 0.3rem 0.9rem; border: 1px solid rgba(255,143,189,0.4); border-radius: 2rem; }
 
 /* ---------- Câu hỏi ---------- */
 .play { grid-template-columns: 21fr 52fr 27fr; gap: 1rem; padding: 1rem; }
